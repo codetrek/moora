@@ -1,9 +1,9 @@
 # Moorex: Persistent Moore Machines for Agents
 
-[![npm version](https://img.shields.io/npm/v/moorex.svg)](https://www.npmjs.com/package/moorex)
-[![npm downloads](https://img.shields.io/npm/dm/moorex.svg)](https://www.npmjs.com/package/moorex)
-[![test coverage](https://img.shields.io/codecov/c/github/shazhou-ww/moorex)](https://codecov.io/gh/shazhou-ww/moorex)
-[![license](https://img.shields.io/npm/l/moorex.svg)](https://github.com/shazhou-ww/moorex/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@moora/moorex.svg)](https://www.npmjs.com/package/@moora/moorex)
+[![npm downloads](https://img.shields.io/npm/dm/@moora/moorex.svg)](https://www.npmjs.com/package/@moora/moorex)
+[![test coverage](https://img.shields.io/codecov/c/github/shazhou-ww/moora)](https://codecov.io/gh/shazhou-ww/moora)
+[![license](https://img.shields.io/npm/l/@moora/moorex.svg)](https://github.com/shazhou-ww/moora/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
 <div align="center">
@@ -21,17 +21,17 @@ work.
 Install Moorex and its peer dependency:
 
 ```bash
-npm install moorex mutative
+npm install @moora/moorex mutative
 # or
-bun add moorex mutative
+bun add @moora/moorex mutative
 # or
-yarn add moorex mutative
+yarn add @moora/moorex mutative
 ```
 
 Import and create your first Moorex machine:
 
 ```typescript
-import { createMoorex, type MoorexDefinition } from 'moorex';
+import { createMoorex, type MoorexDefinition } from '@moora/moorex';
 import { create } from 'mutative';
 
 // Define your types and create the definition

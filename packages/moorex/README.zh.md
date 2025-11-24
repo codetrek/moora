@@ -1,9 +1,9 @@
 # Moorex: 用于 Agent 的持久化 Moore 自动机
 
-[![npm version](https://img.shields.io/npm/v/moorex.svg)](https://www.npmjs.com/package/moorex)
-[![npm downloads](https://img.shields.io/npm/dm/moorex.svg)](https://www.npmjs.com/package/moorex)
-[![test coverage](https://img.shields.io/codecov/c/github/shazhou-ww/moorex)](https://codecov.io/gh/shazhou-ww/moorex)
-[![license](https://img.shields.io/npm/l/moorex.svg)](https://github.com/shazhou-ww/moorex/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@moora/moorex.svg)](https://www.npmjs.com/package/@moora/moorex)
+[![npm downloads](https://img.shields.io/npm/dm/@moora/moorex.svg)](https://www.npmjs.com/package/@moora/moorex)
+[![test coverage](https://img.shields.io/codecov/c/github/shazhou-ww/moora)](https://codecov.io/gh/shazhou-ww/moora)
+[![license](https://img.shields.io/npm/l/@moora/moorex.svg)](https://github.com/shazhou-ww/moora/blob/main/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
 <div align="center">
@@ -17,17 +17,17 @@ Moorex 是一个通用的异步 Moore 自动机。它跟踪状态，严格基于
 安装 Moorex 及其对等依赖：
 
 ```bash
-npm install moorex mutative
+npm install @moora/moorex mutative
 # 或
-bun add moorex mutative
+bun add @moora/moorex mutative
 # 或
-yarn add moorex mutative
+yarn add @moora/moorex mutative
 ```
 
 导入并创建你的第一个 Moorex 自动机：
 
 ```typescript
-import { createMoorex, type MoorexDefinition } from 'moorex';
+import { createMoorex, type MoorexDefinition } from '@moora/moorex';
 import { create } from 'mutative';
 
 // 定义你的类型并创建定义
