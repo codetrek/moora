@@ -9,3 +9,4 @@ export type {
 
 // 导出主要函数
 export { createMoorex } from './create-moorex';
+export { createEffectRunner } from './effect-runner';

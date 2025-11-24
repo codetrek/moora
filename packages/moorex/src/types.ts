@@ -42,20 +42,6 @@ export type MoorexDefinition<State, Signal, Effect> = {
    * Record 的 key 用于在 reconciliation 时做一致性判定。
    */
   effectsAt: (state: Immutable<State>) => Record<string, Immutable<Effect>>;
-  /**
-   * 运行一个 effect。
-   * 接收 Immutable effect、Immutable state 和 effect 的 key，返回一个初始化器，包含 `start` 和 `cancel` 方法。
-   * 参数都是 Immutable 的，不允许修改。
-   *
-   * @param effect - 要运行的 effect（Immutable）
-   * @param state - 生成该 effect 时的状态（Immutable）
-   * @param key - effect 的 key，用于标识该 effect
-   */
-  runEffect: (
-    effect: Immutable<Effect>,
-    state: Immutable<State>,
-    key: string,
-  ) => EffectInitializer<Signal>;
 };
 
 /**
@@ -64,10 +50,8 @@ export type MoorexDefinition<State, Signal, Effect> = {
  * 事件类型包括：
  * - `signal-received`: 信号被接收并处理
  * - `state-updated`: 状态已更新
- * - `effect-started`: Effect 已启动
- * - `effect-completed`: Effect 成功完成
- * - `effect-canceled`: Effect 被取消
- * - `effect-failed`: Effect 失败（包含错误信息）
+ * - `effect-started`: Effect 开始（根据 reconciliation 结果）
+ * - `effect-canceled`: Effect 被取消（根据 reconciliation 结果）
  *
  * @template State - 机器的状态类型
  * @template Signal - 信号类型
@@ -76,10 +60,8 @@ export type MoorexDefinition<State, Signal, Effect> = {
 export type MoorexEvent<State, Signal, Effect> =
   | { type: 'signal-received'; signal: Immutable<Signal> }
   | { type: 'state-updated'; state: Immutable<State> }
-  | { type: 'effect-started'; effect: Immutable<Effect> }
-  | { type: 'effect-completed'; effect: Immutable<Effect> }
-  | { type: 'effect-canceled'; effect: Immutable<Effect> }
-  | { type: 'effect-failed'; effect: Immutable<Effect>; error: unknown };
+  | { type: 'effect-started'; effect: Immutable<Effect>; key: string }
+  | { type: 'effect-canceled'; effect: Immutable<Effect>; key: string };
 
 /**
  * Moorex 机器实例。
@@ -101,24 +83,13 @@ export type Moorex<State, Signal, Effect> = {
    * 订阅事件。
    * 返回一个取消订阅的函数。
    *
-   * @param handler - 事件处理函数
+   * @param handler - 事件处理函数，接收事件和 moorex 实例作为参数
    * @returns 取消订阅的函数
    */
-  on(handler: (event: MoorexEvent<State, Signal, Effect>) => void): CancelFn;
+  subscribe(handler: (event: MoorexEvent<State, Signal, Effect>, moorex: Moorex<State, Signal, Effect>) => void): CancelFn;
   /**
    * 获取当前状态。
    * 返回的状态是 Immutable 的，不允许修改。
    */
   getState(): Immutable<State>;
 };
-
-/**
- * 运行中的 Effect（内部使用）
- */
-export type RunningEffect<Effect> = {
-  key: string;
-  effect: Immutable<Effect>;
-  complete: Promise<void>;
-  cancel: CancelFn;
-};
-

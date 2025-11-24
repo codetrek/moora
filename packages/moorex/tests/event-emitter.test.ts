@@ -3,12 +3,12 @@ import { createEventEmitter } from '../src/event-emitter';
 
 describe('createEventEmitter', () => {
   test('emits events to registered handlers', () => {
-    const { emit, on } = createEventEmitter<{ type: string; value: number }>();
+    const { emit, subscribe } = createEventEmitter<{ type: string; value: number }, string>();
     const events: Array<{ type: string; value: number }> = [];
 
-    on((event) => events.push(event));
-    emit({ type: 'test', value: 1 });
-    emit({ type: 'test', value: 2 });
+    subscribe((event) => events.push(event));
+    emit({ type: 'test', value: 1 }, 'ctx');
+    emit({ type: 'test', value: 2 }, 'ctx');
 
     expect(events).toHaveLength(2);
     expect(events[0]).toEqual({ type: 'test', value: 1 });
@@ -16,13 +16,13 @@ describe('createEventEmitter', () => {
   });
 
   test('supports multiple handlers', () => {
-    const { emit, on } = createEventEmitter<{ value: number }>();
+    const { emit, subscribe } = createEventEmitter<{ value: number }, string>();
     const events1: Array<{ value: number }> = [];
     const events2: Array<{ value: number }> = [];
 
-    on((event) => events1.push(event));
-    on((event) => events2.push(event));
-    emit({ value: 42 });
+    subscribe((event) => events1.push(event));
+    subscribe((event) => events2.push(event));
+    emit({ value: 42 }, 'ctx');
 
     expect(events1).toHaveLength(1);
     expect(events2).toHaveLength(1);
@@ -31,30 +31,30 @@ describe('createEventEmitter', () => {
   });
 
   test('unsubscribe removes handler', () => {
-    const { emit, on } = createEventEmitter<{ value: number }>();
+    const { emit, subscribe } = createEventEmitter<{ value: number }, string>();
     const events: Array<{ value: number }> = [];
 
-    const unsubscribe = on((event) => events.push(event));
-    emit({ value: 1 });
+    const unsubscribe = subscribe((event) => events.push(event));
+    emit({ value: 1 }, 'ctx');
     unsubscribe();
-    emit({ value: 2 });
+    emit({ value: 2 }, 'ctx');
 
     expect(events).toHaveLength(1);
     expect(events[0]?.value).toBe(1);
   });
 
   test('multiple unsubscribes work correctly', () => {
-    const { emit, on } = createEventEmitter<{ value: number }>();
+    const { emit, subscribe } = createEventEmitter<{ value: number }, string>();
     const events1: Array<{ value: number }> = [];
     const events2: Array<{ value: number }> = [];
 
-    const unsubscribe1 = on((event) => events1.push(event));
-    const unsubscribe2 = on((event) => events2.push(event));
-    emit({ value: 1 });
+    const unsubscribe1 = subscribe((event) => events1.push(event));
+    const unsubscribe2 = subscribe((event) => events2.push(event));
+    emit({ value: 1 }, 'ctx');
     unsubscribe1();
-    emit({ value: 2 });
+    emit({ value: 2 }, 'ctx');
     unsubscribe2();
-    emit({ value: 3 });
+    emit({ value: 3 }, 'ctx');
 
     expect(events1).toHaveLength(1);
     expect(events2).toHaveLength(2);
@@ -64,15 +64,15 @@ describe('createEventEmitter', () => {
   });
 
   test('emits immutable events', () => {
-    const { emit, on } = createEventEmitter<{ value: number }>();
+    const { emit, subscribe } = createEventEmitter<{ value: number }, string>();
     let receivedEvent: { value: number } | undefined;
 
-    on((event) => {
+    subscribe((event) => {
       receivedEvent = event;
     });
 
     const originalEvent = { value: 42 };
-    emit(originalEvent);
+    emit(originalEvent, 'ctx');
 
     expect(receivedEvent).toBeDefined();
     // mutative 的 create 会创建不可变代理，但原始对象可能不受影响
@@ -83,9 +83,9 @@ describe('createEventEmitter', () => {
   });
 
   test('handles empty handler list', () => {
-    const { emit } = createEventEmitter<{ value: number }>();
+    const { emit } = createEventEmitter<{ value: number }, string>();
     // 不应该抛出错误
-    expect(() => emit({ value: 1 })).not.toThrow();
+    expect(() => emit({ value: 1 }, 'ctx')).not.toThrow();
   });
 });
 
