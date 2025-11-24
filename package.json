@@ -1,10 +1,22 @@
 {
   "name": "moora",
-  "module": "index.ts",
+  "version": "0.1.0",
   "type": "module",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "prepare-version": "bun run scripts/publish.ts prepare-version",
+    "prepublish": "bun run scripts/publish.ts prepublish",
+    "publish": "bun run scripts/publish.ts publish",
+    "publish:dry-run": "bun run scripts/publish.ts publish --dry-run"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/semver": "^7.7.1",
+    "commander": "^12.1.0",
+    "semver": "^7.6.3"
   },
   "peerDependencies": {
     "typescript": "^5"

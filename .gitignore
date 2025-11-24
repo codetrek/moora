@@ -6,6 +6,10 @@ out
 dist
 *.tgz
 
+# package build artifacts
+packages/*/dist
+packages/*/out
+
 # code coverage
 coverage
 *.lcov
