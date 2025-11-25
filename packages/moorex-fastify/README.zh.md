@@ -24,11 +24,21 @@ yarn add @moora/moorex-fastify @moora/moorex fastify
   - 连接时立即发送当前全量状态
   - 推送所有后续的 Moorex 事件（状态更新、effect 生命周期等）
   
-- **POST 端点**: 接收信号以触发状态转换
+- **POST 端点**: 接收信号以触发状态转换（可选）
 
 - **灵活挂载**: 可以挂载到 Fastify 应用的任何路径上
 
+- **两种模式**: 创建只读 node（仅 GET）或读写 node（GET + POST）
+
 ## 使用
+
+### Node 模式
+
+你可以创建两种类型的 node：
+
+1. **只读 node**：仅暴露 GET 端点（SSE 流）。当你只想暴露状态和事件，但不想接受外部信号时使用。
+
+2. **读写 node**：同时暴露 GET（SSE）和 POST 端点。当你想要接受客户端信号以触发状态转换时使用。
 
 ### 基础示例
 
@@ -165,18 +175,50 @@ moorex.dispatch({ type: 'increment' });
 const state = moorex.getState();
 ```
 
-### 不使用 POST 支持的 POST 处理器
+### 只读 Node（仅 GET）
 
-如果你不提供 `handlePost` 回调，POST 路由将不会被注册：
+当你只想通过 SSE 暴露状态和事件，而不接受外部信号时，创建一个只读 node：
 
 ```typescript
-const moorexNode = createMoorexNode({
+// 创建只读 node - 只有 GET 端点可用
+const readOnlyNode = createMoorexNode({
   moorex,
-  // 没有 handlePost - 只有 GET (SSE) 端点可用
+  // 没有 handlePost - POST 路由不会被注册
 });
 
-await fastify.register(moorexNode.register, { prefix: '/api/moorex' });
+await fastify.register(readOnlyNode.register, { prefix: '/api/moorex/read' });
 ```
+
+这适用于：
+- 监控/调试端点
+- 只需要观察状态的仪表板
+- 不接受外部输入的内部服务
+
+### 读写 Node（GET + POST）
+
+当你想要接受客户端的信号时，创建一个读写 node：
+
+```typescript
+// 创建读写 node - GET 和 POST 端点都可用
+const readWriteNode = createMoorexNode({
+  moorex,
+  handlePost: async (input, dispatch) => {
+    const signal = JSON.parse(input);
+    dispatch(signal);
+    return { 
+      code: 200, 
+      content: JSON.stringify({ success: true }) 
+    };
+  },
+});
+
+await fastify.register(readWriteNode.register, { prefix: '/api/moorex/write' });
+```
+
+这适用于：
+- 接受用户输入的公共 API
+- 需要触发状态更改的客户端应用程序
+- 交互式服务
 
 ## API 参考
 

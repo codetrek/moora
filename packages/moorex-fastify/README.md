@@ -24,11 +24,21 @@ yarn add @moora/moorex-fastify @moora/moorex fastify
   - Sends the current full state immediately upon connection
   - Pushes all subsequent Moorex events (state updates, effect lifecycle, etc.)
   
-- **POST endpoint**: Accepts signals to trigger state transitions
+- **POST endpoint**: Accepts signals to trigger state transitions (optional)
 
 - **Flexible mounting**: Can be mounted at any path in your Fastify application
 
+- **Two modes**: Create read-only nodes (GET only) or read-write nodes (GET + POST)
+
 ## Usage
+
+### Node Modes
+
+You can create two types of nodes:
+
+1. **Read-only node**: Only exposes GET endpoint (SSE stream). Use this when you want to expose state and events but don't want to accept external signals.
+
+2. **Read-write node**: Exposes both GET (SSE) and POST endpoints. Use this when you want to accept signals from clients to trigger state transitions.
 
 ### Basic Example
 
@@ -165,18 +175,50 @@ moorex.dispatch({ type: 'increment' });
 const state = moorex.getState();
 ```
 
-### POST Handler Without POST Support
+### Read-Only Node (GET Only)
 
-If you don't provide a `handlePost` callback, the POST route will not be registered:
+Create a read-only node when you only want to expose state and events via SSE, without accepting external signals:
 
 ```typescript
-const moorexNode = createMoorexNode({
+// Create read-only node - only GET endpoint available
+const readOnlyNode = createMoorexNode({
   moorex,
-  // No handlePost - only GET (SSE) endpoint will be available
+  // No handlePost - POST route will not be registered
 });
 
-await fastify.register(moorexNode.register, { prefix: '/api/moorex' });
+await fastify.register(readOnlyNode.register, { prefix: '/api/moorex/read' });
 ```
+
+This is useful for:
+- Monitoring/debugging endpoints
+- Dashboards that only need to observe state
+- Internal services that don't accept external input
+
+### Read-Write Node (GET + POST)
+
+Create a read-write node when you want to accept signals from clients:
+
+```typescript
+// Create read-write node - both GET and POST endpoints available
+const readWriteNode = createMoorexNode({
+  moorex,
+  handlePost: async (input, dispatch) => {
+    const signal = JSON.parse(input);
+    dispatch(signal);
+    return { 
+      code: 200, 
+      content: JSON.stringify({ success: true }) 
+    };
+  },
+});
+
+await fastify.register(readWriteNode.register, { prefix: '/api/moorex/write' });
+```
+
+This is useful for:
+- Public APIs that accept user input
+- Client applications that need to trigger state changes
+- Interactive services
 
 ## API Reference
 
