@@ -23,6 +23,8 @@ export type {
   TaskRunnerId,
   ChannelId,
   MessageId,
+  ReactLoopId,
+  ToolCallId,
 } from './id-utils';
 
 export {
@@ -31,6 +33,9 @@ export {
   computeChannelId,
   computeMessageId,
   parseMessageId,
+  computeReactLoopId,
+  computeToolCallId,
+  parseToolCallId,
 } from './id-utils';
 
 

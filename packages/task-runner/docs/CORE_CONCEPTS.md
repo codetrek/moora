@@ -96,18 +96,60 @@ const messageId2 = computeMessageId(channelId, 2);
 // 返回: "a1b2c3d4e5f6789012345678901234abcd-2"
 ```
 
+### 4. ReactLoop
+
+ReactLoop 代表 AI Agent 为处理某个消息而进行的一系列心理活动（思考、行动、观察）。
+
+**ID 规则：**
+- ReactLoop 是针对每条消息的，所以 ReactLoopId 等于对应的 MessageId
+- 每个消息触发一个 ReactLoop，因此 ReactLoopId = MessageId
+
+**示例：**
+```typescript
+const messageId = "a1b2c3d4e5f6789012345678901234abcd-0";
+const reactLoopId = computeReactLoopId(messageId);
+// reactLoopId === messageId === "a1b2c3d4e5f6789012345678901234abcd-0"
+```
+
+### 5. ToolCall
+
+ToolCall 是在 ReactLoop 中调用工具的操作。每个 ReactLoop 里可能前前后后发生很多 ToolCall。
+
+**ID 规则：**
+- 给每个 ToolCall 一个整数序号（从 0 开始）
+- ToolCall ID 格式：`[message id]-[tool call index]`
+- 由于 Message ID 唯一，且工具调用序号在 ReactLoop 内递增，因此 ToolCall ID 全局唯一
+
+**示例：**
+```typescript
+const messageId = "a1b2c3d4e5f6789012345678901234abcd-0";
+const toolCallId0 = computeToolCallId(messageId, 0);
+// 返回: "a1b2c3d4e5f6789012345678901234abcd-0-0"
+
+const toolCallId1 = computeToolCallId(messageId, 1);
+// 返回: "a1b2c3d4e5f6789012345678901234abcd-0-1"
+```
+
 ## 关系总结
 
 ```
 顶层 TaskRunner (ID: "top123...")
 ├── 0 号 Channel (ID: "top123...", 从动端: 顶层 TaskRunner)
 │   ├── Message 0 (ID: "top123...-0")
+│   │   └── ReactLoop (ID: "top123...-0", 等于 Message 0 的 ID)
+│   │       ├── ToolCall 0 (ID: "top123...-0-0")
+│   │       ├── ToolCall 1 (ID: "top123...-0-1")
+│   │       └── ...
 │   ├── Message 1 (ID: "top123...-1")
+│   │   └── ReactLoop (ID: "top123...-1", 等于 Message 1 的 ID)
+│   │       └── ...
 │   └── ...
 │
 └── 子 TaskRunner 1 (ID: "child1...")
     ├── 0 号 Channel (ID: "child1...", 从动端: 子 TaskRunner 1)
     │   ├── Message 0 (ID: "child1...-0")
+    │   │   └── ReactLoop (ID: "child1...-0", 等于 Message 0 的 ID)
+    │   │       └── ...
     │   └── ...
     │
     └── 子 TaskRunner 2 (ID: "child2...")
@@ -128,6 +170,14 @@ const messageId2 = computeMessageId(channelId, 2);
 3. **Message ID 唯一性：**
    - Message ID = `[Channel ID]-[消息序号]`
    - 由于 Channel ID 唯一，且消息序号在 Channel 内递增，因此 Message ID 全局唯一
+
+4. **ReactLoop ID 唯一性：**
+   - ReactLoop ID = Message ID
+   - 由于 Message ID 唯一，因此 ReactLoop ID 也唯一
+
+5. **ToolCall ID 唯一性：**
+   - ToolCall ID = `[Message ID]-[工具调用序号]`
+   - 由于 Message ID 唯一，且工具调用序号在 ReactLoop 内递增，因此 ToolCall ID 全局唯一
 
 ## 实现细节
 
@@ -165,6 +215,9 @@ import {
   computeChannelId,
   computeMessageId,
   parseMessageId,
+  computeReactLoopId,
+  computeToolCallId,
+  parseToolCallId,
 } from './id-utils';
 
 // 1. 创建顶层 TaskRunner
@@ -179,7 +232,14 @@ const channelId = computeChannelId(childId); // 等于 childId
 // 4. 创建消息 ID
 const messageId = computeMessageId(channelId, 0);
 
-// 5. 解析消息 ID
-const { channelId: parsedChannelId, messageIndex } = parseMessageId(messageId);
+// 5. 创建 ReactLoop ID（等于 Message ID）
+const reactLoopId = computeReactLoopId(messageId);
+
+// 6. 创建 ToolCall ID
+const toolCallId0 = computeToolCallId(messageId, 0);
+const toolCallId1 = computeToolCallId(messageId, 1);
+
+// 7. 解析 ToolCall ID
+const { messageId: parsedMessageId, toolCallIndex } = parseToolCallId(toolCallId0);
 ```
 

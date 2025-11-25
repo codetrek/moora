@@ -27,6 +27,24 @@ export type ChannelId = TaskRunnerId;
 export type MessageId = string;
 
 /**
+ * ReactLoop ID 类型
+ * 
+ * ReactLoop 是针对每条消息的，所以 ReactLoopId 等于对应的 MessageId
+ */
+export type ReactLoopId = MessageId;
+
+/**
+ * ToolCall ID 类型
+ * 
+ * 格式：`[message id]-[tool call index]`
+ * 例如：`"a1b2c3d4e5f6...-0-0"`, `"a1b2c3d4e5f6...-0-1"`
+ * 
+ * 每个 ReactLoop 里可能前前后后发生很多 ToolCall，给每个 ToolCall 一个整数序号，
+ * 在 message id 后面追加 `-[tool call index]` 就能得到唯一的 ToolCallId
+ */
+export type ToolCallId = string;
+
+/**
  * 计算顶层 TaskRunner 的 ID
  * 
  * 使用提供的整数种子值生成 128 位 hash，返回 16 进制字符串。
@@ -186,6 +204,89 @@ export function parseMessageId(messageId: MessageId): {
   }
   
   return { channelId, messageIndex };
+}
+
+/**
+ * 计算 ReactLoop 的 ID
+ * 
+ * ReactLoop 是针对每条消息的，所以 ReactLoopId 等于对应的 MessageId。
+ * 
+ * @param messageId - Message 的 ID
+ * @returns ReactLoop ID（等于 Message ID）
+ * 
+ * @example
+ * ```typescript
+ * const messageId = "a1b2c3d4e5f6789012345678901234abcd-0";
+ * const reactLoopId = computeReactLoopId(messageId);
+ * // reactLoopId === messageId === "a1b2c3d4e5f6789012345678901234abcd-0"
+ * ```
+ */
+export function computeReactLoopId(messageId: MessageId): ReactLoopId {
+  // ReactLoopId 直接等于 MessageId
+  return messageId;
+}
+
+/**
+ * 计算 ToolCall 的 ID
+ * 
+ * ToolCall ID 格式：`[message id]-[tool call index]`
+ * 
+ * 规则：
+ * - 每个 ReactLoop 里可能前前后后发生很多 ToolCall
+ * - 给每个 ToolCall 一个整数序号（从 0 开始）
+ * - ToolCall ID = `[message id]-[tool call index]`
+ * 
+ * @param messageId - Message 的 ID（也是 ReactLoop 的 ID）
+ * @param toolCallIndex - ToolCall 在 ReactLoop 中的序号（自然数，从 0 开始）
+ * @returns ToolCall ID
+ * 
+ * @example
+ * ```typescript
+ * const messageId = "a1b2c3d4e5f6789012345678901234abcd-0";
+ * const toolCallId0 = computeToolCallId(messageId, 0); // "a1b2c3d4e5f6789012345678901234abcd-0-0"
+ * const toolCallId1 = computeToolCallId(messageId, 1); // "a1b2c3d4e5f6789012345678901234abcd-0-1"
+ * ```
+ */
+export function computeToolCallId(
+  messageId: MessageId,
+  toolCallIndex: number,
+): ToolCallId {
+  return `${messageId}-${toolCallIndex}`;
+}
+
+/**
+ * 从 ToolCall ID 解析出 Message ID 和工具调用序号
+ * 
+ * @param toolCallId - ToolCall ID
+ * @returns 包含 messageId 和 toolCallIndex 的对象
+ * 
+ * @example
+ * ```typescript
+ * const parsed = parseToolCallId("a1b2c3d4e5f6789012345678901234abcd-0-5");
+ * // { messageId: "a1b2c3d4e5f6789012345678901234abcd-0", toolCallIndex: 5 }
+ * ```
+ */
+export function parseToolCallId(toolCallId: ToolCallId): {
+  messageId: MessageId;
+  toolCallIndex: number;
+} {
+  // ToolCallId 格式：`[message id]-[tool call index]`
+  // MessageId 格式：`[channel id]-[message index]`
+  // 所以 ToolCallId 格式：`[channel id]-[message index]-[tool call index]`
+  // 我们需要找到最后一个 `-` 来分离 tool call index
+  const lastDashIndex = toolCallId.lastIndexOf('-');
+  if (lastDashIndex === -1) {
+    throw new Error(`Invalid tool call ID format: ${toolCallId}`);
+  }
+  
+  const messageId = toolCallId.substring(0, lastDashIndex);
+  const toolCallIndex = parseInt(toolCallId.substring(lastDashIndex + 1), 10);
+  
+  if (isNaN(toolCallIndex)) {
+    throw new Error(`Invalid tool call index in tool call ID: ${toolCallId}`);
+  }
+  
+  return { messageId, toolCallIndex };
 }
 
 // ============================================================================
