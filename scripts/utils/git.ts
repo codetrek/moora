@@ -2,13 +2,34 @@ import { $ } from "bun";
 
 /**
  * Execute a shell command and return the output
+ * Splits the command string into command and arguments for proper execution
  */
 export async function execCommand(command: string): Promise<string> {
   try {
-    const result = await $`${command}`.quiet();
-    return result.stdout.toString().trim();
+    // Use shell to execute the command string for proper cross-platform support
+    // On Windows, use cmd /c, on Unix use sh -c
+    const isWindows = process.platform === "win32";
+    const shell = isWindows ? "cmd" : "sh";
+    const shellArg = isWindows ? "/c" : "-c";
+    
+    const proc = Bun.spawn([shell, shellArg, command], {
+      stdout: "pipe",
+      stderr: "pipe",
+      cwd: process.cwd(),
+    });
+
+    const output = await new Response(proc.stdout).text();
+    const errorOutput = await new Response(proc.stderr).text();
+    
+    const exitCode = await proc.exited;
+    
+    if (exitCode !== 0) {
+      throw new Error(errorOutput || `Command failed with exit code ${exitCode}`);
+    }
+
+    return output.trim();
   } catch (error: any) {
-    throw new Error(error.stderr?.toString() || error.message);
+    throw new Error(error.message || "Command execution failed");
   }
 }
 
