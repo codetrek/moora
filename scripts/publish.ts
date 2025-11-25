@@ -5,6 +5,7 @@ import * as semver from "semver";
 import { existsSync } from "fs";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
+import { $ } from "bun";
 import {
   execCommand,
   getCurrentBranch,
@@ -204,13 +205,25 @@ program
       // Publish each package
       for (const pkg of packagesToPublish) {
         console.log(`📦 Publishing ${pkg.name}@${pkg.version}...`);
-        const publishCmd = isDryRun
-          ? `cd ${pkg.path} && npm publish --dry-run --access public`
-          : `cd ${pkg.path} && npm publish --access public`;
-
         try {
-          const output = await execCommand(publishCmd);
-          console.log(output);
+          const originalCwd = process.cwd();
+          process.chdir(pkg.path);
+          try {
+            const publishCmd = isDryRun
+              ? $`npm publish --dry-run --access public`
+              : $`npm publish --access public`;
+            const result = await publishCmd.quiet();
+            const output = result.stdout.toString();
+            if (output.trim()) {
+              console.log(output);
+            }
+            const stderr = result.stderr.toString();
+            if (stderr.trim()) {
+              console.log(stderr);
+            }
+          } finally {
+            process.chdir(originalCwd);
+          }
           console.log(`✓ ${pkg.name}@${pkg.version} published${isDryRun ? " (dry run)" : ""}\n`);
         } catch (error) {
           throw new Error(
@@ -342,7 +355,21 @@ async function runPrepublishChecks(
     if (pkgJson.scripts?.prepublishOnly) {
       console.log(`    Running prepublishOnly for ${pkg.name}...`);
       try {
-        await execCommand(`cd ${pkg.path} && bun run prepublishOnly`);
+        const originalCwd = process.cwd();
+        process.chdir(pkg.path);
+        try {
+          const result = await $`bun run prepublishOnly`.quiet();
+          const output = result.stdout.toString();
+          if (output.trim()) {
+            console.log(output);
+          }
+          const stderr = result.stderr.toString();
+          if (stderr.trim()) {
+            console.log(stderr);
+          }
+        } finally {
+          process.chdir(originalCwd);
+        }
         console.log(`    ✓ ${pkg.name} prepublishOnly passed`);
       } catch (error) {
         throw new Error(
