@@ -43,15 +43,18 @@ async function runTestsForAllPackages() {
           if (output.trim()) {
             console.log(output);
           }
+          // stderr output from successful commands should be treated as normal logs
+          // to avoid confusing red error output for non-error messages
           const stderr = result.stderr.toString();
           if (stderr.trim()) {
-            console.error(stderr);
+            console.log(stderr);
           }
           console.log(`✓ ${pkg.name} ${command} completed\n`);
         } finally {
           process.chdir(originalCwd);
         }
       } catch (error: any) {
+        // Only use console.error for actual failures
         const errorMessage = error?.stderr?.toString() || error?.message || 'Unknown error';
         console.error(`❌ ${pkg.name} ${command} failed: ${errorMessage}\n`);
         process.exit(1);
