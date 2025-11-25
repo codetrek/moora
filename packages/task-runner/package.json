@@ -1,10 +1,10 @@
 {
-  "name": "@moora/volition",
+  "name": "@moora/task-runner",
   "version": "0.1.0",
-  "description": "A moorex automaton representing AI Agent's psychological activities for achieving specific goals",
+  "description": "A moorex automaton representing an AI Agent's task execution lifecycle",
   "keywords": [
     "moorex",
-    "volition",
+    "task-runner",
     "agent",
     "react",
     "llm",
@@ -20,9 +20,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/shazhou-ww/moora.git",
-    "directory": "packages/volition"
+    "directory": "packages/task-runner"
   },
-  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/volition#readme",
+  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/task-runner#readme",
   "bugs": {
     "url": "https://github.com/shazhou-ww/moora/issues"
   },

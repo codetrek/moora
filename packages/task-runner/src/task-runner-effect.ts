@@ -42,11 +42,11 @@ export const CallLLMEffectSchema = z.object({
 });
 
 /**
- * Volition 的 Effect
- * 
+ * TaskRunner 的 Effect
+ *
  * 根据状态决定需要执行的副作用
  */
-export const VolitionEffectSchema = z.discriminatedUnion('kind', [
+export const TaskRunnerEffectSchema = z.discriminatedUnion('kind', [
   SendMessageEffectSchema,
   ReactLoopEffectSchema,
   CallToolEffectSchema,
@@ -61,5 +61,5 @@ export type SendMessageEffect = z.infer<typeof SendMessageEffectSchema>;
 export type ReactLoopEffect = z.infer<typeof ReactLoopEffectSchema>;
 export type CallToolEffect = z.infer<typeof CallToolEffectSchema>;
 export type CallLLMEffect = z.infer<typeof CallLLMEffectSchema>;
-export type VolitionEffect = z.infer<typeof VolitionEffectSchema>;
+export type TaskRunnerEffect = z.infer<typeof TaskRunnerEffectSchema>;
 

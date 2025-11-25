@@ -12,8 +12,8 @@ export type {
   ChannelState,
   ReactLoopState,
   MemoryState,
-  VolitionState,
-} from './volition-state';
+  TaskRunnerState,
+} from './task-runner-state';
 
 export {
   ToolCallSchema,
@@ -22,27 +22,27 @@ export {
   ChannelStateSchema,
   ReactLoopStateSchema,
   MemoryStateSchema,
-  VolitionStateSchema,
-} from './volition-state';
+  TaskRunnerStateSchema,
+} from './task-runner-state';
 
 // 导出信号相关类型
 export type {
   ChannelMessageSignal,
   ToolResultSignal,
   LLMResponseSignal,
-  CreateSubvolitionSignal,
+  CreateSubTaskRunnerSignal,
   ReactLoopCompletedSignal,
-  VolitionSignal,
-} from './volition-signal';
+  TaskRunnerSignal,
+} from './task-runner-signal';
 
 export {
   ChannelMessageSignalSchema,
   ToolResultSignalSchema,
   LLMResponseSignalSchema,
-  CreateSubvolitionSignalSchema,
+  CreateSubTaskRunnerSignalSchema,
   ReactLoopCompletedSignalSchema,
-  VolitionSignalSchema,
-} from './volition-signal';
+  TaskRunnerSignalSchema,
+} from './task-runner-signal';
 
 // 导出 Effect 相关类型
 export type {
@@ -50,20 +50,20 @@ export type {
   ReactLoopEffect,
   CallToolEffect,
   CallLLMEffect,
-  VolitionEffect,
-} from './volition-effect';
+  TaskRunnerEffect,
+} from './task-runner-effect';
 
 export {
   SendMessageEffectSchema,
   ReactLoopEffectSchema,
   CallToolEffectSchema,
   CallLLMEffectSchema,
-  VolitionEffectSchema,
-} from './volition-effect';
+  TaskRunnerEffectSchema,
+} from './task-runner-effect';
 
 // 导出配置选项相关类型
 export type {
   LLMCallFn,
   Tool,
-  VolitionOptions,
-} from './volition-options';
+  TaskRunnerOptions,
+} from './task-runner-options';

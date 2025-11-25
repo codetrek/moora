@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'vitest';
 import { createMoorex } from '@moora/moorex';
-import { createVolition, type VolitionState, type VolitionSignal, type VolitionEffect } from '../src/index';
+import { createTaskRunner, type TaskRunnerState, type TaskRunnerSignal, type TaskRunnerEffect } from '../src/index';
 
-describe('createVolition', () => {
-  test('creates a volition definition with initial state', () => {
+describe('createTaskRunner', () => {
+  test('creates a TaskRunner definition with initial state', () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
     
-    const definition = createVolition({
+    const definition = createTaskRunner({
       callLLM,
     });
 
-    const volition = createMoorex(definition);
-    const state = volition.getState();
+    const taskRunner = createMoorex(definition);
+    const state = taskRunner.getState();
 
     // 验证初始状态结构
     expect(state).toBeDefined();
@@ -32,7 +32,7 @@ describe('createVolition', () => {
   test('initializes with custom memory', () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
     
-    const definition = createVolition({
+    const definition = createTaskRunner({
       callLLM,
       initialMemory: {
         longTerm: {
@@ -47,8 +47,8 @@ describe('createVolition', () => {
       },
     });
 
-    const volition = createMoorex(definition);
-    const state = volition.getState();
+    const taskRunner = createMoorex(definition);
+    const state = taskRunner.getState();
 
     expect(state.memory.longTerm).toEqual({ key1: 'value1' });
     expect(state.memory.shortTerm).toHaveLength(1);
@@ -58,28 +58,28 @@ describe('createVolition', () => {
   test('transition function returns original state (placeholder)', () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
     
-    const definition = createVolition({
+    const definition = createTaskRunner({
       callLLM,
     });
 
-    const volition = createMoorex(definition);
-    const initialState = volition.getState();
+    const taskRunner = createMoorex(definition);
+    const initialState = taskRunner.getState();
 
     // 发送一个信号
-    const signal: VolitionSignal = {
+    const signal: TaskRunnerSignal = {
       type: 'channel-message',
       channelId: 0,
       content: 'Test message',
     };
 
-    volition.dispatch(signal);
+    taskRunner.dispatch(signal);
 
     // 由于 transition 是占位符，状态应该保持不变
     // 注意：由于是异步处理，我们需要等待一下
     const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
     
     return nextTick().then(() => {
-      const newState = volition.getState();
+      const newState = taskRunner.getState();
       // 当前 transition 是占位符，状态应该保持不变
       expect(newState).toEqual(initialState);
     });
@@ -88,14 +88,14 @@ describe('createVolition', () => {
   test('effectsAt returns empty object (placeholder)', async () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
     
-    const definition = createVolition({
+    const definition = createTaskRunner({
       callLLM,
     });
 
-    const volition = createMoorex(definition);
-    const events: Array<{ type: string; effect?: VolitionEffect; key?: string }> = [];
+    const taskRunner = createMoorex(definition);
+    const events: Array<{ type: string; effect?: TaskRunnerEffect; key?: string }> = [];
     
-    volition.subscribe((event) => {
+    taskRunner.subscribe((event) => {
       if (event.type === 'effect-started' || event.type === 'effect-canceled') {
         events.push(event);
       }
@@ -120,27 +120,27 @@ describe('createVolition', () => {
       },
     };
 
-    const definition = createVolition({
+    const definition = createTaskRunner({
       callLLM,
       tools: [tool],
     });
 
-    const volition = createMoorex(definition);
-    const state = volition.getState();
+    const taskRunner = createMoorex(definition);
+    const state = taskRunner.getState();
 
     // 验证定义创建成功（工具配置被接受）
     expect(state).toBeDefined();
   });
 });
 
-describe('VolitionState type', () => {
+describe('TaskRunnerState type', () => {
   test('has correct structure', () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
-    const definition = createVolition({ callLLM });
-    const volition = createMoorex(definition);
-    const state = volition.getState();
+    const definition = createTaskRunner({ callLLM });
+    const taskRunner = createMoorex(definition);
+    const state = taskRunner.getState();
 
-    // 验证 VolitionState 的结构
+    // 验证 TaskRunnerState 的结构
     expect('channels' in state).toBe(true);
     expect('reactLoops' in state).toBe(true);
     expect('memory' in state).toBe(true);
@@ -148,9 +148,9 @@ describe('VolitionState type', () => {
   });
 });
 
-describe('VolitionSignal type', () => {
+describe('TaskRunnerSignal type', () => {
   test('channel-message signal', () => {
-    const signal: VolitionSignal = {
+    const signal: TaskRunnerSignal = {
       type: 'channel-message',
       channelId: 0,
       content: 'Test message',
@@ -162,7 +162,7 @@ describe('VolitionSignal type', () => {
   });
 
   test('tool-result signal', () => {
-    const signal: VolitionSignal = {
+    const signal: TaskRunnerSignal = {
       type: 'tool-result',
       reactLoopId: 'loop-1',
       toolName: 'test-tool',
@@ -176,7 +176,7 @@ describe('VolitionSignal type', () => {
   });
 
   test('llm-response signal', () => {
-    const signal: VolitionSignal = {
+    const signal: TaskRunnerSignal = {
       type: 'llm-response',
       reactLoopId: 'loop-1',
       content: 'LLM response',
@@ -187,18 +187,18 @@ describe('VolitionSignal type', () => {
     expect(signal.content).toBe('LLM response');
   });
 
-  test('create-subvolition signal', () => {
-    const signal: VolitionSignal = {
-      type: 'create-subvolition',
+  test('create-subtask-runner signal', () => {
+    const signal: TaskRunnerSignal = {
+      type: 'create-subtask-runner',
       target: '完成数据分析任务',
     };
 
-    expect(signal.type).toBe('create-subvolition');
+    expect(signal.type).toBe('create-subtask-runner');
     expect(signal.target).toBe('完成数据分析任务');
   });
 
   test('react-loop-completed signal', () => {
-    const signal: VolitionSignal = {
+    const signal: TaskRunnerSignal = {
       type: 'react-loop-completed',
       reactLoopId: 'loop-1',
       response: 'Final response',
@@ -210,9 +210,9 @@ describe('VolitionSignal type', () => {
   });
 });
 
-describe('VolitionEffect type', () => {
+describe('TaskRunnerEffect type', () => {
   test('send-message effect', () => {
-    const effect: VolitionEffect = {
+    const effect: TaskRunnerEffect = {
       kind: 'send-message',
       channelId: 0,
       content: 'Message content',
@@ -224,7 +224,7 @@ describe('VolitionEffect type', () => {
   });
 
   test('react-loop effect', () => {
-    const effect: VolitionEffect = {
+    const effect: TaskRunnerEffect = {
       kind: 'react-loop',
       channelId: 0,
       message: 'Trigger message',
@@ -236,7 +236,7 @@ describe('VolitionEffect type', () => {
   });
 
   test('call-tool effect', () => {
-    const effect: VolitionEffect = {
+    const effect: TaskRunnerEffect = {
       kind: 'call-tool',
       reactLoopId: 'loop-1',
       toolName: 'test-tool',
@@ -250,7 +250,7 @@ describe('VolitionEffect type', () => {
   });
 
   test('call-llm effect', () => {
-    const effect: VolitionEffect = {
+    const effect: TaskRunnerEffect = {
       kind: 'call-llm',
       reactLoopId: 'loop-1',
       prompt: 'LLM prompt',

@@ -1,23 +1,23 @@
 import { type Immutable } from 'mutative';
 import { type MoorexDefinition } from '@moora/moorex';
 import type {
-  VolitionState,
-  VolitionSignal,
-  VolitionEffect,
-  VolitionOptions,
+  TaskRunnerState,
+  TaskRunnerSignal,
+  TaskRunnerEffect,
+  TaskRunnerOptions,
 } from './types';
 
 /**
- * 创建 Volition 定义
- * 
- * Volition 是一个 moorex 自动机，代表 AI Agent 为达成特定目的而进行的一系列心理活动。
- * 
- * @param options - Volition 配置选项
+ * 创建 TaskRunner 定义
+ *
+ * TaskRunner 是一个 moorex 自动机，代表 AI Agent 为达成特定任务目标而进行的一系列心理活动。
+ *
+ * @param options - TaskRunner 配置选项
  * @returns Moorex 定义
- * 
+ *
  * @example
  * ```typescript
- * const definition = createVolition({
+ * const definition = createTaskRunner({
  *   callLLM: async (prompt) => {
  *     // 调用 LLM API
  *     return await llmAPI.generate(prompt);
@@ -33,25 +33,25 @@ import type {
  *     },
  *   ],
  * });
- * 
- * const volition = createMoorex(definition);
+ *
+ * const taskRunner = createMoorex(definition);
  * ```
  */
-export const createVolition = (
-  options: VolitionOptions,
-): MoorexDefinition<VolitionState, VolitionSignal, VolitionEffect> => {
+export const createTaskRunner = (
+  options: TaskRunnerOptions,
+): MoorexDefinition<TaskRunnerState, TaskRunnerSignal, TaskRunnerEffect> => {
   const { callLLM, tools = [], initialMemory } = options;
 
   return {
     /**
      * 初始化状态
-     * 
-     * 创建初始的 volition 状态，包含：
+     *
+     * 创建初始的 TaskRunner 状态，包含：
      * - 上游 channel (id: 0)
      * - 空的 ReAct 循环
      * - 初始记忆
      */
-    initiate: (): Immutable<VolitionState> => {
+    initiate: (): Immutable<TaskRunnerState> => {
       return {
         channels: {
           0: {
@@ -79,8 +79,8 @@ export const createVolition = (
      * TODO: 实现具体的状态转换逻辑
      */
     transition: (
-      signal: Immutable<VolitionSignal>,
-    ): ((state: Immutable<VolitionState>) => Immutable<VolitionState>) => {
+      signal: Immutable<TaskRunnerSignal>,
+    ): ((state: Immutable<TaskRunnerState>) => Immutable<TaskRunnerState>) => {
       return (state) => {
         // TODO: 实现状态转换逻辑
         // 当前只返回原状态作为占位符
@@ -96,8 +96,8 @@ export const createVolition = (
      * TODO: 实现具体的 effect 选择逻辑
      */
     effectsAt: (
-      state: Immutable<VolitionState>,
-    ): Record<string, Immutable<VolitionEffect>> => {
+      state: Immutable<TaskRunnerState>,
+    ): Record<string, Immutable<TaskRunnerEffect>> => {
       // TODO: 实现 effect 选择逻辑
       // 当前只返回空对象作为占位符
       return {};

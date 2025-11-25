@@ -1,4 +1,4 @@
-import type { MemoryState } from './volition-state';
+import type { MemoryState } from './task-runner-state';
 
 /**
  * LLM 调用函数类型
@@ -26,11 +26,11 @@ export type Tool = {
 };
 
 /**
- * 创建 Volition 的配置选项
- * 
+ * 创建 TaskRunner 的配置选项
+ *
  * 注意：包含函数类型的部分使用 TypeScript 原生类型
  */
-export type VolitionOptions = {
+export type TaskRunnerOptions = {
   /** LLM 调用函数 */
   callLLM: LLMCallFn;
   /** 工具列表（内置 + 外部提供） */

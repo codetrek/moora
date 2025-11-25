@@ -35,10 +35,10 @@ export const ShortTermMemorySchema = z.object({
 
 /**
  * Channel 的状态
- * 
+ *
  * 每个 channel 都是双向交替通讯的。
- * - 上游 channel (id: 0): 连接到上游系统（不一定是 volition）
- * - 下游 channels (id: 1, 2, 3...): 连接到下游 volitions
+ * - 上游 channel (id: 0): 连接到上游系统（不一定是 TaskRunner）
+ * - 下游 channels (id: 1, 2, 3...): 连接到下游 TaskRunners
  */
 export const ChannelStateSchema = z.object({
   /** Channel ID: 0 表示上游 channel，正整数表示下游 channel */
@@ -80,8 +80,8 @@ export const ReactLoopStateSchema = z.object({
 
 /**
  * 记忆状态
- * 
- * 用于存储 volition 的记忆和上下文信息
+ *
+ * 用于存储 TaskRunner 的记忆和上下文信息
  */
 export const MemoryStateSchema = z.object({
   /** 长期记忆（持久化存储） */
@@ -91,11 +91,11 @@ export const MemoryStateSchema = z.object({
 });
 
 /**
- * Volition 的状态
- * 
- * 代表 AI Agent 为达成特定目的而进行的一系列心理活动的完整状态
+ * TaskRunner 的状态
+ *
+ * 代表 AI Agent 为达成特定任务目标而进行的一系列心理活动的完整状态
  */
-export const VolitionStateSchema = z.object({
+export const TaskRunnerStateSchema = z.object({
   /** 所有 channel 的状态 */
   channels: z.record(z.number(), ChannelStateSchema),
   /** 正在进行的 ReAct 循环 */
@@ -116,5 +116,5 @@ export type ShortTermMemory = z.infer<typeof ShortTermMemorySchema>;
 export type ChannelState = z.infer<typeof ChannelStateSchema>;
 export type ReactLoopState = z.infer<typeof ReactLoopStateSchema>;
 export type MemoryState = z.infer<typeof MemoryStateSchema>;
-export type VolitionState = z.infer<typeof VolitionStateSchema>;
+export type TaskRunnerState = z.infer<typeof TaskRunnerStateSchema>;
 

@@ -1,37 +1,37 @@
-# Volition: Moorex Automaton for AI Agent Psychological Activities
+# TaskRunner: Moorex Automaton for AI Agent Task Execution
 
-[![npm version](https://img.shields.io/npm/v/@moora/volition.svg)](https://www.npmjs.com/package/@moora/volition)
-[![license](https://img.shields.io/npm/l/@moora/volition.svg)](https://github.com/shazhou-ww/moora/blob/main/packages/volition/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@moora/task-runner.svg)](https://www.npmjs.com/package/@moora/task-runner)
+[![license](https://img.shields.io/npm/l/@moora/task-runner.svg)](https://github.com/shazhou-ww/moora/blob/main/packages/task-runner/LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
-Volition is a moorex automaton representing AI Agent's psychological activities for achieving specific goals. It provides a structured way to manage channels, ReAct loops, and memory for AI agents.
+TaskRunner is a moorex automaton that models an AI Agent's psychological activities while executing tasks. It provides a structured way to manage channels, ReAct loops, and memory for AI agents.
 
 ## Getting Started
 
-Install Volition and its dependencies:
+Install TaskRunner and its dependencies:
 
 ```bash
-npm install @moora/volition @moora/moorex mutative
+npm install @moora/task-runner @moora/moorex mutative
 # or
-bun add @moora/volition @moora/moorex mutative
+bun add @moora/task-runner @moora/moorex mutative
 # or
-yarn add @moora/volition @moora/moorex mutative
+yarn add @moora/task-runner @moora/moorex mutative
 ```
 
 ## Core Concepts
 
 ### Three Key Data Types
 
-Volition is built around three core immutable data types:
+TaskRunner is built around three core immutable data types:
 
-1. **`VolitionState`**: The complete state of the volition, including channels, ReAct loops, and memory
-2. **`VolitionSignal`**: Input events that trigger state transitions (messages, tool results, LLM responses, etc.)
-3. **`VolitionEffect`**: Side effects implied by the state (sending messages, calling LLM, calling tools, etc.)
+1. **`TaskRunnerState`**: The complete state of the TaskRunner, including channels, ReAct loops, and memory
+2. **`TaskRunnerSignal`**: Input events that trigger state transitions (messages, tool results, LLM responses, etc.)
+3. **`TaskRunnerEffect`**: Side effects implied by the state (sending messages, calling LLM, calling tools, etc.)
 
 ### Channel Architecture
 
-- **Upstream channel (id: 0)**: Connects to upstream systems (not necessarily a volition)
-- **Downstream channels (id: 1, 2, 3...)**: Connect to downstream volitions
+- **Upstream channel (id: 0)**: Connects to upstream systems (not necessarily a TaskRunner)
+- **Downstream channels (id: 1, 2, 3...)**: Connect to downstream TaskRunners
 - Each channel supports bidirectional alternating communication
 - Supports dynamic creation and closing of downstream channels
 
@@ -48,10 +48,10 @@ When a message is received, a ReAct (Reasoning-Acting-Observing) loop is trigger
 
 ```typescript
 import { createMoorex } from '@moora/moorex';
-import { createVolition } from '@moora/volition';
+import { createTaskRunner } from '@moora/task-runner';
 
-// Create a volition definition
-const definition = createVolition({
+// Create a TaskRunner definition
+const definition = createTaskRunner({
   callLLM: async (prompt: string) => {
     // Call your LLM API
     return await yourLLMAPI.generate(prompt);
@@ -68,11 +68,11 @@ const definition = createVolition({
   ],
 });
 
-// Create the volition machine
-const volition = createMoorex(definition);
+// Create the TaskRunner machine
+const taskRunner = createMoorex(definition);
 
 // Dispatch signals
-volition.dispatch({
+taskRunner.dispatch({
   type: 'channel-message',
   channelId: 0,
   content: 'Hello, agent!',
@@ -81,12 +81,12 @@ volition.dispatch({
 
 ## Type Definitions
 
-### VolitionState
+### TaskRunnerState
 
-The complete state of a volition:
+The complete state of a TaskRunner:
 
 ```typescript
-type VolitionState = {
+type TaskRunnerState = {
   /** All channel states */
   channels: Record<number, ChannelState>;
   /** Active ReAct loops */
@@ -98,25 +98,25 @@ type VolitionState = {
 };
 ```
 
-### VolitionSignal
+### TaskRunnerSignal
 
 Signals that trigger state transitions:
 
 ```typescript
-type VolitionSignal =
+type TaskRunnerSignal =
   | { type: 'channel-message'; channelId: number; content: string }
   | { type: 'tool-result'; reactLoopId: string; toolName: string; result: unknown }
   | { type: 'llm-response'; reactLoopId: string; content: string }
-  | { type: 'create-subvolition'; target: string }
+  | { type: 'create-subtask-runner'; target: string }
   | { type: 'react-loop-completed'; reactLoopId: string; response: string };
 ```
 
-### VolitionEffect
+### TaskRunnerEffect
 
 Effects that should be executed based on the state:
 
 ```typescript
-type VolitionEffect =
+type TaskRunnerEffect =
   | { kind: 'send-message'; channelId: number; content: string }
   | { kind: 'react-loop'; channelId: number; message: string }
   | { kind: 'call-tool'; reactLoopId: string; toolName: string; input: unknown }
@@ -172,10 +172,10 @@ type MemoryState = {
 
 ## Configuration
 
-### VolitionOptions
+### TaskRunnerOptions
 
 ```typescript
-type VolitionOptions = {
+type TaskRunnerOptions = {
   /** LLM call function */
   callLLM: (prompt: string) => Promise<string>;
   /** List of tools (built-in + external) */
@@ -209,5 +209,3 @@ type Tool = {
 ## License
 
 MIT
-
-

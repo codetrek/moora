@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 1,
   "workspaces": {
     "": {
       "name": "moora",
@@ -49,8 +48,8 @@
         "typescript": "^5",
       },
     },
-    "packages/volition": {
-      "name": "@moora/volition",
+    "packages/task-runner": {
+      "name": "@moora/task-runner",
       "version": "0.1.0",
       "dependencies": {
         "@moora/moorex": "0.1.0",
@@ -153,7 +152,7 @@
 
     "@moora/moorex-fastify": ["@moora/moorex-fastify@workspace:packages/moorex-fastify"],
 
-    "@moora/volition": ["@moora/volition@workspace:packages/volition"],
+    "@moora/task-runner": ["@moora/task-runner@workspace:packages/task-runner"],
 
     "@pinojs/redact": ["@pinojs/redact@0.4.0", "", {}, "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="],
 
