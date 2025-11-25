@@ -29,7 +29,8 @@
     // Monorepo workspace paths
     "baseUrl": ".",
     "paths": {
-      "@moora/moorex": ["./packages/moorex"]
+      "@moora/moorex": ["./packages/moorex"],
+      "@moora/moorex-fastify": ["./packages/moorex-fastify"]
     }
   }
 }
