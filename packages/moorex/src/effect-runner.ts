@@ -61,64 +61,44 @@ export const createEffectRunner = <State, Signal, Effect>(
     moorex: Moorex<State, Signal, Effect>,
   ) => {
     try {
-      const state = moorex.getState();
-      const initializer = runEffect(effect, state, key);
-
+      const initializer = runEffect(effect, moorex.getState(), key);
       const entry: RunningEffect<Effect> = {
         key,
         effect,
-        complete: Promise.resolve(), // 临时值，会在下面更新
+        complete: Promise.resolve(),
         cancel: initializer.cancel,
       };
       running.set(key, entry);
 
       // 创建一个受保护的 dispatch，确保在 effect 被取消后不能再 dispatch
       const guardedDispatch = (signal: Immutable<Signal>) => {
-        if (running.get(key) === entry) {
-          moorex.dispatch(signal);
-        }
+        if (running.get(key) === entry) moorex.dispatch(signal);
       };
 
-      entry.complete = Promise.resolve(initializer.start(guardedDispatch)).then(
-        () => {
-          // Effect 成功完成，从运行中移除
-          // 检查是否还在 running 中：如果 effect 在完成前被取消，
-          // cancelEffect 已经删除了它，这里就不应该再操作
-          if (running.get(key) === entry) {
-            running.delete(key);
-          }
-        },
-        (error) => {
-          // Effect 失败，从运行中移除
-          // 同样需要检查：effect 可能在失败前已被取消
-          if (running.get(key) === entry) {
-            running.delete(key);
-          }
-          if (onError) {
-            onError(effect, error);
-          }
-        },
-      );
+      const removeIfActive = () => {
+        if (running.get(key) === entry) running.delete(key);
+      };
+
+      entry.complete = Promise.resolve(initializer.start(guardedDispatch))
+        .then(removeIfActive)
+        .catch((error) => {
+          removeIfActive();
+          onError?.(effect, error);
+        });
     } catch (error) {
-      if (onError) {
-        onError(effect, error);
-      }
+      onError?.(effect, error);
     }
   };
 
   const cancelEffect = (key: string) => {
     const entry = running.get(key);
-    // moorex 保证只会取消存在的 effect，所以 entry 一定存在
-    // 但为了类型安全，我们还是做检查
     if (!entry) return;
 
     running.delete(key);
     try {
       entry.cancel();
     } catch (error) {
-      if (onError) {
-        onError(entry.effect, error);
-      }
+      onError?.(entry.effect, error);
     }
   };
 

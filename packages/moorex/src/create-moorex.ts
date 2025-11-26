@@ -1,10 +1,12 @@
 import { type Immutable } from 'mutative';
-import { createSignalQueue } from './signal-queue';
-import { createEventEmitter } from './event-emitter';
+import { createAutomata } from './create-automata';
+import { createMooreEffectController } from './create-effect-controller';
+import { createPubSub } from './pubsub';
 import type {
   MoorexDefinition,
   Moorex,
   MoorexEvent,
+  CancelFn,
 } from './types';
 
 /**
@@ -60,53 +62,93 @@ import type {
 export const createMoorex = <State, Signal, Effect>(
   definition: MoorexDefinition<State, Signal, Effect>,
 ): Moorex<State, Signal, Effect> => {
-  const activeEffects = new Map<string, Immutable<Effect>>();
-  let state: Immutable<State> = definition.initiate();
-
-  const { emit, subscribe } = createEventEmitter<
-    MoorexEvent<State, Signal, Effect>,
-    Moorex<State, Signal, Effect>
-  >();
-
-  const moorex: Moorex<State, Signal, Effect> = {
-    dispatch: (signal: Immutable<Signal>) => schedule(signal),
-    subscribe,
-    getState: () => state,
-  };
-
-  const reconcileEffects = () => {
-    const currentEffects = definition.effectsAt(state);
-
-    // 取消不再需要的 effects
-    for (const [key, effect] of [...activeEffects]) {
-      if (!(key in currentEffects)) {
-        activeEffects.delete(key);
-        emit({ type: 'effect-canceled', effect, key }, moorex);
-      }
-    }
-
-    // 启动新的 effects
-    for (const [key, effect] of Object.entries(currentEffects)) {
-      if (!activeEffects.has(key)) {
-        activeEffects.set(key, effect);
-        emit({ type: 'effect-started', effect, key }, moorex);
-      }
-    }
-  };
-
-  const { schedule } = createSignalQueue<Signal>((signals) => {
-    // 使用 reduce 累积状态转换
-    state = signals.reduce((currentState, signal) => {
-      emit({ type: 'signal-received', signal }, moorex);
-      return definition.transition(signal)(currentState);
-    }, state);
-
-    reconcileEffects();
-    emit({ type: 'state-updated', state }, moorex);
+  // 创建 automata 处理状态和信号
+  const automata = createAutomata<State, Signal>({
+    initialState: definition.initiate,
+    transition: definition.transition,
   });
 
+  // 创建事件发布订阅系统
+  type EventPayload = {
+    event: MoorexEvent<State, Signal, Effect>;
+    moorex: Moorex<State, Signal, Effect>;
+  };
+  const eventPubSub = createPubSub<EventPayload>();
+
+  // 创建 effect controller 处理 effects
+  // 使用一个 dummy runEffect，它返回一个永远不会完成的 Promise
+  // 这样 effect-controller 可以协调 effects，但不会真正执行它们
+  const effectController = createMooreEffectController<State, Signal, Effect>({
+    stateStream: automata.getStateStream(),
+    effectsAt: definition.effectsAt,
+    runEffect: (_effect, _state, _key) => {
+      // 返回一个永远不会完成的 Promise，这样 effect 永远不会完成
+      // 实际的 effect 执行由 createEffectRunner 处理
+      return {
+        start: async () => {
+          await new Promise(() => {}); // 永远等待
+        },
+        cancel: () => {}, // 空实现
+      };
+    },
+    dispatch: automata.dispatch.bind(automata),
+  });
+
+  const moorex: Moorex<State, Signal, Effect> = {
+    dispatch: automata.dispatch.bind(automata),
+    subscribe: (handler) =>
+      eventPubSub.sub(({ event, moorex }) => handler(event, moorex)),
+    getState: automata.getState.bind(automata),
+  };
+
+  // 启动异步流处理，确保能及时处理事件
+  // 监听 automata 的更新流，转换为 signal-received 和 state-updated 事件
+  (async () => {
+    for await (const { signal, state } of automata.getUpdatesStream()) {
+      eventPubSub.pub({ event: { type: 'signal-received', signal }, moorex });
+      eventPubSub.pub({ event: { type: 'state-updated', state }, moorex });
+    }
+  })();
+
+  // 监听 effect controller 的事件流，转换为 effect-started 和 effect-canceled 事件
+  (async () => {
+    for await (const effectEvent of effectController.getEffectEventStream()) {
+      if (effectEvent.type === 'start') {
+        eventPubSub.pub({
+          event: {
+            type: 'effect-started',
+            effect: effectEvent.effect,
+            key: effectEvent.key,
+          },
+          moorex,
+        });
+      } else {
+        // effectEvent.type === 'cancel'
+        eventPubSub.pub({
+          event: {
+            type: 'effect-canceled',
+            effect: effectEvent.effect,
+            key: effectEvent.key,
+          },
+          moorex,
+        });
+      }
+    }
+  })();
+
+  // 启动 effect controller（但不执行 effects，只是协调）
+  effectController.start();
+
   // 延迟初始 reconciliation 到下一个微任务，确保订阅者有机会注册
-  queueMicrotask(() => reconcileEffects());
+  // 同时确保异步流处理已经启动
+  queueMicrotask(() => {
+    // 直接使用 automata 的初始状态触发初始 reconciliation
+    const initialState = automata.getState();
+    const controllerWithTrigger = effectController as EffectController<Effect> & {
+      _triggerReconciliation?: (state: Immutable<State>) => void;
+    };
+    controllerWithTrigger._triggerReconciliation?.(initialState);
+  });
 
   return moorex;
 };
