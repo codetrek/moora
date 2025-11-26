@@ -33,9 +33,22 @@ export type AutomataDefinition<State, Signal> = {
 };
 
 /**
+ * Automata 更新对象。
+ *
+ * 包含触发状态转换的信号和更新后的状态。
+ *
+ * @template State - 机器的状态类型
+ * @template Signal - 信号类型
+ */
+export type AutomataUpdate<State, Signal> = {
+  signal: Immutable<Signal>;
+  state: Immutable<State>;
+};
+
+/**
  * Automata 实例。
  *
- * 提供状态管理、信号分发和流式输出功能。
+ * 提供状态管理、信号分发和订阅功能。
  *
  * @template State - 机器的状态类型
  * @template Signal - 信号类型
@@ -48,15 +61,11 @@ export type Automata<State, Signal> = {
    */
   dispatch(signal: Immutable<Signal>): void;
   /**
-   * 获取状态流。
-   * 返回一个异步生成器，每次状态更新时产生新的状态。
+   * 订阅信号导致的状态变化。
+   * @param handler - 处理函数，接收包含信号和更新后状态的对象
+   * @returns 取消订阅的函数
    */
-  getStateStream(): AsyncGenerator<Immutable<State>>;
-  /**
-   * 获取更新流。
-   * 返回一个异步生成器，每次状态更新时产生包含信号和状态的更新对象。
-   */
-  getUpdatesStream(): AsyncGenerator<{ signal: Immutable<Signal>; state: Immutable<State> }>;
+  subscribe(handler: (update: { signal: Immutable<Signal>; state: Immutable<State> }) => void): CancelFn;
   /**
    * 获取当前状态。
    * 返回的状态是 Immutable 的，不允许修改。

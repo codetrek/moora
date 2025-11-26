@@ -1,6 +1,7 @@
 import { type Immutable } from 'mutative';
 import { createPubSub, createStreamFromPubSub } from './pubsub';
 import type {
+  Automata,
   EffectsAt,
   RunEffect,
   EffectController,
@@ -11,7 +12,7 @@ import type {
 /**
  * 运行中的 Effect
  */
-type RunningEffect<Effect, Signal> = {
+type RunningEffect<Effect> = {
   key: string;
   effect: Immutable<Effect>;
   complete: Promise<void>;
@@ -22,17 +23,16 @@ type RunningEffect<Effect, Signal> = {
  * 创建一个 Effect Controller 实例。
  *
  * Effect Controller 负责：
- * 1. 监听状态流，根据 effectsAt 计算应该运行的 effects
+ * 1. 监听状态变化，根据 effectsAt 计算应该运行的 effects
  * 2. 协调 effects 的生命周期（启动、取消）
  * 3. 管理运行状态（running、braking、stopped）
  *
  * @example
  * ```typescript
  * const automata = createAutomata(definition);
- * const stateStream = automata.getStateStream();
  *
  * const controller = createMooreEffectController({
- *   stateStream,
+ *   automata,
  *   effectsAt: (state) => state.count > 0 ? { 'effect-1': effectData } : {},
  *   runEffect: (effect, state, key) => ({
  *     start: async (dispatch) => {
@@ -43,7 +43,6 @@ type RunningEffect<Effect, Signal> = {
  *       cleanup();
  *     }
  *   }),
- *   dispatch: (signal) => automata.dispatch(signal),
  * });
  *
  * controller.start();
@@ -56,15 +55,13 @@ type RunningEffect<Effect, Signal> = {
  * @returns Effect Controller 实例
  */
 export const createMooreEffectController = <State, Signal, Effect>({
-  stateStream,
+  automata,
   effectsAt,
   runEffect,
-  dispatch: dispatchFn,
 }: {
-  stateStream: AsyncGenerator<Immutable<State>>;
+  automata: Automata<State, Signal>;
   effectsAt: EffectsAt<State, Effect>;
   runEffect: RunEffect<Effect, Signal>;
-  dispatch: (signal: Immutable<Signal>) => void;
 }): EffectController<Effect> => {
   let status: EffectControllerStatus = 'stopped';
   
@@ -72,19 +69,11 @@ export const createMooreEffectController = <State, Signal, Effect>({
   const statusPubSub = createPubSub<EffectControllerStatus>();
   const effectEventPubSub = createPubSub<EffectEvent<Effect>>();
 
-  const runningEffects = new Map<string, RunningEffect<Effect, Signal>>();
+  const runningEffects = new Map<string, RunningEffect<Effect>>();
   let activeEffects: Record<string, Immutable<Effect>> = {};
 
-  let stateStreamIterator: AsyncIterator<Immutable<State>> | null = null;
-  let stateStreamTask: Promise<void> | null = null;
-
-  // 创建状态流生成器
-  const createStatusStream = () =>
-    createStreamFromPubSub(statusPubSub, status);
-
-  // 创建 Effect 事件流生成器
-  const createEffectEventStream = () =>
-    createStreamFromPubSub(effectEventPubSub);
+  let unsubscribe: (() => void) | null = null;
+  let isFirstState = true;
 
   // 更新状态并通知订阅者
   const setStatus = (newStatus: EffectControllerStatus) => {
@@ -107,7 +96,7 @@ export const createMooreEffectController = <State, Signal, Effect>({
 
     try {
       const initializer = runEffect(effect, state, key);
-      const entry: RunningEffect<Effect, Signal> = {
+      const entry: RunningEffect<Effect> = {
         key,
         effect,
         complete: Promise.resolve(),
@@ -117,7 +106,7 @@ export const createMooreEffectController = <State, Signal, Effect>({
 
       // 创建一个受保护的 dispatch
       const guardedDispatch = (signal: Immutable<Signal>) => {
-        if (runningEffects.get(key) === entry) dispatchFn(signal);
+        if (runningEffects.get(key) === entry) automata.dispatch(signal);
       };
 
       // 添加到 activeEffects
@@ -181,98 +170,91 @@ export const createMooreEffectController = <State, Signal, Effect>({
     }
   };
 
-  // 暴露 reconcileEffects 以便外部可以立即触发初始 reconciliation
-  const triggerReconciliation = (state: Immutable<State>) => {
-    reconcileEffects(state);
-  };
+  // 处理状态变化
+  const handleStateChange = ({ signal, state: newState }: { signal: Immutable<Signal>; state: Immutable<State> }) => {
+    if (status !== 'running') return;
 
-  // 处理状态流
-  const processStateStream = async () => {
-    if (!stateStreamIterator) {
-      stateStreamIterator = stateStream[Symbol.asyncIterator]();
-    }
-
-    try {
-      // 立即处理第一个状态值（初始状态）
-      let isFirst = true;
-      while (status === 'running') {
-        const result = await stateStreamIterator.next();
-        if (result.done) {
-          break;
-        }
-
-        const newState = result.value;
-        // 第一个状态值（初始状态）需要立即处理
-        if (isFirst) {
-          isFirst = false;
-          // 使用 queueMicrotask 确保在下一个微任务中处理，给订阅者时间注册
-          queueMicrotask(() => {
-            if (status === 'running') {
-              reconcileEffects(newState);
-            }
-          });
-        } else {
+    // 第一个状态变化（初始状态）需要延迟处理，给订阅者时间注册
+    if (isFirstState) {
+      isFirstState = false;
+      queueMicrotask(() => {
+        if (status === 'running') {
           reconcileEffects(newState);
         }
-      }
+      });
+    } else {
+      reconcileEffects(newState);
+    }
+  };
 
-      // 如果状态变为 braking，等待所有 running effects 完成
-      if (status === 'braking') {
-        // 等待所有 running effects 完成
-        const promises = Array.from(runningEffects.values()).map(
-          (entry) => entry.complete,
-        );
-        await Promise.allSettled(promises);
-        setStatus('stopped');
-      }
-    } catch (error) {
-      console.error('State stream processing error:', error);
+  // 等待所有 running effects 完成
+  const waitForEffectsToComplete = async () => {
+    if (status === 'braking') {
+      const promises = Array.from(runningEffects.values()).map(
+        (entry) => entry.complete,
+      );
+      await Promise.allSettled(promises);
       setStatus('stopped');
     }
   };
 
-  const controller: EffectController<Effect> = {
+  return {
     start() {
-      if (status === 'running') return;
+      if (status === "running") return;
 
-      // 如果之前的状态流处理已经完成，需要重新创建迭代器
-      if (status === 'stopped') {
-        stateStreamIterator = null;
-        stateStreamTask = null;
+      // 如果之前已经停止，需要重新订阅
+      if (status === "stopped") {
+        isFirstState = true;
+        if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = null;
+        }
       }
 
-      setStatus('running');
-      if (!stateStreamTask) {
-        stateStreamTask = processStateStream();
+      setStatus("running");
+      
+      // 订阅状态变化
+      if (!unsubscribe) {
+        unsubscribe = automata.subscribe(handleStateChange);
+        
+        // 处理初始状态（使用 queueMicrotask 确保在下一个微任务中处理）
+        const initialState = automata.getState();
+        queueMicrotask(() => {
+          if (status === 'running') {
+            reconcileEffects(initialState);
+          }
+        });
       }
     },
 
     stop(force: boolean) {
-      if (status === 'stopped') return;
+      if (status === "stopped") return;
 
       if (force) {
-        // 强制停止：取消所有 running effects
+        // 强制停止：取消所有 running effects 并取消订阅
         for (const key of runningEffects.keys()) {
           cancelEffect(key, true);
         }
-        setStatus('stopped');
+        if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = null;
+        }
+        setStatus("stopped");
       } else {
-        // 进入 braking 状态，等待 effects 自然完成
-        setStatus('braking');
+        // 进入 braking 状态，取消订阅但等待 effects 自然完成
+        if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = null;
+        }
+        setStatus("braking");
+        waitForEffectsToComplete();
       }
     },
 
     getStatus: () => status,
-    getStatusStream: createStatusStream,
+    getStatusStream: () => createStreamFromPubSub(statusPubSub, status),
     getEffects: () => ({ ...activeEffects }),
-    getEffectEventStream: createEffectEventStream,
-  };
-
-  // 返回 controller 和内部方法
-  return Object.assign(controller, {
-    _triggerReconciliation: triggerReconciliation,
-  }) as EffectController<Effect> & {
-    _triggerReconciliation: (state: Immutable<State>) => void;
+    getEffectEventStream: () => createStreamFromPubSub(effectEventPubSub),
   };
 };
 
