@@ -45,6 +45,9 @@ export type Dispatch<Input> = (input: Input) => void;
 
 /**
  * 过程函数，一个可以分发一个或多个输入的异步过程
+ *
+ * 这是两阶段副作用设计的第二阶段：异步副作用。
+ * Procedure 函数在微任务队列中执行，接收 dispatch 方法，可以异步地产生新的输入。
  */
 export type Procedure<Input> = (
   dispatch: Dispatch<Input>
@@ -52,6 +55,15 @@ export type Procedure<Input> = (
 
 /**
  * 输出处理器，接收输出并返回一个过程函数
+ *
+ * 这是两阶段副作用设计的第一阶段：同步处理。
+ * 当有 output 时，handler 会立即同步执行，返回一个 Procedure 函数（异步副作用）。
+ * Procedure 函数随后会在微任务队列中异步执行，接收 dispatch 方法。
+ *
+ * 这种设计允许：
+ * - 同步部分可以立即处理 output（例如记录日志、更新 UI）
+ * - 异步副作用在微任务中执行，不会阻塞当前执行栈
+ * - 异步副作用可以通过 dispatch 产生新的输入，形成反馈循环
  */
 export type OutputHandler<Input, Output> = (output: Output) => Procedure<Input>;
 

@@ -2,6 +2,8 @@ import { describe, expect, test } from 'vitest';
 import { createMoorex } from '@moora/moorex';
 import { createTaskRunner, type TaskRunnerState, type TaskRunnerSignal, type TaskRunnerEffect } from '../src/index';
 
+const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
+
 describe('createTaskRunner', () => {
   test('creates a TaskRunner definition with initial state', () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
@@ -55,7 +57,7 @@ describe('createTaskRunner', () => {
     expect(state.memory.shortTerm[0]?.content).toBe('Initial memory');
   });
 
-  test('transition function returns original state (placeholder)', () => {
+  test('transition function returns original state (placeholder)', async () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
     
     const definition = createTaskRunner({
@@ -63,7 +65,7 @@ describe('createTaskRunner', () => {
     });
 
     const taskRunner = createMoorex(definition);
-    const initialState = taskRunner.getState();
+    const initialState = taskRunner.current();
 
     // 发送一个信号
     const signal: TaskRunnerSignal = {
@@ -77,13 +79,10 @@ describe('createTaskRunner', () => {
 
     // 由于 transition 是占位符，状态应该保持不变
     // 注意：由于是异步处理，我们需要等待一下
-    const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
-    
-    return nextTick().then(() => {
-      const newState = taskRunner.getState();
-      // 当前 transition 是占位符，状态应该保持不变
-      expect(newState).toEqual(initialState);
-    });
+    await nextTick();
+    const newState = taskRunner.current();
+    // 当前 transition 是占位符，状态应该保持不变
+    expect(newState).toEqual(initialState);
   });
 
   test('effectsAt returns empty object (placeholder)', async () => {
@@ -102,8 +101,9 @@ describe('createTaskRunner', () => {
       }
     });
 
-    // 等待初始 reconciliation
-    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    // 等待初始 reconciliation（两阶段副作用设计）
+    await nextTick(); // 等待 Moore 机输出
+    await nextTick(); // 等待 reconciliation 执行
 
     // 由于 effectsAt 返回空对象，不应该有 effect-started 事件
     const startedEvents = events.filter((e) => e.type === 'effect-started');

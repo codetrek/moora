@@ -25,6 +25,24 @@ import { create } from 'mutative';
 > Prepare the agent definition: describe state transitions and desired effects.
 > All function parameters and return values should be treated as immutable.
 
+## Two-Phase Side Effect Design
+
+Moorex uses a **two-phase side effect design** for state machine handlers:
+
+1. **Phase 1 (Synchronous)**: When an output is produced, `handler(output)` executes
+   **synchronously** and immediately, returning an asynchronous side effect (Procedure).
+
+2. **Phase 2 (Asynchronous)**: The Procedure function is executed **asynchronously** via
+   `queueMicrotask`, receiving a `dispatch` method that can asynchronously produce new
+   inputs to the state machine.
+
+This design ensures:
+- The synchronous part of the handler can immediately process the output (e.g., logging,
+  updating UI)
+- Asynchronous side effects execute in the microtask queue without blocking the current
+  execution stack
+- Asynchronous side effects can produce new inputs via `dispatch`, forming feedback loops
+
 ```typescript
 const definition: MoorexDefinition<Input, Effect, State> = {
   initial: () => initialState,
@@ -101,6 +119,39 @@ mutative's `create()` for immutable updates:
   objects.
 - `runEffect(effect, state, key)`: creates an effect controller with `start` and `cancel` methods.
   Receives the effect (immutable), the current state (immutable), and the effect's key (string).
+
+### State Machine Handlers (Two-Phase Side Effect Design)
+
+State machines (`machine`, `mealy`, `moore`) use a two-phase side effect design for handlers:
+
+```typescript
+import { machine } from '@moora/moorex';
+
+const sm = machine(
+  { initial: () => 0, transition: (n) => (s) => s + n },
+  ({ state }) => ({ value: state })
+);
+
+// Handler executes in two phases:
+sm.subscribe((output) => {
+  // Phase 1 (Synchronous): Execute immediately when output is produced
+  console.log('Sync:', output);
+  
+  // Return Procedure (Phase 2: Asynchronous)
+  return (dispatch) => {
+    // Phase 2 (Asynchronous): Execute in microtask queue
+    // Can use dispatch to produce new inputs
+    if (output.value < 10) {
+      dispatch(1);
+    }
+  };
+});
+```
+
+**Timing considerations**:
+- Phase 1 (handler execution) is **synchronous** and happens immediately
+- Phase 2 (Procedure execution) is **asynchronous** and happens in the microtask queue
+- The Procedure receives a `dispatch` method to produce new inputs asynchronously
 
 ### Running Effects
 

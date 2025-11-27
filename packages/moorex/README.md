@@ -75,6 +75,24 @@ machine.dispatch({ type: 'increment' });
 const currentState = machine.current();
 ```
 
+## Two-Phase Side Effect Design
+
+Moorex uses a **two-phase side effect design** for state machine handlers:
+
+1. **Phase 1 (Synchronous)**: When an output is produced, `handler(output)` executes
+   **synchronously** and immediately, returning an asynchronous side effect (Procedure).
+
+2. **Phase 2 (Asynchronous)**: The Procedure function is executed **asynchronously** via
+   `queueMicrotask`, receiving a `dispatch` method that can asynchronously produce new
+   inputs to the state machine.
+
+This design ensures:
+- The synchronous part of the handler can immediately process the output (e.g., logging,
+  updating UI)
+- Asynchronous side effects execute in the microtask queue without blocking the current
+  execution stack
+- Asynchronous side effects can produce new inputs via `dispatch`, forming feedback loops
+
 ## Defining a Moorex Machine
 
 To create a Moorex machine, you define **three types** and **four functions**:
