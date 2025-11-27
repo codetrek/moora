@@ -53,18 +53,18 @@ import { create } from 'mutative';
 
 // Define your Moorex machine
 type State = { count: number };
-type Signal = { type: 'increment' } | { type: 'decrement' };
+type Input = { type: 'increment' } | { type: 'decrement' };
 type Effect = never;
 
-const definition: MoorexDefinition<Signal, Effect, State> = {
+const definition: MoorexDefinition<Input, Effect, State> = {
   initial: () => ({ count: 0 }),
-  transition: (signal) => (state) => {
-    if (signal.type === 'increment') {
+  transition: (input) => (state) => {
+    if (input.type === 'increment') {
       return create(state, (draft) => {
         draft.count += 1;
       });
     }
-    if (signal.type === 'decrement') {
+    if (input.type === 'decrement') {
       return create(state, (draft) => {
         draft.count -= 1;
       });
@@ -90,8 +90,8 @@ const fastify = Fastify({ logger: true });
 const moorexNode = createMoorexNode({
   moorex,
   handlePost: async (input, dispatch) => {
-    const signal = JSON.parse(input);
-    dispatch(signal);
+    const inputs = JSON.parse(input);
+    dispatch(inputs);
     return { 
       code: 200, 
       content: JSON.stringify({ success: true }) 
@@ -155,7 +155,7 @@ The request body is passed as a string to the `handlePost` callback. It can be J
 const response = await fetch('http://localhost:3000/api/moorex/', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ type: 'increment' }),
+  body: JSON.stringify([{ type: 'increment' }]),
 });
 
 const result = await response.text(); // Response content is determined by handlePost
@@ -176,7 +176,7 @@ const moorexNode = createMoorexNode({ moorex, handlePost });
 // You can still access it if needed
 const sameMoorex = moorexNode.moorex;
 
-// Dispatch signals programmatically
+// Dispatch inputs programmatically
 moorex.dispatch({ type: 'increment' });
 
 // Get current state
@@ -211,8 +211,8 @@ Create a read-write node when you want to accept signals from clients:
 const readWriteNode = createMoorexNode({
   moorex,
   handlePost: async (input, dispatch) => {
-    const signal = JSON.parse(input);
-    dispatch(signal);
+    const inputs = JSON.parse(input);
+    dispatch(inputs);
     return { 
       code: 200, 
       content: JSON.stringify({ success: true }) 
@@ -235,25 +235,25 @@ This is useful for:
 Creates a MoorexNode instance.
 
 **Parameters:**
-- `options.moorex`: `Moorex<Signal, Effect, State>` - An existing Moorex instance (with effects already configured if needed)
-- `options.handlePost?`: `HandlePost<Signal>` - Optional POST request handler
+- `options.moorex`: `Moorex<Input, Effect, State>` - An existing Moorex instance (with effects already configured if needed)
+- `options.handlePost?`: `HandlePost<Input>` - Optional POST request handler
 
-**Returns:** `MoorexNode<State, Signal, Effect>`
+**Returns:** `MoorexNode<Input, Effect, State>`
 
-### `HandlePost<Signal>`
+### `HandlePost<Input>`
 
 The type of the POST handler callback:
 
 ```typescript
-type HandlePost<Signal> = (
+type HandlePost<Input> = (
   input: string,
-  dispatch: (signal: Signal) => void,
+  dispatch: (inputs: Input[]) => void,
 ) => Promise<PostResponse>;
 ```
 
 **Parameters:**
 - `input`: `string` - The POST request body as a string
-- `dispatch`: `(signal: Signal) => void` - A function to dispatch signals to the Moorex instance
+- `dispatch`: `(inputs: Input[]) => void` - A function to dispatch an array of inputs to the Moorex instance
 
 **Returns:** `Promise<PostResponse>` where `PostResponse` is:
 ```typescript

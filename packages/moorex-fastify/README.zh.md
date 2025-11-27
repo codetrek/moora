@@ -53,18 +53,18 @@ import { create } from 'mutative';
 
 // 定义你的 Moorex 机器
 type State = { count: number };
-type Signal = { type: 'increment' } | { type: 'decrement' };
+type Input = { type: 'increment' } | { type: 'decrement' };
 type Effect = never;
 
-const definition: MoorexDefinition<Signal, Effect, State> = {
+const definition: MoorexDefinition<Input, Effect, State> = {
   initial: () => ({ count: 0 }),
-  transition: (signal) => (state) => {
-    if (signal.type === 'increment') {
+  transition: (input) => (state) => {
+    if (input.type === 'increment') {
       return create(state, (draft) => {
         draft.count += 1;
       });
     }
-    if (signal.type === 'decrement') {
+    if (input.type === 'decrement') {
       return create(state, (draft) => {
         draft.count -= 1;
       });
@@ -90,8 +90,8 @@ const fastify = Fastify({ logger: true });
 const moorexNode = createMoorexNode({
   moorex,
   handlePost: async (input, dispatch) => {
-    const signal = JSON.parse(input);
-    dispatch(signal);
+    const inputs = JSON.parse(input);
+    dispatch(inputs);
     return { 
       code: 200, 
       content: JSON.stringify({ success: true }) 
@@ -155,7 +155,7 @@ eventSource.addEventListener('state-updated', (event) => {
 const response = await fetch('http://localhost:3000/api/moorex/', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ type: 'increment' }),
+  body: JSON.stringify([{ type: 'increment' }]),
 });
 
 const result = await response.text(); // 响应内容由 handlePost 决定
@@ -176,7 +176,7 @@ const moorexNode = createMoorexNode({ moorex, handlePost });
 // 如果需要，你仍然可以访问它
 const sameMoorex = moorexNode.moorex;
 
-// 通过编程方式分发信号
+// 通过编程方式分发输入
 moorex.dispatch({ type: 'increment' });
 
 // 获取当前状态
@@ -211,8 +211,8 @@ await fastify.register(readOnlyNode.register, { prefix: '/api/moorex/read' });
 const readWriteNode = createMoorexNode({
   moorex,
   handlePost: async (input, dispatch) => {
-    const signal = JSON.parse(input);
-    dispatch(signal);
+    const inputs = JSON.parse(input);
+    dispatch(inputs);
     return { 
       code: 200, 
       content: JSON.stringify({ success: true }) 
@@ -235,25 +235,25 @@ await fastify.register(readWriteNode.register, { prefix: '/api/moorex/write' });
 创建 MoorexNode 实例。
 
 **参数:**
-- `options.moorex`: `Moorex<Signal, Effect, State>` - 已存在的 Moorex 实例（如果需要，effects 应已配置）
-- `options.handlePost?`: `HandlePost<Signal>` - 可选的 POST 请求处理器
+- `options.moorex`: `Moorex<Input, Effect, State>` - 已存在的 Moorex 实例（如果需要，effects 应已配置）
+- `options.handlePost?`: `HandlePost<Input>` - 可选的 POST 请求处理器
 
-**返回:** `MoorexNode<State, Signal, Effect>`
+**返回:** `MoorexNode<Input, Effect, State>`
 
-### `HandlePost<Signal>`
+### `HandlePost<Input>`
 
 POST 处理器回调的类型：
 
 ```typescript
-type HandlePost<Signal> = (
+type HandlePost<Input> = (
   input: string,
-  dispatch: (signal: Signal) => void,
+  dispatch: (inputs: Input[]) => void,
 ) => Promise<PostResponse>;
 ```
 
 **参数:**
 - `input`: `string` - POST 请求体（字符串格式）
-- `dispatch`: `(signal: Signal) => void` - 用于向 Moorex 实例分发信号的函数
+- `dispatch`: `(inputs: Input[]) => void` - 用于向 Moorex 实例分发输入数组的函数
 
 **返回:** `Promise<PostResponse>`，其中 `PostResponse` 是：
 ```typescript

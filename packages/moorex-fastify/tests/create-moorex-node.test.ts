@@ -4,19 +4,19 @@ import { createMoorex, type MoorexDefinition } from '@moora/moorex';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 type State = { count: number };
-type Signal = { type: 'increment' } | { type: 'decrement' };
+type Input = { type: 'increment' } | { type: 'decrement' };
 type Effect = never;
 
 const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 
 describe('createMoorexNode', () => {
-  let moorex: ReturnType<typeof createMoorex<State, Signal, Effect>>;
+  let moorex: ReturnType<typeof createMoorex<Input, Effect, State>>;
   let mockFastify: FastifyInstance;
   let getHandler: any;
   let postHandler: any;
 
   beforeEach(() => {
-    const definition: MoorexDefinition<Signal, Effect, State> = {
+    const definition: MoorexDefinition<Input, Effect, State> = {
       initial: () => ({ count: 0 }),
       transition: (signal) => (state) => {
         if (signal.type === 'increment') {
@@ -693,7 +693,7 @@ describe('createMoorexNode', () => {
     });
 
     test('should handle different event types in SSE stream', async () => {
-      const definitionWithEffects: MoorexDefinition<Signal, { key: string }, State> = {
+      const definitionWithEffects: MoorexDefinition<Input, { key: string }, State> = {
         initial: () => ({ count: 0 }),
         transition: (signal) => (state) => {
           if (signal.type === 'increment') {
@@ -755,9 +755,9 @@ describe('createMoorexNode', () => {
       const node = createMoorexNode({ moorex, handlePost });
       await node.register(mockFastify);
 
-      const signal = { type: 'increment' };
+      const inputs = [{ type: 'increment' as const }];
       const mockRequest = {
-        body: signal,
+        body: inputs,
       } as FastifyRequest<{ Body: unknown }>;
 
       const mockReply = {
@@ -769,7 +769,7 @@ describe('createMoorexNode', () => {
 
       // Check handlePost was called with JSON stringified body
       expect(handlePost).toHaveBeenCalledWith(
-        JSON.stringify(signal),
+        JSON.stringify(inputs),
         expect.any(Function),
       );
 
@@ -806,14 +806,14 @@ describe('createMoorexNode', () => {
       );
     });
 
-    test('should dispatch signal via handlePost dispatch function', async () => {
-      let capturedDispatch: ((signal: Signal) => void) | null = null;
+    test('should dispatch inputs via handlePost dispatch function', async () => {
+      let capturedDispatch: ((inputs: Input[]) => void) | null = null;
 
       const handlePost = vi.fn().mockImplementation(
-        async (input: string, dispatch: (signal: Signal) => void) => {
+        async (input: string, dispatch: (inputs: Input[]) => void) => {
           capturedDispatch = dispatch;
-          const signal = JSON.parse(input);
-          dispatch(signal);
+          const inputs = JSON.parse(input);
+          dispatch(inputs);
           return {
             code: 200,
             content: JSON.stringify({ success: true }),
@@ -824,9 +824,9 @@ describe('createMoorexNode', () => {
       const node = createMoorexNode({ moorex, handlePost });
       await node.register(mockFastify);
 
-      const signal = { type: 'increment' };
+      const inputs = [{ type: 'increment' as const }];
       const mockRequest = {
-        body: signal,
+        body: inputs,
       } as FastifyRequest<{ Body: unknown }>;
 
       const mockReply = {
@@ -839,12 +839,54 @@ describe('createMoorexNode', () => {
 
       await postHandler(mockRequest, mockReply);
 
-      // Wait for signal processing
+      // Wait for input processing
       await nextTick();
 
       // Check state was updated
       const newState = moorex.current();
       expect(newState.count).toBe(1);
+    });
+
+    test('should dispatch multiple inputs via handlePost dispatch function', async () => {
+      const handlePost = vi.fn().mockImplementation(
+        async (input: string, dispatch: (inputs: Input[]) => void) => {
+          const inputs = JSON.parse(input);
+          dispatch(inputs);
+          return {
+            code: 200,
+            content: JSON.stringify({ success: true }),
+          };
+        },
+      );
+
+      const node = createMoorexNode({ moorex, handlePost });
+      await node.register(mockFastify);
+
+      const inputs = [
+        { type: 'increment' as const },
+        { type: 'increment' as const },
+        { type: 'increment' as const },
+      ];
+      const mockRequest = {
+        body: inputs,
+      } as FastifyRequest<{ Body: unknown }>;
+
+      const mockReply = {
+        code: vi.fn().mockReturnThis(),
+        send: vi.fn(),
+      } as unknown as FastifyReply;
+
+      const initialState = moorex.current();
+      expect(initialState.count).toBe(0);
+
+      await postHandler(mockRequest, mockReply);
+
+      // Wait for input processing
+      await nextTick();
+
+      // Check state was updated multiple times
+      const newState = moorex.current();
+      expect(newState.count).toBe(3);
     });
 
     test('should handle errors in handlePost', async () => {
@@ -854,7 +896,7 @@ describe('createMoorexNode', () => {
       await node.register(mockFastify);
 
       const mockRequest = {
-        body: { type: 'increment' },
+        body: [{ type: 'increment' as const }],
       } as FastifyRequest<{ Body: unknown }>;
 
       const mockReply = {
@@ -885,7 +927,7 @@ describe('createMoorexNode', () => {
       await node.register(mockFastify);
 
       const mockRequest = {
-        body: { type: 'increment' },
+        body: [{ type: 'increment' as const }],
       } as FastifyRequest<{ Body: unknown }>;
 
       const mockReply = {

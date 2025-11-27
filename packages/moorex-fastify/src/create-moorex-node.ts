@@ -14,8 +14,8 @@ import type { MoorexNode, MoorexNodeOptions } from './types';
  * const moorexNode = createMoorexNode({
  *   moorex,
  *   handlePost: async (input, dispatch) => {
- *     const signal = JSON.parse(input);
- *     dispatch(signal);
+ *     const inputs = JSON.parse(input);
+ *     dispatch(inputs);
  *     return { code: 200, content: JSON.stringify({ success: true }) };
  *   }
  * });
@@ -24,9 +24,9 @@ import type { MoorexNode, MoorexNodeOptions } from './types';
  * await fastify.register(moorexNode.register, { prefix: '/api/moorex' });
  * ```
  */
-export const createMoorexNode = <State, Signal, Effect>(
-  options: MoorexNodeOptions<State, Signal, Effect>,
-): MoorexNode<State, Signal, Effect> => {
+export const createMoorexNode = <Input, Effect, State>(
+  options: MoorexNodeOptions<Input, Effect, State>,
+): MoorexNode<Input, Effect, State> => {
   const { moorex, handlePost } = options;
 
   // 注册路由的函数（作为 Fastify 插件）
@@ -45,7 +45,7 @@ export const createMoorexNode = <State, Signal, Effect>(
       
       // 发送初始状态
       const initialState = moorex.current();
-      const initialEvent: MoorexEvent<Signal, Effect, State> = {
+      const initialEvent: MoorexEvent<Input, Effect, State> = {
         type: 'state-updated',
         state: initialState,
       };
@@ -107,9 +107,11 @@ export const createMoorexNode = <State, Signal, Effect>(
             ? request.body 
             : JSON.stringify(request.body);
           
-          // 创建 dispatch 包装函数
-          const dispatch = (signal: Signal) => {
-            moorex.dispatch(signal);
+          // 创建 dispatch 包装函数，接收 Input 数组
+          const dispatch = (inputs: Input[]) => {
+            for (const input of inputs) {
+              moorex.dispatch(input);
+            }
           };
           
           // 调用 handlePost 回调
