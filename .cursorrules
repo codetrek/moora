@@ -1,0 +1,275 @@
+# Moorex 代码风格规范
+
+基于 `@moora/moorex` 包的代码风格，遵循以下规范：
+
+## 代码格式
+
+- **引号**：使用双引号（`"`）
+- **分号**：语句末尾使用分号
+- **缩进**：使用 2 个空格
+- **行宽**：保持合理的行宽，避免过长的行
+
+## 类型系统
+
+- **类型导出**：使用 `export type { ... }` 导出类型
+- **类型导入**：使用 `import type { ... }` 导入类型
+- **类型注解**：所有函数参数和返回值都要有明确的类型注解
+- **泛型参数**：使用单一大写字母命名（如 `Input`, `Effect`, `State`, `Output`, `T`）
+- **类型命名**：使用 PascalCase（如 `MoorexDefinition`, `EffectController`）
+- **Record 类型**：优先使用 `Record<string, T>` 而不是 `{ [key: string]: T }`
+- **避免 class 和 interface**：优先使用 `type` 定义类型，不使用 `class` 和 `interface`
+- **Union 类型**：
+  - 使用 Discriminated Union（判别联合类型），通过 `type` 或 `kind` 字段区分
+  - 每个子类型尽量单独命名定义，提高可读性和可维护性
+  - 只有特别简单的 union 类型（如 `'idle' | 'running' | 'error'`）可以例外，直接内联定义
+
+## 命名规范
+
+- **函数名**：使用 camelCase（如 `createMoorex`, `reconcileEffects`）
+- **类型名**：使用 PascalCase（如 `Moorex`, `PubSub`）
+- **变量名**：使用 camelCase（如 `currentEffects`, `effectControllers`）
+- **常量名**：使用 camelCase（如 `nextTick`, `sleep`）
+- **内部类型**：使用 `@internal` 标记，命名使用 PascalCase（如 `EffectEntry`）
+
+## 函数定义
+
+- **函数声明**：优先使用 `export function` 声明导出函数
+- **箭头函数**：内部辅助函数可以使用箭头函数
+- **函数文档**：所有导出函数必须有完整的 JSDoc 注释，包括：
+  - 功能描述（中文）
+  - `@template` 标签说明泛型参数
+  - `@param` 标签说明每个参数
+  - `@returns` 标签说明返回值
+  - `@example` 标签提供使用示例
+- **内部函数**：使用 `@internal` 标记，也需要 JSDoc 注释
+
+## 代码组织
+
+- **分隔注释**：使用 `// ============================================================================` 分隔主要代码块
+- **模块划分**：按功能模块组织代码，每个模块有清晰的注释说明
+- **导入顺序**：先导入类型，再导入实现
+- **导出顺序**：先导出类型，再导出函数
+- **文件大小限制**：
+  - 单文件不超过 200 行，超过就考虑拆分成多个文件
+  - 对于特定的功能模块，要规划对应的文件夹，然后通过 `index.ts` 导出内容
+- **函数大小限制**：
+  - 单函数不超过 30 行，超过就考虑提取子函数
+  - 将复杂逻辑拆分为多个小的辅助函数，提高可读性和可维护性
+- **index.ts 规范**：
+  - `index.ts` 中不实现具体的代码，只用来导出符号定义
+  - 使用 `export type { ... }` 导出类型
+  - 使用 `export { ... }` 导出函数和常量
+  - 通过 `from './module-name'` 从其他模块重新导出
+
+## 注释规范
+
+- **语言**：使用中文编写注释和文档
+- **JSDoc**：所有公开 API 必须有完整的 JSDoc 注释
+- **内联注释**：对复杂逻辑添加解释性注释
+- **示例代码**：在 JSDoc 中使用 `@example` 提供使用示例
+
+## 变量和常量
+
+- **变量声明**：优先使用 `const`，需要重新赋值时使用 `let`
+- **避免 var**：不使用 `var`
+- **解构赋值**：合理使用解构赋值提高代码可读性
+
+## 异步处理
+
+- **微任务**：使用 `queueMicrotask` 处理异步副作用
+- **Promise**：合理使用 Promise 和 async/await
+- **异步函数**：明确标记 `async` 函数
+
+## 数据结构
+
+- **现代数据结构**：优先使用 `Set`, `Map` 等现代数据结构
+- **不可变性**：函数参数和返回值保持不可变（Immutable）
+- **不可变更新**：使用 `mutative` 的 `create()` 函数或展开运算符进行不可变更新
+
+## 函数式设计
+
+- **纯函数优先**：优先编写纯函数，避免副作用
+- **副作用分离**：将副作用（如异步操作、IO）与纯逻辑分离
+  - 状态转换函数（`transition`）必须是纯函数
+  - 副作用计算函数（`effectsAt`）必须是纯函数
+  - 副作用执行（如 `runEffect`）在专门的函数中处理
+- **高阶函数**：合理使用高阶函数和函数组合
+- **函数组合**：通过函数组合构建复杂逻辑，而不是使用类继承
+- **不可变数据流**：数据通过函数参数传递，而不是通过共享状态
+
+## 测试代码
+
+- **测试框架**：使用 Vitest
+- **测试组织**：使用 `describe` 和 `test` 组织测试
+- **测试工具函数**：在测试文件顶部定义辅助函数（如 `nextTick`, `sleep`）
+
+## Union 类型定义示例
+
+```typescript
+// 好的做法：每个子类型单独命名定义
+/**
+ * 用户消息输入
+ */
+export type UserMessageInput = {
+  type: "user";
+  message: string;
+};
+
+/**
+ * 工具调用结果输入
+ */
+export type ToolResultInput = {
+  type: "tool";
+  name: string;
+  result: string;
+};
+
+/**
+ * 助手消息输入
+ */
+export type AssistantMessageInput = {
+  type: "assistant";
+  message: string;
+};
+
+/**
+ * 输入信号类型
+ */
+export type Input = UserMessageInput | ToolResultInput | AssistantMessageInput;
+
+// 简单类型可以例外，直接内联定义
+export type Status = "idle" | "thinking" | "responding" | "error";
+```
+
+## 函数式设计示例
+
+```typescript
+// 纯函数：状态转换（无副作用）
+const transition = (input: Input) => (state: State): State => {
+  return create(state, (draft) => {
+    // 使用 mutative 进行不可变更新
+    draft.messages.push(input);
+  });
+};
+
+// 纯函数：计算副作用（无副作用）
+const effectsAt = (state: State): Record<string, Effect> => {
+  if (state.count > 0) {
+    return { log: { kind: "log", message: `Count is ${state.count}` } };
+  }
+  return {};
+};
+
+// 副作用分离：在专门的函数中处理副作用
+const runEffect = (
+  effect: Effect,
+  state: State,
+  key: string
+): EffectController<Input> => {
+  // 副作用执行逻辑
+  return {
+    start: async (dispatch) => {
+      // 执行副作用
+    },
+    cancel: () => {
+      // 取消副作用
+    },
+  };
+};
+```
+
+## 文件组织示例
+
+```typescript
+// src/index.ts - 只导出，不实现
+// ============================================================================
+// 导出所有类型
+// ============================================================================
+export type {
+  CancelFn,
+  Unsubscribe,
+  PubSub,
+  Dispatch,
+  MoorexDefinition,
+  Moorex,
+} from "./types";
+
+// ============================================================================
+// 导出函数
+// ============================================================================
+export { createPubSub } from "./pub-sub";
+export { createMoorex } from "./moorex";
+export { machine, mealy, moore } from "./state-machines";
+
+// src/moorex.ts - 实现文件，如果超过 200 行考虑拆分
+// 如果 createMoorex 函数超过 30 行，提取辅助函数
+export function createMoorex<Input, Effect, State>({
+  initial,
+  transition,
+  effectsAt,
+  runEffect,
+}: MoorexDefinition<Input, Effect, State>): Moorex<Input, Effect, State> {
+  // 如果函数体超过 30 行，提取辅助函数
+  const deleteEffect = (key: string) => {
+    // 辅助函数逻辑
+  };
+
+  const reconcileEffects = (effects: Record<string, Effect>) => {
+    // 辅助函数逻辑
+  };
+
+  // 主函数逻辑
+  return { dispatch, current, subscribe };
+}
+```
+
+## 示例代码风格
+
+```typescript
+// ============================================================================
+// 模块说明
+// ============================================================================
+
+import type {
+  Dispatch,
+  EffectController,
+  MoorexDefinition,
+} from "./types";
+
+/**
+ * 创建 Moorex 实例
+ *
+ * @template Input - 输入信号类型
+ * @template Effect - Effect 类型
+ * @template State - 状态类型
+ * @param definition - Moorex 定义
+ * @returns Moorex 实例
+ *
+ * @example
+ * ```typescript
+ * const moorex = createMoorex({
+ *   initial: () => ({ count: 0 }),
+ *   transition: (n) => (state) => ({ count: state.count + n }),
+ *   effectsAt: (state) => ({}),
+ *   runEffect: () => ({ start: async () => {}, cancel: () => {} }),
+ * });
+ * ```
+ */
+export function createMoorex<Input, Effect, State>({
+  initial,
+  transition,
+  effectsAt,
+  runEffect,
+}: MoorexDefinition<Input, Effect, State>): Moorex<Input, Effect, State> {
+  // 实现代码
+}
+```
+
+## TypeScript 配置
+
+遵循以下 TypeScript 配置原则：
+- 启用 `strict` 模式
+- 使用 `ESNext` 作为 target 和 lib
+- 使用 `bundler` 模块解析
+- 启用 `noUncheckedIndexedAccess`
+- 启用 `noImplicitOverride`
