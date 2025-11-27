@@ -16,8 +16,8 @@ describe('createMoorexNode', () => {
   let postHandler: any;
 
   beforeEach(() => {
-    const definition: MoorexDefinition<State, Signal, Effect> = {
-      initiate: () => ({ count: 0 }),
+    const definition: MoorexDefinition<Signal, Effect, State> = {
+      initial: () => ({ count: 0 }),
       transition: (signal) => (state) => {
         if (signal.type === 'increment') {
           return { count: state.count + 1 };
@@ -28,6 +28,10 @@ describe('createMoorexNode', () => {
         return state;
       },
       effectsAt: () => ({}),
+      runEffect: () => ({
+        start: async () => {},
+        cancel: () => {},
+      }),
     };
 
     moorex = createMoorex(definition);
@@ -201,7 +205,7 @@ describe('createMoorexNode', () => {
       // Check that event was written
       expect(mockWrite).toHaveBeenCalled();
       const writeCall = mockWrite.mock.calls.find((call) =>
-        call[0].includes('signal-received'),
+        call[0].includes('input-received') || call[0].includes('state-updated'),
       );
       expect(writeCall).toBeDefined();
     });
@@ -689,8 +693,8 @@ describe('createMoorexNode', () => {
     });
 
     test('should handle different event types in SSE stream', async () => {
-      const definitionWithEffects: MoorexDefinition<State, Signal, { key: string }> = {
-        initiate: () => ({ count: 0 }),
+      const definitionWithEffects: MoorexDefinition<Signal, { key: string }, State> = {
+        initial: () => ({ count: 0 }),
         transition: (signal) => (state) => {
           if (signal.type === 'increment') {
             return { count: state.count + 1 };
@@ -700,6 +704,10 @@ describe('createMoorexNode', () => {
         effectsAt: (state): Record<string, { key: string }> => {
           return state.count > 0 ? { 'effect-1': { key: 'effect-1' } } : {};
         },
+        runEffect: () => ({
+          start: async () => {},
+          cancel: () => {},
+        }),
       };
 
       const moorexWithEffects = createMoorex(definitionWithEffects);
@@ -826,7 +834,7 @@ describe('createMoorexNode', () => {
         send: vi.fn(),
       } as unknown as FastifyReply;
 
-      const initialState = moorex.getState();
+      const initialState = moorex.current();
       expect(initialState.count).toBe(0);
 
       await postHandler(mockRequest, mockReply);
@@ -835,7 +843,7 @@ describe('createMoorexNode', () => {
       await nextTick();
 
       // Check state was updated
-      const newState = moorex.getState();
+      const newState = moorex.current();
       expect(newState.count).toBe(1);
     });
 

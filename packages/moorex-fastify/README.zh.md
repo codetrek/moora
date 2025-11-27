@@ -56,8 +56,8 @@ type State = { count: number };
 type Signal = { type: 'increment' } | { type: 'decrement' };
 type Effect = never;
 
-const definition: MoorexDefinition<State, Signal, Effect> = {
-  initiate: () => ({ count: 0 }),
+const definition: MoorexDefinition<Signal, Effect, State> = {
+  initial: () => ({ count: 0 }),
   transition: (signal) => (state) => {
     if (signal.type === 'increment') {
       return create(state, (draft) => {
@@ -72,6 +72,10 @@ const definition: MoorexDefinition<State, Signal, Effect> = {
     return state;
   },
   effectsAt: () => ({}),
+  runEffect: () => ({
+    start: async () => {},
+    cancel: () => {},
+  }),
 };
 
 // 创建 Moorex 实例并配置 effects
@@ -110,10 +114,12 @@ await fastify.listen({ port: 3000 });
 
 1. **初始状态**: 连接时，立即发送一个包含当前全量状态的 `state-updated` 事件
 2. **后续事件**: 流式传输所有发生的 Moorex 事件：
-   - `signal-received`: 收到信号
+   - `input-received`: 收到输入信号
    - `state-updated`: 状态已更新
    - `effect-started`: Effect 已启动
+   - `effect-completed`: Effect 成功完成
    - `effect-canceled`: Effect 已取消
+   - `effect-failed`: Effect 失败并出现错误
 
 **SSE 事件格式示例:**
 ```
@@ -174,7 +180,7 @@ const sameMoorex = moorexNode.moorex;
 moorex.dispatch({ type: 'increment' });
 
 // 获取当前状态
-const state = moorex.getState();
+const state = moorex.current();
 ```
 
 ### 只读 Node（仅 GET）
@@ -229,7 +235,7 @@ await fastify.register(readWriteNode.register, { prefix: '/api/moorex/write' });
 创建 MoorexNode 实例。
 
 **参数:**
-- `options.moorex`: `Moorex<State, Signal, Effect>` - 已存在的 Moorex 实例（如果需要，effects 应已配置）
+- `options.moorex`: `Moorex<Signal, Effect, State>` - 已存在的 Moorex 实例（如果需要，effects 应已配置）
 - `options.handlePost?`: `HandlePost<Signal>` - 可选的 POST 请求处理器
 
 **返回:** `MoorexNode<State, Signal, Effect>`

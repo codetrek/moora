@@ -34,7 +34,7 @@ export type MoorexNode<State, Signal, Effect> = {
   /**
    * 获取底层的 Moorex 实例
    */
-  moorex: Moorex<State, Signal, Effect>;
+  moorex: Moorex<Signal, Effect, State>;
   
   /**
    * 注册 Fastify 路由（作为 Fastify 插件）
@@ -59,7 +59,7 @@ export type MoorexNodeOptions<State, Signal, Effect> = {
   /**
    * 已经配置好的 Moorex 实例（包括 effects 等）
    */
-  moorex: Moorex<State, Signal, Effect>;
+  moorex: Moorex<Signal, Effect, State>;
   
   /**
    * 可选的 POST 请求处理函数

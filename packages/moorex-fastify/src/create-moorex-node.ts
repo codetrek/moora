@@ -1,6 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { Moorex, MoorexEvent } from '@moora/moorex';
-import type { Immutable } from 'mutative';
+import type { MoorexEvent } from '@moora/moorex';
 import type { MoorexNode, MoorexNodeOptions } from './types';
 
 /**
@@ -45,8 +44,8 @@ export const createMoorexNode = <State, Signal, Effect>(
       reply.raw.setHeader('X-Accel-Buffering', 'no'); // 禁用 nginx 缓冲
       
       // 发送初始状态
-      const initialState = moorex.getState();
-      const initialEvent: MoorexEvent<State, Signal, Effect> = {
+      const initialState = moorex.current();
+      const initialEvent: MoorexEvent<Signal, Effect, State> = {
         type: 'state-updated',
         state: initialState,
       };
@@ -108,9 +107,9 @@ export const createMoorexNode = <State, Signal, Effect>(
             ? request.body 
             : JSON.stringify(request.body);
           
-          // 创建 dispatch 包装函数，将 signal 标记为 Immutable
+          // 创建 dispatch 包装函数
           const dispatch = (signal: Signal) => {
-            moorex.dispatch(signal as Immutable<Signal>);
+            moorex.dispatch(signal);
           };
           
           // 调用 handlePost 回调

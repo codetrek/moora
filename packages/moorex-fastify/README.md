@@ -56,8 +56,8 @@ type State = { count: number };
 type Signal = { type: 'increment' } | { type: 'decrement' };
 type Effect = never;
 
-const definition: MoorexDefinition<State, Signal, Effect> = {
-  initiate: () => ({ count: 0 }),
+const definition: MoorexDefinition<Signal, Effect, State> = {
+  initial: () => ({ count: 0 }),
   transition: (signal) => (state) => {
     if (signal.type === 'increment') {
       return create(state, (draft) => {
@@ -72,6 +72,10 @@ const definition: MoorexDefinition<State, Signal, Effect> = {
     return state;
   },
   effectsAt: () => ({}),
+  runEffect: () => ({
+    start: async () => {},
+    cancel: () => {},
+  }),
 };
 
 // Create Moorex instance and configure effects
@@ -110,10 +114,12 @@ Establishes an SSE connection that streams Moorex events:
 
 1. **Initial state**: On connection, immediately sends a `state-updated` event with the current full state
 2. **Subsequent events**: Streams all Moorex events as they occur:
-   - `signal-received`: A signal was received
+   - `input-received`: An input signal was received
    - `state-updated`: State was updated
    - `effect-started`: An effect was started
+   - `effect-completed`: An effect completed successfully
    - `effect-canceled`: An effect was canceled
+   - `effect-failed`: An effect failed with an error
 
 **Example SSE event format:**
 ```
@@ -174,7 +180,7 @@ const sameMoorex = moorexNode.moorex;
 moorex.dispatch({ type: 'increment' });
 
 // Get current state
-const state = moorex.getState();
+const state = moorex.current();
 ```
 
 ### Read-Only Node (GET Only)
@@ -229,7 +235,7 @@ This is useful for:
 Creates a MoorexNode instance.
 
 **Parameters:**
-- `options.moorex`: `Moorex<State, Signal, Effect>` - An existing Moorex instance (with effects already configured if needed)
+- `options.moorex`: `Moorex<Signal, Effect, State>` - An existing Moorex instance (with effects already configured if needed)
 - `options.handlePost?`: `HandlePost<Signal>` - Optional POST request handler
 
 **Returns:** `MoorexNode<State, Signal, Effect>`
