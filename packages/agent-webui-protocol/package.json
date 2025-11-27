@@ -1,0 +1,42 @@
+{
+  "name": "@moora/agent-webui-protocol",
+  "version": "0.1.0",
+  "description": "Protocol definitions for Agent Web UI - defines AgentAppState, AgentAppEvent, and AgentController types",
+  "keywords": [
+    "agent",
+    "webui",
+    "protocol",
+    "types",
+    "typescript"
+  ],
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shazhou-ww/moora.git",
+    "directory": "packages/agent-webui-protocol"
+  },
+  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/agent-webui-protocol#readme",
+  "bugs": {
+    "url": "https://github.com/shazhou-ww/moora/issues"
+  },
+  "dependencies": {
+    "@moora/moorex": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "README.md",
+    "README.zh.md",
+    "src"
+  ]
+}
+
