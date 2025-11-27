@@ -1,236 +1,189 @@
-import { type Immutable } from 'mutative';
+// ============================================================================
+// 基础类型
+// ============================================================================
 
 /**
- * 取消函数类型
+ * 取消函数，用于取消订阅或停止操作
  */
 export type CancelFn = () => void;
 
 /**
- * Effect 初始化器
+ * 取消订阅函数，等同于 CancelFn
  */
-export type EffectInitializer<Signal> = {
-  start: (dispatch: (signal: Immutable<Signal>) => void) => Promise<void>;
+export type Unsubscribe = CancelFn;
+
+// ============================================================================
+// PubSub 相关类型
+// ============================================================================
+
+/**
+ * 发布订阅组件
+ *
+ * @template T - 发布的数据类型
+ */
+export type PubSub<T> = {
+  /**
+   * 发布数据给所有订阅者
+   */
+  pub: (value: T) => void;
+  /**
+   * 订阅数据
+   * @param handler - 处理函数
+   * @returns 取消订阅的函数
+   */
+  sub: (handler: (value: T) => void) => CancelFn;
+};
+
+// ============================================================================
+// 状态机相关类型
+// ============================================================================
+
+/**
+ * 分发函数，用于发送输入信号
+ */
+export type Dispatch<Input> = (input: Input) => void;
+
+/**
+ * 过程函数，一个可以分发一个或多个输入的异步过程
+ */
+export type Procedure<Input> = (
+  dispatch: Dispatch<Input>
+) => void | Promise<void>;
+
+/**
+ * 输出处理器，接收输出并返回一个过程函数
+ */
+export type OutputHandler<Input, Output> = (output: Output) => Procedure<Input>;
+
+/**
+ * 订阅函数
+ */
+export type Subscribe<Input, Output> = (handler: OutputHandler<Input, Output>) => Unsubscribe;
+
+/**
+ * 传输器，用于在输入和输出之间建立连接
+ */
+export type Transferer<Input, Output> = {
+  dispatch: Dispatch<Input>;
+  subscribe: Subscribe<Input, Output>;
+};
+
+/**
+ * 有状态的传输器，包含当前状态访问
+ */
+export type StatefulTransferer<Input, Output, State> = Transferer<Input, Output> & {
+  current: () => State;
+};
+
+/**
+ * 初始化函数，返回初始状态
+ */
+export type Initial<State> = () => State;
+
+/**
+ * 状态转换函数，接收输入并返回状态更新函数
+ */
+export type Transition<Input, State> = (input: Input) => (state: State) => State;
+
+/**
+ * 状态机定义
+ */
+export type StateMachine<Input, State> = {
+  initial: Initial<State>;
+  transition: Transition<Input, State>;
+};
+
+/**
+ * Mealy 机定义（输出依赖于输入和状态）
+ */
+export type MealyMachine<Input, Output, State> = StateMachine<Input, State> & {
+  output: (update: UpdatePack<Input, State>) => Output;
+};
+
+/**
+ * Moore 机定义（输出仅依赖于状态）
+ */
+export type MooreMachine<Input, Output, State> = StateMachine<Input, State> & {
+  output: (state: State) => Output;
+};
+
+/**
+ * 更新包，包含状态转换前后的状态和输入
+ */
+export type UpdatePack<Input, State> = {
+  statePrev: State;
+  state: State;
+  input: Input;
+};
+
+// ============================================================================
+// Moorex 相关类型
+// ============================================================================
+
+/**
+ * 根据当前状态计算应该运行的 effects
+ */
+export type EffectsAt<Effect, State> = (state: State) => Record<string, Effect>;
+
+/**
+ * Effect 控制器，用于启动和取消 effect
+ */
+export type EffectController<Input> = {
+  start: (dispatch: Dispatch<Input>) => Promise<void>;
   cancel: CancelFn;
 };
 
 /**
- * Automata 定义配置。
- *
- * 只涉及 State, Signal, transition, initialState。
- *
- * @template State - 机器的状态类型
- * @template Signal - 信号类型，用于触发状态转换
+ * Moorex 定义，包含初始化、状态转换、effects 计算和 effect 运行逻辑
  */
-export type AutomataDefinition<State, Signal> = {
+export type MoorexDefinition<Input, Effect, State> = {
   /** 初始化函数，返回初始状态 */
-  initialState: () => Immutable<State>;
+  initial: Initial<State>;
   /**
    * 状态转换函数。
    * 接收一个 Immutable 信号，返回一个函数，该函数接收 Immutable 状态并返回新的 Immutable 状态。
    * 参数和返回值都是 Immutable 的，不允许修改。
    */
-  transition: (signal: Immutable<Signal>) => (state: Immutable<State>) => Immutable<State>;
-};
-
-/**
- * Automata 更新对象。
- *
- * 包含触发状态转换的信号和更新后的状态。
- *
- * @template State - 机器的状态类型
- * @template Signal - 信号类型
- */
-export type AutomataUpdate<State, Signal> = {
-  signal: Immutable<Signal>;
-  state: Immutable<State>;
-};
-
-/**
- * Automata 实例。
- *
- * 提供状态管理、信号分发和订阅功能。
- *
- * @template State - 机器的状态类型
- * @template Signal - 信号类型
- */
-export type Automata<State, Signal> = {
-  /**
-   * 分发一个信号以触发状态转换。
-   * 信号会被加入队列，在下一个微任务中批量处理。
-   * 参数必须是 Immutable 的，不允许修改。
-   */
-  dispatch(signal: Immutable<Signal>): void;
-  /**
-   * 订阅信号导致的状态变化。
-   * @param handler - 处理函数，接收包含信号和更新后状态的对象
-   * @returns 取消订阅的函数
-   */
-  subscribe(handler: (update: { signal: Immutable<Signal>; state: Immutable<State> }) => void): CancelFn;
-  /**
-   * 获取当前状态。
-   * 返回的状态是 Immutable 的，不允许修改。
-   */
-  getState(): Immutable<State>;
-};
-
-/**
- * 根据当前状态计算应该运行的 effects。
- * 接收 Immutable 状态，返回 Effect Record，key 作为 Effect 的标识用于 reconciliation。
- * 参数和返回值都是 Immutable 的，不允许修改。
- * Record 的 key 用于在 reconciliation 时做一致性判定。
- *
- * @template State - 机器的状态类型
- * @template Effect - Effect 类型
- */
-export type EffectsAt<State, Effect> = (state: Immutable<State>) => Record<string, Immutable<Effect>>;
-
-/**
- * 运行 Effect 的函数。
- *
- * @template Effect - Effect 类型
- * @template Signal - 信号类型
- */
-export type RunEffect<Effect, Signal> = (
-  effect: Immutable<Effect>,
-  state: Immutable<any>,
-  key: string,
-) => EffectInitializer<Signal>;
-
-/**
- * Effect Controller 状态
- */
-export type EffectControllerStatus = 'running' | 'braking' | 'stopped';
-
-/**
- * Effect 事件
- *
- * @template Effect - Effect 类型
- */
-export type EffectEvent<Effect> =
-  | { type: 'start'; key: string; effect: Immutable<Effect> }
-  | { type: 'cancel'; key: string; effect: Immutable<Effect> };
-
-/**
- * Effect Controller 实例。
- *
- * 管理 effects 的生命周期，根据状态流协调 effects。
- *
- * @template Effect - Effect 类型
- */
-export type EffectController<Effect> = {
-  /**
-   * 启动 Effect Controller。
-   * 开始监听状态流并协调 effects。
-   */
-  start(): void;
-  /**
-   * 停止 Effect Controller。
-   * @param force - 如果为 true，直接进入 stopped 状态，停止接收 state stream 的变化，cancel 所有 running effects；
-   *                否则进入 braking 状态，不再接收 state stream 的 update，但不 cancel running effects，
-   *                等待这些 effects 自然结束后切 stopped 状态（如果没有再次启动的话）
-   */
-  stop(force: boolean): void;
-  /**
-   * 获取当前状态。
-   */
-  getStatus(): EffectControllerStatus;
-  /**
-   * 获取状态流。
-   * 返回一个异步生成器，每次状态改变时产生新的状态。
-   */
-  getStatusStream(): AsyncGenerator<EffectControllerStatus>;
-  /**
-   * 获取当前的活跃 effects。
-   * 返回一个 Record，key 是 effect 的标识，value 是 effect 本身。
-   */
-  getEffects(): Record<string, Immutable<Effect>>;
-  /**
-   * 获取 Effect 事件流。
-   * 返回一个异步生成器，每次 effect 启动或取消时产生事件。
-   */
-  getEffectEventStream(): AsyncGenerator<EffectEvent<Effect>>;
-};
-
-/**
- * 定义 Moore 机器的配置。
- *
- * Moorex 是一个通用的异步 Moore 机器，它跟踪状态，严格从当前状态驱动 effects，
- * 并在状态改变时协调这些 effects。设计初衷是构建持久化的 AI agents，这些 agents
- * 必须在崩溃、重启或迁移时存活，同时能够恢复未完成的工作。
- *
- * 所有函数参数和返回值都是 Immutable 的，确保不可修改。
- *
- * @template State - 机器的状态类型
- * @template Signal - 信号类型，用于触发状态转换
- * @template Effect - Effect 类型
- * @deprecated 使用 AutomataDefinition 和 EffectsAt 替代
- */
-export type MoorexDefinition<State, Signal, Effect> = {
-  /** 初始化函数，返回初始状态 */
-  initiate: () => Immutable<State>;
-  /**
-   * 状态转换函数。
-   * 接收一个 Immutable 信号，返回一个函数，该函数接收 Immutable 状态并返回新的 Immutable 状态。
-   * 参数和返回值都是 Immutable 的，不允许修改。
-   */
-  transition: (signal: Immutable<Signal>) => (state: Immutable<State>) => Immutable<State>;
+  transition: Transition<Input, State>;
   /**
    * 根据当前状态计算应该运行的 effects。
    * 接收 Immutable 状态，返回 Effect Record，key 作为 Effect 的标识用于 reconciliation。
    * 参数和返回值都是 Immutable 的，不允许修改。
    * Record 的 key 用于在 reconciliation 时做一致性判定。
    */
-  effectsAt: (state: Immutable<State>) => Record<string, Immutable<Effect>>;
+  effectsAt: EffectsAt<Effect, State>;
+  /**
+   * 运行一个 effect。
+   * 接收 Immutable effect、Immutable state 和 effect 的 key，返回一个初始化器，包含 `start` 和 `cancel` 方法。
+   * 参数都是 Immutable 的，不允许修改。
+   *
+   * @param effect - 要运行的 effect（Immutable）
+   * @param state - 生成该 effect 时的状态（Immutable）
+   * @param key - effect 的 key，用于标识该 effect
+   */
+  runEffect: (
+    effect: Effect,
+    state: State,
+    key: string,
+  ) => EffectController<Input>;
 };
 
 /**
- * Moorex 机器发出的事件。
- *
- * 事件类型包括：
- * - `signal-received`: 信号被接收并处理
- * - `state-updated`: 状态已更新
- * - `effect-started`: Effect 开始（根据 reconciliation 结果）
- * - `effect-canceled`: Effect 被取消（根据 reconciliation 结果）
- *
- * @template State - 机器的状态类型
- * @template Signal - 信号类型
- * @template Effect - Effect 类型
- * @deprecated 使用 EffectEvent 替代
+ * Moorex 事件类型
  */
-export type MoorexEvent<State, Signal, Effect> =
-  | { type: 'signal-received'; signal: Immutable<Signal> }
-  | { type: 'state-updated'; state: Immutable<State> }
-  | { type: 'effect-started'; effect: Immutable<Effect>; key: string }
-  | { type: 'effect-canceled'; effect: Immutable<Effect>; key: string };
+export type MoorexEvent<Input, Effect, State> =
+  | { type: 'input-received'; input: Input }
+  | { type: 'state-updated'; state: State }
+  | { type: 'effect-started'; effect: Effect }
+  | { type: 'effect-completed'; effect: Effect }
+  | { type: 'effect-canceled'; effect: Effect }
+  | { type: 'effect-failed'; effect: Effect; error: unknown };
 
 /**
- * Moorex 机器实例。
- *
- * 提供状态管理、信号分发和事件订阅功能。
- *
- * @template State - 机器的状态类型
- * @template Signal - 信号类型
- * @template Effect - Effect 类型
- * @deprecated 使用 Automata 和 EffectController 替代
+ * Moorex 实例，提供状态管理和 effect 协调功能
  */
-export type Moorex<State, Signal, Effect> = {
-  /**
-   * 分发一个信号以触发状态转换。
-   * 信号会被加入队列，在下一个微任务中批量处理。
-   * 参数必须是 Immutable 的，不允许修改。
-   */
-  dispatch(signal: Immutable<Signal>): void;
-  /**
-   * 订阅事件。
-   * 返回一个取消订阅的函数。
-   *
-   * @param handler - 事件处理函数，接收事件和 moorex 实例作为参数
-   * @returns 取消订阅的函数
-   */
-  subscribe(handler: (event: MoorexEvent<State, Signal, Effect>, moorex: Moorex<State, Signal, Effect>) => void): CancelFn;
-  /**
-   * 获取当前状态。
-   * 返回的状态是 Immutable 的，不允许修改。
-   */
-  getState(): Immutable<State>;
+export type Moorex<Input, Effect, State> = {
+  dispatch(input: Input): void;
+  current(): State;
+  subscribe(handler: (event: MoorexEvent<Input, Effect, State>) => void): CancelFn;
 };

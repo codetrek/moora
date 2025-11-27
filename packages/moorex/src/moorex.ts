@@ -1,110 +1,175 @@
-import type { Dispatch, Initial, Procedure, Transition } from "./transferers";
-import { moore } from "./transferers";
-import { createPubSub } from './pub-sub';
+import type {
+  Dispatch,
+  EffectController,
+  MoorexDefinition,
+  MoorexEvent,
+  Moorex,
+  Unsubscribe,
+} from "./types";
+import { moore } from "./state-machines";
+import { createPubSub } from "./pub-sub";
 
-type CancelFn = () => void;
-type EffectsAt<Effect, State> = (state: State) => Record<string, Effect>;
-
-type EffectController<Input> = {
-  start: Procedure<Input>;
-  cancel: CancelFn;
+/**
+ * Effect 条目，包含控制器、key 和 effect 本身
+ * @internal
+ */
+type EffectEntry<Input, Effect> = EffectController<Input> & {
+  key: string;
+  effect: Effect;
 };
 
-export type MoorexDefinition<Input, Effect, State> = {
-  /** 初始化函数，返回初始状态 */
-  initial: Initial<State>;
-  /**
-   * 状态转换函数。
-   * 接收一个 Immutable 信号，返回一个函数，该函数接收 Immutable 状态并返回新的 Immutable 状态。
-   * 参数和返回值都是 Immutable 的，不允许修改。
-   */
-  transition: Transition<Input, State>
-  /**
-   * 根据当前状态计算应该运行的 effects。
-   * 接收 Immutable 状态，返回 Effect Record，key 作为 Effect 的标识用于 reconciliation。
-   * 参数和返回值都是 Immutable 的，不允许修改。
-   * Record 的 key 用于在 reconciliation 时做一致性判定。
-   */
-  effectsAt: EffectsAt<Effect, State>;
-  /**
-   * 运行一个 effect。
-   * 接收 Immutable effect、Immutable state 和 effect 的 key，返回一个初始化器，包含 `start` 和 `cancel` 方法。
-   * 参数都是 Immutable 的，不允许修改。
-   *
-   * @param effect - 要运行的 effect（Immutable）
-   * @param state - 生成该 effect 时的状态（Immutable）
-   * @param key - effect 的 key，用于标识该 effect
-   */
-  runEffect: (
-    effect: Effect,
-    state: State,
-    key: string,
-  ) => EffectController<Input>;
-};
-
-export type MoorexEvent<Input, Effect, State> =
-  | { type: 'input-received'; input: Input }
-  | { type: 'state-updated'; state: State }
-  | { type: 'effect-started'; effect: Effect }
-  | { type: 'effect-completed'; effect: Effect }
-  | { type: 'effect-canceled'; effect: Effect }
-  | { type: 'effect-failed'; effect: Effect; error: unknown };
-
-export type Moorex<Input, Effect, State> = {
-  dispatch(input: Input): void;
-  current(): State;
-  subscribe(handler: (event: MoorexEvent<Input, Effect, State>) => void): CancelFn;
-};
-
+/**
+ * 过滤条目数组
+ * @internal
+ * @template T - 条目值的类型
+ * @param entries - 要过滤的条目数组
+ * @param cb - 过滤回调函数
+ * @returns 过滤后的条目数组
+ */
 const filterRecord = <T>(
-  rec: Record<string, T>,
+  entries: [string, T][],
   cb: (entry: [string, T]) => boolean
-): Record<string, T> => {
-  return Object.fromEntries(Object.entries(rec).filter(cb));
+): [string, T][] => {
+  return entries.filter(cb);
 };
 
-export function createMoorex<Input, Effect, State>(
-  { initial, transition, effectsAt, runEffect }: MoorexDefinition<Input, Effect, State>,
-): Moorex<Input, Effect, State> {
+/**
+ * 创建 Moorex 实例
+ *
+ * Moorex 是一个异步 Moore 状态机，它能够：
+ * - 管理状态转换
+ * - 根据状态自动协调 effects（副作用）
+ * - 在状态变化时自动启动/取消 effects
+ * - 提供事件订阅机制
+ *
+ * @template Input - 输入信号类型
+ * @template Effect - Effect 类型
+ * @template State - 状态类型
+ * @param definition - Moorex 定义，包含初始化、状态转换、effects 计算和运行逻辑
+ * @returns Moorex 实例，提供 dispatch、current 和 subscribe 方法
+ *
+ * @example
+ * ```typescript
+ * const moorex = createMoorex({
+ *   initial: () => ({ count: 0 }),
+ *   transition: (input) => (state) => ({ ...state, count: state.count + 1 }),
+ *   effectsAt: (state) => ({ log: { message: `Count is ${state.count}` } }),
+ *   runEffect: (effect, state, key) => ({
+ *     start: async (dispatch) => { console.log(effect.message); },
+ *     cancel: () => {},
+ *   }),
+ * });
+ * ```
+ */
+export function createMoorex<Input, Effect, State>({
+  initial,
+  transition,
+  effectsAt,
+  runEffect,
+}: MoorexDefinition<Input, Effect, State>): Moorex<Input, Effect, State> {
+  // 当前活跃的 effects
   let currentEffects: Record<string, Effect> = {};
-  const effectControllers: Record<string, EffectController<Input>> = {};
+  // Moore 机的订阅取消函数（懒加载）
+  let unsubscribe: Unsubscribe | null = null;
+  // Effect 控制器映射表
+  const effectControllers: Map<string, EffectEntry<Input, Effect>> = new Map();
+  // 事件发布订阅系统
   const pubsub = createPubSub<MoorexEvent<Input, Effect, State>>();
-  const {
-    dispatch,
-    subscribe,
-    current,
-  } = moore<Input, Record<string, Effect>, State>({
+
+  // 使用 Moore 机来管理 effects 的计算
+  // 输出是根据当前状态计算出的 effects Record
+  const mm = moore<Input, Record<string, Effect>, State>({
     initial,
     transition,
-    output: effectsAt
+    output: (state) => effectsAt(state),
   });
 
-  const reconsileEffects = (effects: Record<string, Effect>) => {
-    const effectsToCancel = filterRecord(effectControllers, ([key]) => !effects[key]);
-    const effectsToStart = filterRecord(effects, ([key]) => !currentEffects[key])
-    return { effectsToCancel, effectsToStart };
+  /**
+   * 删除 effect
+   * 从控制器映射表和当前 effects 中移除，如果没有任何 effects 了则取消订阅
+   * @internal
+   */
+  const deleteEffect = (key: string) => {
+    effectControllers.delete(key);
+    delete currentEffects[key];
+    // 如果没有活跃的 effects，取消订阅以节省资源
+    if (effectControllers.size === 0 && unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+    }
   };
 
-  subscribe((effects) => {
-    const { effectsToCancel, effectsToStart } = reconsileEffects(effects);
+  /**
+   * 协调 effects
+   * 比较新的 effects 和当前 effects，确定需要取消和启动的 effects
+   * @internal
+   * @param effects - 新的 effects Record
+   * @returns 返回一个函数，该函数接收 dispatch 并执行实际的取消/启动操作
+   */
+  const reconcileEffects = (effects: Record<string, Effect>) => {
+    // 找出需要取消的 effects（在新 effects 中不存在的）
+    const effectsToCancel = filterRecord(
+      Array.from(effectControllers.entries()),
+      ([key]) => !effects[key]
+    );
+    // 找出需要启动的 effects（在当前 effects 中不存在的）
+    const effectsToStart = filterRecord(
+      Object.entries(effects),
+      ([key]) => !currentEffects[key]
+    );
+    const state = mm.current();
     currentEffects = effects;
+    pubsub.pub({ type: "state-updated", state });
 
-    return async (dispatch: Dispatch<Input>) => {
-      for (const [key, controller] of Object.entries(effectsToCancel)) {
-        controller.cancel();
-        delete effectControllers[key];
+    // 返回执行函数，在异步上下文中执行实际的取消/启动操作
+    return (dispatch: Dispatch<Input>) => {
+      // 取消不再需要的 effects
+      for (const [key, { cancel, effect }] of effectsToCancel) {
+        cancel();
+        deleteEffect(key);
+        pubsub.pub({ type: "effect-canceled", effect });
       }
-      for (const [key, effect] of Object.entries(effectsToStart)) {
-        const controller = runEffect(effect, current(), key);
-        effectControllers[key] = controller;
-        controller.start(dispatch);
+      // 启动新的 effects
+      for (const [key, effect] of effectsToStart) {
+        const controller = runEffect(effect, state, key);
+        effectControllers.set(key, { ...controller, key, effect });
+        // 启动 effect 并处理完成/失败事件
+        controller
+          .start(dispatch)
+          .then(() => {
+            pubsub.pub({ type: "effect-completed", effect });
+          })
+          .catch((error) => {
+            pubsub.pub({ type: "effect-failed", effect, error });
+          })
+          .finally(() => {
+            // Effect 完成后（无论成功或失败）从控制器中移除
+            deleteEffect(key);
+          });
+        pubsub.pub({ type: "effect-started", effect });
       }
     };
-  });
+  };
+
+  /**
+   * 分发输入信号
+   * 懒加载订阅：只有在第一次 dispatch 时才订阅 effects 机
+   * @param input - 输入信号
+   */
+  const dispatch = (input: Input) => {
+    if (!unsubscribe) {
+      unsubscribe = mm.subscribe(reconcileEffects);
+    }
+    pubsub.pub({ type: "input-received", input });
+    mm.dispatch(input);
+  };
 
   return {
+    /** 分发输入信号到状态机 */
     dispatch,
-    current,
+    /** 获取当前状态 */
+    current: mm.current,
+    /** 订阅 Moorex 事件 */
     subscribe: pubsub.sub,
   };
-};
+}
