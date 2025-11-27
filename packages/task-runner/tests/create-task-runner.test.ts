@@ -11,7 +11,7 @@ describe('createTaskRunner', () => {
     });
 
     const taskRunner = createMoorex(definition);
-    const state = taskRunner.getState();
+    const state = taskRunner.current();
 
     // 验证初始状态结构
     expect(state).toBeDefined();
@@ -48,7 +48,7 @@ describe('createTaskRunner', () => {
     });
 
     const taskRunner = createMoorex(definition);
-    const state = taskRunner.getState();
+    const state = taskRunner.current();
 
     expect(state.memory.longTerm).toEqual({ key1: 'value1' });
     expect(state.memory.shortTerm).toHaveLength(1);
@@ -68,7 +68,8 @@ describe('createTaskRunner', () => {
     // 发送一个信号
     const signal: TaskRunnerSignal = {
       type: 'channel-message',
-      channelId: 0,
+      channelId: '0',
+      messageIndex: 0,
       content: 'Test message',
     };
 
@@ -126,7 +127,7 @@ describe('createTaskRunner', () => {
     });
 
     const taskRunner = createMoorex(definition);
-    const state = taskRunner.getState();
+    const state = taskRunner.current();
 
     // 验证定义创建成功（工具配置被接受）
     expect(state).toBeDefined();
@@ -138,7 +139,7 @@ describe('TaskRunnerState type', () => {
     const callLLM = async (prompt: string) => `Response to: ${prompt}`;
     const definition = createTaskRunner({ callLLM });
     const taskRunner = createMoorex(definition);
-    const state = taskRunner.getState();
+    const state = taskRunner.current();
 
     // 验证 TaskRunnerState 的结构
     expect('channels' in state).toBe(true);
@@ -152,38 +153,44 @@ describe('TaskRunnerSignal type', () => {
   test('channel-message signal', () => {
     const signal: TaskRunnerSignal = {
       type: 'channel-message',
-      channelId: 0,
+      channelId: '0',
+      messageIndex: 0,
       content: 'Test message',
     };
 
     expect(signal.type).toBe('channel-message');
-    expect(signal.channelId).toBe(0);
+    expect(signal.channelId).toBe('0');
+    expect(signal.messageIndex).toBe(0);
     expect(signal.content).toBe('Test message');
   });
 
   test('tool-result signal', () => {
     const signal: TaskRunnerSignal = {
       type: 'tool-result',
-      reactLoopId: 'loop-1',
-      toolName: 'test-tool',
-      result: { success: true },
+      channelId: '0',
+      messageIndex: 0,
+      toolCallIndex: 0,
+      result: '{"success":true}',
     };
 
     expect(signal.type).toBe('tool-result');
-    expect(signal.reactLoopId).toBe('loop-1');
-    expect(signal.toolName).toBe('test-tool');
-    expect(signal.result).toEqual({ success: true });
+    expect(signal.channelId).toBe('0');
+    expect(signal.messageIndex).toBe(0);
+    expect(signal.toolCallIndex).toBe(0);
+    expect(signal.result).toBe('{"success":true}');
   });
 
   test('llm-response signal', () => {
     const signal: TaskRunnerSignal = {
       type: 'llm-response',
-      reactLoopId: 'loop-1',
+      channelId: '0',
+      messageIndex: 0,
       content: 'LLM response',
     };
 
     expect(signal.type).toBe('llm-response');
-    expect(signal.reactLoopId).toBe('loop-1');
+    expect(signal.channelId).toBe('0');
+    expect(signal.messageIndex).toBe(0);
     expect(signal.content).toBe('LLM response');
   });
 
@@ -191,21 +198,25 @@ describe('TaskRunnerSignal type', () => {
     const signal: TaskRunnerSignal = {
       type: 'create-subtask-runner',
       target: '完成数据分析任务',
+      ordinal: 0,
     };
 
     expect(signal.type).toBe('create-subtask-runner');
     expect(signal.target).toBe('完成数据分析任务');
+    expect(signal.ordinal).toBe(0);
   });
 
   test('react-loop-completed signal', () => {
     const signal: TaskRunnerSignal = {
       type: 'react-loop-completed',
-      reactLoopId: 'loop-1',
+      channelId: '0',
+      messageIndex: 0,
       response: 'Final response',
     };
 
     expect(signal.type).toBe('react-loop-completed');
-    expect(signal.reactLoopId).toBe('loop-1');
+    expect(signal.channelId).toBe('0');
+    expect(signal.messageIndex).toBe(0);
     expect(signal.response).toBe('Final response');
   });
 });

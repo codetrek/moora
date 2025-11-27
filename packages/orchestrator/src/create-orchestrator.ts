@@ -1,6 +1,6 @@
 import { type Immutable } from 'mutative';
 import { create } from 'mutative';
-import { type MoorexDefinition } from '@moora/moorex';
+import { type MoorexDefinition, type Dispatch } from '@moora/moorex';
 import type {
   OrchestratorState,
   OrchestratorSignal,
@@ -45,9 +45,9 @@ import type {
  * ```
  */
 export const createOrchestrator = (): MoorexDefinition<
-  OrchestratorState,
   OrchestratorSignal,
-  OrchestratorEffect
+  OrchestratorEffect,
+  OrchestratorState
 > => {
   /**
    * 生成唯一 ID
@@ -71,7 +71,7 @@ export const createOrchestrator = (): MoorexDefinition<
      * - 空的任务列表
      * - 空的消息队列
      */
-    initiate: (): Immutable<OrchestratorState> => {
+    initial: (): OrchestratorState => {
       return {
         tasks: {},
         pendingUserMessages: [],
@@ -86,8 +86,8 @@ export const createOrchestrator = (): MoorexDefinition<
      * 处理各种信号，更新状态。
      */
     transition: (
-      signal: Immutable<OrchestratorSignal>,
-    ): ((state: Immutable<OrchestratorState>) => Immutable<OrchestratorState>) => {
+      signal: OrchestratorSignal,
+    ): ((state: OrchestratorState) => OrchestratorState) => {
       return (state) => {
         return create(state, (draft) => {
           const now = getTimestamp();
@@ -190,9 +190,9 @@ export const createOrchestrator = (): MoorexDefinition<
      * 根据当前状态决定需要运行的 effects。
      */
     effectsAt: (
-      state: Immutable<OrchestratorState>,
-    ): Record<string, Immutable<OrchestratorEffect>> => {
-      const effects: Record<string, Immutable<OrchestratorEffect>> = {};
+      state: OrchestratorState,
+    ): Record<string, OrchestratorEffect> => {
+      const effects: Record<string, OrchestratorEffect> = {};
 
       // 为每个待发送的用户消息创建 effect
       for (const message of state.pendingUserMessages) {
@@ -227,6 +227,31 @@ export const createOrchestrator = (): MoorexDefinition<
       }
 
       return effects;
+    },
+
+    /**
+     * 运行 Effect
+     *
+     * Orchestrator 是抽象实现，此方法提供一个占位实现。
+     * 实际的 effect 执行应该由外部通过订阅事件来处理。
+     * 
+     * 注意：此实现不会执行任何实际操作，只是确保 Moorex 可以正常工作。
+     * 如果需要实际的 effect 执行，应该通过订阅事件来处理 effect-started 事件。
+     */
+    runEffect: (
+      effect: OrchestratorEffect,
+      state: OrchestratorState,
+      key: string,
+    ) => {
+      return {
+        start: async () => {
+          // 占位实现：不执行任何操作
+          // 实际的 effect 执行应该通过订阅 effect-started 事件来处理
+        },
+        cancel: () => {
+          // 占位实现：不执行任何操作
+        },
+      };
     },
   };
 };

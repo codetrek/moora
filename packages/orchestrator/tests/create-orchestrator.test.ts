@@ -8,7 +8,7 @@ describe('createOrchestrator', () => {
     const definition = createOrchestrator();
     const orchestrator = createMoorex(definition);
 
-    const state = orchestrator.getState();
+    const state = orchestrator.current();
     expect(state.tasks).toEqual({});
     expect(state.pendingUserMessages).toEqual([]);
     expect(state.pendingTaskResponses).toEqual([]);
@@ -25,7 +25,7 @@ describe('createOrchestrator', () => {
       task: 'default',
     });
 
-    const state = orchestrator.getState();
+    const state = orchestrator.current();
     const taskIds = Object.keys(state.tasks);
     expect(taskIds.length).toBe(1);
 
@@ -48,7 +48,7 @@ describe('createOrchestrator', () => {
       content: 'Hello',
     });
 
-    const state = orchestrator.getState();
+    const state = orchestrator.current();
     expect(state.pendingUserMessages.length).toBe(1);
     expect(state.pendingUserMessages[0]?.content).toBe('Hello');
   });
@@ -140,7 +140,10 @@ describe('createOrchestrator', () => {
     const effects: string[] = [];
     orchestrator.subscribe((event) => {
       if (event.type === 'effect-started') {
-        effects.push(event.key);
+        // 从 effect 中提取信息来识别 effect 类型
+        if (event.effect.kind === 'send-user-message') {
+          effects.push(`send-user-message-${event.effect.messageId}`);
+        }
       }
     });
 
@@ -167,7 +170,10 @@ describe('createOrchestrator', () => {
     const effects: string[] = [];
     orchestrator.subscribe((event) => {
       if (event.type === 'effect-started') {
-        effects.push(event.key);
+        // 从 effect 中提取信息来识别 effect 类型
+        if (event.effect.kind === 'execute-task') {
+          effects.push(`execute-task-${event.effect.taskId}`);
+        }
       }
     });
 
