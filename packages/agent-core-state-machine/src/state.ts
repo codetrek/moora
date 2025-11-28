@@ -112,6 +112,7 @@ export type ToolCallRecord = z.infer<typeof toolCallRecordSchema>;
  * ReAct Loop 上下文
  *
  * 当前 ReAct Loop 涉及到的历史消息和 Tool Call。
+ * 当没有消息需要响应时为 null。
  */
 export const reactContextSchema = z
   .object({
@@ -126,8 +127,14 @@ export const reactContextSchema = z
      * 涉及到的 Tool Calls（Tool Call Id 列表）
      */
     toolCallIds: z.array(z.string()).readonly(),
+
+    /**
+     * ReAct Loop 开始时间戳（Unix 时间戳，毫秒）
+     */
+    startedAt: z.number(),
   })
-  .readonly();
+  .readonly()
+  .nullable();
 
 export type ReactContext = z.infer<typeof reactContextSchema>;
 
@@ -138,6 +145,13 @@ export type ReactContext = z.infer<typeof reactContextSchema>;
  */
 export const agentStateSchema = z
   .object({
+    /**
+     * 状态时间戳（Unix 时间戳，毫秒）
+     *
+     * 表示状态最后更新的时间，用于时间不可逆检查。
+     */
+    timestamp: z.number(),
+
     /**
      * 历史消息
      *
@@ -164,7 +178,8 @@ export const agentStateSchema = z
     /**
      * 当前 ReAct Loop 上下文
      *
-     * 包含当前 ReAct Loop 涉及到的历史消息和 Tool Call
+     * 包含当前 ReAct Loop 涉及到的历史消息和 Tool Call。
+     * 当没有消息需要响应时为 null。
      */
     reactContext: reactContextSchema,
   })

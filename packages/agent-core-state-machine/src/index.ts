@@ -45,6 +45,8 @@ export type {
   ToolCallCompleted,
   ContextWindowExpanded,
   HistoryToolCallsAdded,
+  ReactLoopStarted,
+  ReactLoopCompleted,
   AgentInput,
 } from "./input";
 
@@ -56,6 +58,8 @@ export {
   toolCallCompletedSchema,
   contextWindowExpandedSchema,
   historyToolCallsAddedSchema,
+  reactLoopStartedSchema,
+  reactLoopCompletedSchema,
   agentInputSchema,
 } from "./input";
 
@@ -64,4 +68,5 @@ export {
 // ============================================================================
 
 export { initialAgentState } from "./initial";
-export { agentTransition } from "./transition";
+export { createAgentTransition } from "./transition";
+export type { AgentTransitionOptions } from "./transition";

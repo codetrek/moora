@@ -24,14 +24,13 @@ import type { AgentState } from "./state";
 export function initialAgentState(
   initialContextWindowSize: number = 10
 ): AgentState {
+  const now = Date.now();
   return {
+    timestamp: now,
     messages: [],
     tools: {},
     toolCalls: {},
-    reactContext: {
-      contextWindowSize: initialContextWindowSize,
-      toolCallIds: [],
-    },
+    reactContext: null,
   };
 }
 

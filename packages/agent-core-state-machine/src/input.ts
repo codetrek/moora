@@ -51,6 +51,11 @@ export const llmMessageStartedSchema = z.object({
    * 消息 ID
    */
   messageId: z.string(),
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
 });
 
 export type LlmMessageStarted = z.infer<typeof llmMessageStartedSchema>;
@@ -77,6 +82,11 @@ export const llmMessageCompletedSchema = z.object({
    * 完整的消息内容
    */
   content: z.string(),
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
 });
 
 export type LlmMessageCompleted = z.infer<typeof llmMessageCompletedSchema>;
@@ -137,6 +147,11 @@ export const toolCallCompletedSchema = z.object({
    * - 失败：包含错误信息
    */
   result: toolCallResultSchema,
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
 });
 
 export type ToolCallCompleted = z.infer<typeof toolCallCompletedSchema>;
@@ -151,6 +166,11 @@ export const contextWindowExpandedSchema = z.object({
    * 输入类型标识
    */
   type: z.literal("context-window-expanded"),
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
 });
 
 export type ContextWindowExpanded = z.infer<typeof contextWindowExpandedSchema>;
@@ -170,11 +190,57 @@ export const historyToolCallsAddedSchema = z.object({
    * 要添加的 Tool Call ID 列表
    */
   toolCallIds: z.array(z.string()),
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
 });
 
 export type HistoryToolCallsAdded = z.infer<
   typeof historyToolCallsAddedSchema
 >;
+
+/**
+ * ReAct Loop 已开始
+ *
+ * 当开始一个新的 ReAct Loop 时触发。
+ * 此事件会创建或重置 react context 为初始状态。
+ */
+export const reactLoopStartedSchema = z.object({
+  /**
+   * 输入类型标识
+   */
+  type: z.literal("react-loop-started"),
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   * 用于初始化 react context 的 startedAt 字段
+   */
+  timestamp: z.number(),
+});
+
+export type ReactLoopStarted = z.infer<typeof reactLoopStartedSchema>;
+
+/**
+ * ReAct Loop 已完成
+ *
+ * 当完成一个 ReAct Loop 时触发。
+ * 此事件会将 react context 设置为 null。
+ */
+export const reactLoopCompletedSchema = z.object({
+  /**
+   * 输入类型标识
+   */
+  type: z.literal("react-loop-completed"),
+
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
+});
+
+export type ReactLoopCompleted = z.infer<typeof reactLoopCompletedSchema>;
 
 /**
  * Agent 输入信号
@@ -190,6 +256,8 @@ export const agentInputSchema = z.discriminatedUnion("type", [
   toolCallCompletedSchema,
   contextWindowExpandedSchema,
   historyToolCallsAddedSchema,
+  reactLoopStartedSchema,
+  reactLoopCompletedSchema,
 ]);
 
 export type AgentInput = z.infer<typeof agentInputSchema>;

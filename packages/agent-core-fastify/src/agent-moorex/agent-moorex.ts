@@ -8,7 +8,10 @@ import type {
   AgentInput,
 } from "@moora/agent-core-state-machine";
 import type { AgentEffect, AgentMoorexOptions } from "../types";
-import { initialAgentState, agentTransition } from "@moora/agent-core-state-machine";
+import {
+  initialAgentState,
+  createAgentTransition,
+} from "@moora/agent-core-state-machine";
 import {
   createLLMEffectController,
   createToolEffectController,
@@ -86,11 +89,10 @@ export const createAgentMoorexDefinition = (
 
   return {
     initial: () => initialAgentState(initialContextWindowSize),
-    transition: (input: AgentInput) =>
-      agentTransition(input, {
-        initialContextWindowSize,
-        expandContextWindowSize,
-      }),
+    transition: createAgentTransition({
+      initialContextWindowSize,
+      expandContextWindowSize,
+    }),
     effectsAt: agentEffectsAt,
     runEffect: createAgentRunEffect(options),
   };
