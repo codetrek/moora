@@ -50,20 +50,31 @@ export type AgentController = {
   /**
    * 通知 Agent 事件
    * 
-   * 向 Agent 发送用户触发的事件，如用户消息、取消操作等。
+   * 向 Agent 发送用户触发的事件，如用户消息、取消 task、更新 task summary 等。
    * 
    * @param event - 要发送的事件
    * 
    * @example
    * ```typescript
-   * // 发送用户消息
+   * // 发送用户消息（带 task hints）
    * controller.notify({
    *   type: 'user-message',
-   *   content: 'Hello, Agent!',
+   *   content: '继续处理这个任务',
+   *   taskHints: ['task-1'],
    * });
    * 
-   * // 取消当前操作
-   * controller.notify({ type: 'cancel' });
+   * // 取消 task
+   * controller.notify({
+   *   type: 'cancel-task',
+   *   taskId: 'task-1',
+   * });
+   * 
+   * // 更新 task summary
+   * controller.notify({
+   *   type: 'update-task-summary',
+   *   taskId: 'task-1',
+   *   summary: '新的任务简介',
+   * });
    * ```
    */
   notify(event: AgentAppEvent): void;

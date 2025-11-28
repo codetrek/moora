@@ -6,6 +6,16 @@
  * 用户消息事件
  * 
  * 当用户在 Web UI 中输入消息并发送时触发。
+ * 可以带一个或多个 task 作为 hint，提醒 Agent message 和哪些 task 相关。
+ * 
+ * @example
+ * ```typescript
+ * const event: UserMessageEvent = {
+ *   type: "user-message",
+ *   content: "继续处理这个任务",
+ *   taskHints: ["task-1", "task-2"],
+ * };
+ * ```
  */
 export type UserMessageEvent = {
   /**
@@ -16,42 +26,48 @@ export type UserMessageEvent = {
    * 用户消息内容
    */
   content: string;
+  /**
+   * 关联的 Task ID 列表（作为 hint）
+   * 提醒 Agent message 和哪些 task 相关
+   * 如果没有关联的 task，则为空数组
+   */
+  taskHints: string[];
 };
 
 /**
- * 取消事件
+ * 取消 Task 事件
  * 
- * 取消当前正在处理的任务。
+ * 取消指定的 task。
  */
-export type CancelEvent = {
+export type CancelTaskEvent = {
   /**
    * 事件类型标识
    */
-  type: "cancel";
+  type: "cancel-task";
+  /**
+   * 要取消的 Task ID
+   */
+  taskId: string;
 };
 
 /**
- * 重试事件
+ * 更新 Task 简介事件
  * 
- * 重试上次失败的操作。
+ * 用户更新一个 task 的 summary。
  */
-export type RetryEvent = {
+export type UpdateTaskSummaryEvent = {
   /**
    * 事件类型标识
    */
-  type: "retry";
-};
-
-/**
- * 清空事件
- * 
- * 清空对话历史。
- */
-export type ClearEvent = {
+  type: "update-task-summary";
   /**
-   * 事件类型标识
+   * 要更新的 Task ID
    */
-  type: "clear";
+  taskId: string;
+  /**
+   * 新的 Task 简介（summary）
+   */
+  summary: string;
 };
 
 /**
@@ -62,7 +78,6 @@ export type ClearEvent = {
  */
 export type AgentAppEvent =
   | UserMessageEvent
-  | CancelEvent
-  | RetryEvent
-  | ClearEvent;
+  | CancelTaskEvent
+  | UpdateTaskSummaryEvent;
 

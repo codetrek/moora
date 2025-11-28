@@ -17,16 +17,22 @@
 // ============================================================================
 // 导出 Agent App State 相关类型
 // ============================================================================
-export type { AgentAppState, AgentMessage } from "./agent-app-state";
+export type {
+  AgentTaskStatus,
+  AgentTask,
+  AgentAppState,
+  UserMessage,
+  AssistantMessage,
+  AgentMessage,
+} from "./agent-app-state";
 
 // ============================================================================
 // 导出 Agent App Event 相关类型
 // ============================================================================
 export type {
   UserMessageEvent,
-  CancelEvent,
-  RetryEvent,
-  ClearEvent,
+  CancelTaskEvent,
+  UpdateTaskSummaryEvent,
   AgentAppEvent,
 } from "./agent-app-event";
 

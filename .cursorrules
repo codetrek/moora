@@ -22,6 +22,12 @@
   - 使用 Discriminated Union（判别联合类型），通过 `type` 或 `kind` 字段区分
   - 每个子类型尽量单独命名定义，提高可读性和可维护性
   - 只有特别简单的 union 类型（如 `'idle' | 'running' | 'error'`）可以例外，直接内联定义
+- **Optional Properties 规范**：
+  - **不在关键类型中定义 optional properties**
+  - **数组类型**：不必 optional，用 `[]` 表达无内容
+  - **boolean 类型**：不需要 optional，用 `false` 表达默认值
+  - **string 类型**：不需要 optional，用 `""` 表达默认值
+  - **其他类型**：如果一定需要 optional，explicitly 使用 `Nullable<T>` 类型（如 `Nullable<string>`）
 
 ## 命名规范
 
@@ -139,6 +145,35 @@ export type Input = UserMessageInput | ToolResultInput | AssistantMessageInput;
 
 // 简单类型可以例外，直接内联定义
 export type Status = "idle" | "thinking" | "responding" | "error";
+```
+
+## Optional Properties 规范示例
+
+```typescript
+// 定义 Nullable 工具类型（如果需要）
+export type Nullable<T> = T | null;
+
+// 好的做法：不使用 optional properties，使用默认值
+export type AgentAppState = {
+  status: "idle" | "thinking" | "responding" | "error";
+  messages: AgentMessage[]; // 数组类型，用 [] 表达无内容
+  error: string; // string 类型，用 "" 表达默认值
+  isProcessing: boolean; // boolean 类型，用 false 表达默认值
+};
+
+// 如果确实需要 nullable，explicitly 使用 Nullable<T>
+export type Config = {
+  apiKey: string;
+  timeout: number;
+  retryCount: Nullable<number>; // 明确表示可能为 null
+};
+
+// 不好的做法：使用 optional properties
+export type BadState = {
+  messages?: AgentMessage[]; // ❌ 应该用 messages: AgentMessage[]
+  error?: string; // ❌ 应该用 error: string
+  isProcessing?: boolean; // ❌ 应该用 isProcessing: boolean
+};
 ```
 
 ## 函数式设计示例
