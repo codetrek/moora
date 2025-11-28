@@ -1,0 +1,255 @@
+# Agent Core State Machine
+
+Core state machine implementation for Agent, defining the state and state transition logic for ReAct Loop Agent.
+
+## ReAct Loop Design
+
+ReAct: Reason + Act, an alternating decision-making pattern of reasoning and action.
+
+In our Agent's ReAct Loop:
+
+- **Act (Action)**: Output responses to users in a streaming manner
+- **Reason (Reasoning)**: Make decisions or collect information through Tool calls
+
+### Tool Categories
+
+Our Tools are divided into two categories: internal and external.
+
+#### Internal Tools
+
+- **No configuration required**, directly injected during LLM calls
+- **Purpose**: Extend and adjust the Agent's own context
+  - Example: Load older chat history
+  - Example: Query older Tool call information
+  - Example: Load results from a historical Tool call
+- **Invocation**: When calling LLM, internal tool calls may affect LLM context in non-standard ways
+  - Example: Prepend historical messages
+  - Example: Add pseudo Tool call rounds to insert results from historical Tool calls
+- **History**: Internal tool calls are **not** added to historical Tool calls
+
+#### External Tools
+
+- **Requires configuration**: Configured when creating the Agent
+- **Configuration includes**:
+  - `name`: Tool name
+  - `description`: Tool description (string)
+  - `schema`: Parameter JSON Schema (string, serialized JSON Schema)
+- **Execution**: Executed asynchronously in a `string in/string out` manner
+- **Invocation**: When calling LLM, external tool calls are always inserted into LLM context in standard tool call format
+  - One `assistant message` (containing tool call)
+  - One `tool message` (containing tool call result)
+- **History**: All external tool calls are added to historical Tool calls
+
+## State Definition
+
+### AgentState
+
+The complete internal state of the Agent, including:
+
+1. **Historical Messages** (`messages`)
+   - Type: `Record<string /* messageId */, AgentMessage>`
+   - Contains all user and assistant messages
+   - Reuses `AgentMessage` type from `@agent-webui-protocol`
+
+2. **External Tools** (`tools`)
+   - Type: `Record<string /* name */, ToolDefinition>`
+   - Contains all loaded external tool definitions
+   - `ToolDefinition` includes:
+     - `description`: `string` - Tool description
+     - `schema`: `string` - Parameter JSON Schema (serialized JSON Schema string)
+
+3. **Historical Tool Call Records** (`toolCalls`)
+   - Type: `Record<string /* toolCallId */, ToolCallRecord>`
+   - Contains historical records of all external tool calls
+   - `ToolCallRecord` includes:
+     - `name`: `string` - Tool name
+     - `parameters`: `string` - Parameters (serialized as string)
+     - `timestamp`: `number` - Call timestamp
+     - `result`: `ToolCallSuccess | ToolCallFailed | null` - Call result
+       - `ToolCallSuccess`: `{ isSuccess: true, content: string }`
+       - `ToolCallFailed`: `{ isSuccess: false, error: string }`
+
+4. **Current ReAct Loop Context** (`reactContext`)
+   - `messageIds`: `string[]` - Involved historical Messages (Message Id list)
+   - `toolCallIds`: `string[]` - Involved Tool Calls (Tool Call Id list)
+
+## Event Definition
+
+### AgentEvent
+
+Events that the Agent state machine can receive, using Discriminated Union type:
+
+1. **User Message Received** (`user-message`)
+   - Triggered when user sends a message
+   - Contains message content
+
+2. **LLM Chunk to User** (`llm-chunk`)
+   - Triggered for each chunk when LLM streams output
+   - Contains chunk content
+
+3. **LLM Message Complete** (`llm-message-complete`)
+   - Triggered when LLM completes streaming output for a message
+   - Indicates no more chunks for current message
+
+4. **Tool Call Started (External)** (`tool-call-started`)
+   - Triggered when starting to call an external tool
+   - Contains tool name, parameters, etc.
+
+5. **Tool Call Result Received (External)** (`tool-call-result`)
+   - Triggered when external tool call completes
+   - Contains success or failure result
+
+6. **Add Historical Messages to Current ReAct Loop** (`add-messages-to-context`)
+   - Triggered when historical messages need to be added to current ReAct Loop context
+   - Contains list of message IDs to add
+
+7. **Load Historical Tool Call Results to Current ReAct Loop** (`add-tool-calls-to-context`)
+   - Triggered when historical Tool Calls need to be added to current ReAct Loop context
+   - Contains list of Tool Call IDs to add
+
+## File Structure
+
+The state machine is split into four key files:
+
+```text
+src/
+  state.ts          # State type definitions (using zod schema)
+  input.ts          # Input/Event type definitions (using zod schema)
+  initial.ts        # initial function
+  transition.ts     # transition function
+  index.ts          # exports
+```
+
+## Type Definition Standards
+
+- All types use **zod@^4** schemas for definition
+- Export TypeScript types through `z.infer`
+- Reuse data types and schemas from `@agent-webui-protocol`
+- Follow Moorex code style standards
+
+## Usage Examples
+
+### Basic Usage
+
+```typescript
+import { createMoorex } from "@moora/moorex";
+import { initialAgentState, agentTransition } from "@moora/agent-core-state-machine";
+
+const moorex = createMoorex({
+  initial: initialAgentState,
+  transition: agentTransition,
+  effectsAt: (state) => {
+    // Side effect calculation logic
+    return {};
+  },
+  runEffect: (effect, state, key) => {
+    // Side effect execution logic
+    return {
+      start: async (dispatch) => {},
+      cancel: () => {},
+    };
+  },
+});
+```
+
+### Dispatching Events
+
+```typescript
+// Dispatch user message
+moorex.dispatch({
+  type: "user-message",
+  messageId: "msg-1",
+  content: "Hello, Agent!",
+  timestamp: Date.now(),
+});
+
+// Dispatch LLM chunk
+moorex.dispatch({
+  type: "llm-chunk",
+  messageId: "msg-2",
+  chunk: "Hello, ",
+});
+
+// Dispatch LLM message complete
+moorex.dispatch({
+  type: "llm-message-complete",
+  messageId: "msg-2",
+});
+
+// Start Tool Call
+moorex.dispatch({
+  type: "tool-call-started",
+  toolCallId: "tool-1",
+  name: "search",
+  parameters: JSON.stringify({ query: "example" }),
+  timestamp: Date.now(),
+});
+
+// Receive Tool Call result
+moorex.dispatch({
+  type: "tool-call-result",
+  toolCallId: "tool-1",
+  result: {
+    isSuccess: true,
+    content: "Search results...",
+  },
+});
+```
+
+### Accessing State
+
+```typescript
+// Get current state
+const state = moorex.current();
+
+// Access historical messages
+const messages = state.messages;
+
+// Access external tools
+const tools = state.tools;
+
+// Access historical Tool Calls
+const toolCalls = state.toolCalls;
+
+// Access current ReAct Loop context
+const context = state.reactContext;
+```
+
+## API Reference
+
+### Type Exports
+
+#### State Types
+
+- `AgentState` - Complete Agent state
+- `ToolDefinition` - Tool definition
+- `ToolCallRecord` - Tool Call record
+- `ToolCallResult` - Tool Call result (success/failure)
+- `ReactContext` - ReAct Loop context
+
+#### Event Types
+
+- `AgentEvent` / `AgentInput` - Union type of all event types
+- `UserMessageEvent` - User message event
+- `LlmChunkEvent` - LLM chunk event
+- `LlmMessageCompleteEvent` - LLM message complete event
+- `ToolCallStartedEvent` - Tool Call started event
+- `ToolCallResultEvent` - Tool Call result event
+- `AddMessagesToContextEvent` - Add messages to context event
+- `AddToolCallsToContextEvent` - Add Tool Calls to context event
+
+### Schema Exports
+
+All types have corresponding Zod schemas for runtime validation:
+
+- `agentStateSchema` - Agent state schema
+- `agentEventSchema` - Agent event schema
+- `toolDefinitionSchema` - Tool definition schema
+- `toolCallRecordSchema` - Tool Call record schema
+- `reactContextSchema` - ReAct Loop context schema
+- And more...
+
+### Function Exports
+
+- `initialAgentState()` - Returns initial state
+- `agentTransition(input)` - State transition function
