@@ -4,7 +4,7 @@
 
 /**
  * Agent Core App Controller
- * 
+ *
  * 提供前端控制器实现，包括：
  * - Agent Controller: 前端控制器接口实现
  * - 状态映射: AgentState → AgentAppState
@@ -17,11 +17,13 @@
 export type { CreateAgentControllerOptions } from "./types";
 
 // ============================================================================
-// 导出 App Controller
+// 导出 Controller
 // ============================================================================
-export {
-  createAgentController,
-  mapAppState,
-  interpretAppEvent,
-} from "./app-controller";
+export { createAgentController } from "./controller";
+
+// ============================================================================
+// 导出 Mappers
+// ============================================================================
+export { mapAppState } from "./map-app-state";
+export { interpretAppEvent } from "./interpret-app-event";
 

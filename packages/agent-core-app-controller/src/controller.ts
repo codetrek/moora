@@ -1,5 +1,5 @@
 // ============================================================================
-// App Controller - 前端控制器实现
+// Controller - Agent Controller 实现
 // ============================================================================
 
 import type {
@@ -8,40 +8,44 @@ import type {
   AgentAppEvent,
 } from "@moora/agent-webui-protocol";
 import type { AgentState, AgentInput } from "@moora/agent-core-state-machine";
-import type { CreateAgentControllerOptions } from "../types";
+import type { Unsubscribe } from "@moora/moorex";
+import type { CreateAgentControllerOptions } from "./types";
 import { createPubSub } from "@moora/moorex";
-import { createSSEConnection, sendInputToServer } from "./helpers";
-import { mapAppState, interpretAppEvent } from "./mappers";
+import { createSSEConnection, sendInputToServer } from "./api";
+import { mapAppState } from "./map-app-state";
+import { interpretAppEvent } from "./interpret-app-event";
 
 /**
  * 创建 Agent Controller
- * 
+ *
  * @param options - 创建选项
+ * @param mapAppStateFn - 状态映射函数（可选，默认使用内置的 mapAppState）
+ * @param interpretAppEventFn - 事件解释函数（可选，默认使用内置的 interpretAppEvent）
  * @returns Agent Controller 实例
- * 
+ *
  * @example
  * ```typescript
  * const controller = createAgentController({
- *   endpoint: 'http://localhost:3000/api/agent',
+ *   endpoint: "http://localhost:3000/api/agent",
  * });
- * 
+ *
  * controller.subscribe((state) => {
- *   console.log('State updated:', state);
+ *   console.log("State updated:", state);
  * });
- * 
+ *
  * controller.notify({
- *   type: 'user-message',
- *   content: 'Hello, Agent!',
+ *   type: "user-message",
+ *   content: "Hello, Agent!",
+ *   taskHints: [],
  * });
  * ```
  */
-export const createAgentController = (
-  options: CreateAgentControllerOptions
-): AgentController => {
-  const {
-    endpoint,
-    generateRequestId = () => `req-${Date.now()}-${Math.random()}`,
-  } = options;
+export function createAgentController(
+  options: CreateAgentControllerOptions,
+  mapAppStateFn: (state: AgentState) => AgentAppState = mapAppState,
+  interpretAppEventFn: (event: AgentAppEvent) => AgentInput[] = interpretAppEvent
+): AgentController {
+  const { endpoint } = options;
 
   // 当前状态
   let currentState: AgentAppState = {
@@ -49,19 +53,12 @@ export const createAgentController = (
     tasks: [],
   };
 
-  // 当前请求 ID（用于 cancel 操作）
-  let currentRequestId: string | undefined;
-
   // 状态发布订阅系统
   const statePubSub = createPubSub<AgentAppState>();
 
   // 处理状态更新
   const handleStateUpdate = (agentState: AgentState) => {
-    currentState = mapAppState(agentState);
-    // 更新当前请求 ID
-    if (agentState.currentRequestId) {
-      currentRequestId = agentState.currentRequestId;
-    }
+    currentState = mapAppStateFn(agentState);
     statePubSub.pub(currentState);
   };
 
@@ -79,7 +76,7 @@ export const createAgentController = (
   };
 
   return {
-    subscribe: (handler: (state: AgentAppState) => void) => {
+    subscribe: (handler: (state: AgentAppState) => void): Unsubscribe => {
       // 立即发送当前状态
       handler(currentState);
 
@@ -87,24 +84,12 @@ export const createAgentController = (
       return statePubSub.sub(handler);
     },
 
-    notify: (event: AgentAppEvent) => {
-      const inputs = interpretAppEvent(event);
-
-      // 处理 user-message，记录 requestId
-      if (event.type === "user-message") {
-        const requestId = generateRequestId();
-        currentRequestId = requestId;
-        inputs[0] = {
-          type: "user-message",
-          requestId,
-          content: event.content,
-          taskHints: event.taskHints,
-        };
-      }
+    notify: (event: AgentAppEvent): void => {
+      const inputs = interpretAppEventFn(event);
 
       // 发送输入
       sendInputToServer(endpoint, inputs, handleError);
     },
   };
-};
+}
 
