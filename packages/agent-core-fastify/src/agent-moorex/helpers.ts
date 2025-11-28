@@ -29,6 +29,16 @@ export const createLLMEffectController = (
       // 生成消息 ID
       const messageId = `msg-${effect.callId}`;
 
+      // 发送 LLM 消息开始事件
+      dispatch({
+        type: "llm-message-started",
+        messageId,
+      });
+
+      if (canceled) {
+        return;
+      }
+
       try {
         // 调用 LLM
         const response = await callLLM({
@@ -41,46 +51,24 @@ export const createLLMEffectController = (
           return;
         }
 
-        // 将响应作为单个 chunk 发送
-        // 注意：如果 LLM 支持流式输出，可以在这里逐字符或逐块发送
+        // 发送 LLM 消息完成事件，带上完整的 content
         dispatch({
-          type: "llm-chunk",
+          type: "llm-message-completed",
           messageId,
-          chunk: response,
-        });
-
-        if (canceled) {
-          return;
-        }
-
-        // 标记消息完成
-        dispatch({
-          type: "llm-message-complete",
-          messageId,
+          content: response,
         });
       } catch (error) {
         if (canceled) {
           return;
         }
 
-        // 对于错误情况，我们通过发送一个包含错误信息的 chunk 来处理
-        // 然后标记为完成
-        const messageId = `msg-${effect.callId}`;
+        // 对于错误情况，发送包含错误信息的完成事件
         const errorMessage = error instanceof Error ? error.message : "Unknown error";
 
         dispatch({
-          type: "llm-chunk",
+          type: "llm-message-completed",
           messageId,
-          chunk: `Error: ${errorMessage}`,
-        });
-
-        if (canceled) {
-          return;
-        }
-
-        dispatch({
-          type: "llm-message-complete",
-          messageId,
+          content: `Error: ${errorMessage}`,
         });
       }
     },
@@ -113,7 +101,7 @@ export const createToolEffectController = (
         });
 
         dispatch({
-          type: "tool-call-result",
+          type: "tool-call-completed",
           toolCallId: effect.callId,
           result: {
             isSuccess: false,
@@ -157,7 +145,7 @@ export const createToolEffectController = (
 
         // 分发 Tool 结果（成功）
         dispatch({
-          type: "tool-call-result",
+          type: "tool-call-completed",
           toolCallId: effect.callId,
           result: {
             isSuccess: true,
@@ -171,7 +159,7 @@ export const createToolEffectController = (
 
         // 分发错误结果
         dispatch({
-          type: "tool-call-result",
+          type: "tool-call-completed",
           toolCallId: effect.callId,
           result: {
             isSuccess: false,

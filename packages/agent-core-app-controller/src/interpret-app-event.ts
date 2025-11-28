@@ -20,7 +20,7 @@ import type { AgentInput } from "@moora/agent-core-state-machine";
  * };
  *
  * const inputs = interpretAppEvent(event);
- * // [{ type: "user-message", messageId: "...", content: "Hello", timestamp: ... }]
+ * // [{ type: "user-message-received", messageId: "...", content: "Hello", timestamp: ... }]
  * ```
  */
 export function interpretAppEvent(event: AgentAppEvent): AgentInput[] {
@@ -30,7 +30,7 @@ export function interpretAppEvent(event: AgentAppEvent): AgentInput[] {
       const messageId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       return [
         {
-          type: "user-message",
+          type: "user-message-received",
           messageId,
           content: event.content,
           timestamp: Date.now(),

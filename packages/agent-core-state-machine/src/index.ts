@@ -38,24 +38,24 @@ export {
 
 // Input 相关类型
 export type {
-  UserMessageInput,
-  LlmChunkInput,
-  LlmMessageCompleteInput,
-  ToolCallStartedInput,
-  ToolCallResultInput,
-  ExpandContextWindowInput,
-  AddToolCallsToContextInput,
+  UserMessageReceived,
+  LlmMessageStarted,
+  LlmMessageCompleted,
+  ToolCallStarted,
+  ToolCallCompleted,
+  ContextWindowExpanded,
+  HistoryToolCallsAdded,
   AgentInput,
 } from "./input";
 
 export {
-  userMessageInputSchema,
-  llmChunkInputSchema,
-  llmMessageCompleteInputSchema,
-  toolCallStartedInputSchema,
-  toolCallResultInputSchema,
-  expandContextWindowInputSchema,
-  addToolCallsToContextInputSchema,
+  userMessageReceivedSchema,
+  llmMessageStartedSchema,
+  llmMessageCompletedSchema,
+  toolCallStartedSchema,
+  toolCallCompletedSchema,
+  contextWindowExpandedSchema,
+  historyToolCallsAddedSchema,
   agentInputSchema,
 } from "./input";
 

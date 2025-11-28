@@ -6,13 +6,13 @@ import { create } from "mutative";
 import type { AgentState } from "./state";
 import type {
   AgentInput,
-  UserMessageInput,
-  LlmChunkInput,
-  LlmMessageCompleteInput,
-  ToolCallStartedInput,
-  ToolCallResultInput,
-  ExpandContextWindowInput,
-  AddToolCallsToContextInput,
+  UserMessageReceived,
+  LlmMessageStarted,
+  LlmMessageCompleted,
+  ToolCallStarted,
+  ToolCallCompleted,
+  ContextWindowExpanded,
+  HistoryToolCallsAdded,
 } from "./input";
 
 /**
@@ -21,7 +21,7 @@ import type {
  * @internal
  */
 const handleUserMessage = (
-  input: UserMessageInput,
+  input: UserMessageReceived,
   state: AgentState
 ): AgentState => {
   // 检查消息 ID 是否已存在
@@ -66,12 +66,64 @@ const handleUserMessage = (
 };
 
 /**
- * 处理 LLM Chunk 输入
+ * 处理 LLM 消息开始输入
+ *
+ * 当 LLM 开始 streaming 时，创建一个 content 为空字符串的 assistant message。
+ * 在 streaming 过程中，content 保持为空，直到 llm-message-completed 事件触发。
  *
  * @internal
  */
-const handleLlmChunk = (
-  input: LlmChunkInput,
+const handleLlmMessageStarted = (
+  input: LlmMessageStarted,
+  state: AgentState
+): AgentState => {
+  // 检查消息 ID 是否已存在
+  const existingIndex = state.messages.findIndex(
+    (msg) => msg.id === input.messageId
+  );
+
+  if (existingIndex >= 0) {
+    // 如果消息已存在，不做任何操作
+    console.warn(
+      `[AgentStateMachine] Ignoring llm message started with duplicate ID: ${input.messageId}`
+    );
+    return state;
+  }
+
+  return create(state, (draft) => {
+    // 创建新的助手消息，content 为空字符串
+    const timestamp = Date.now();
+    const newMessage = {
+      id: input.messageId,
+      role: "assistant" as const,
+      content: "",
+      timestamp,
+      streaming: true,
+      taskIds: [] as string[],
+    };
+
+    // 保持按时间戳排序
+    const insertIndex = draft.messages.findIndex(
+      (msg) => msg.timestamp > timestamp
+    );
+    if (insertIndex >= 0) {
+      draft.messages.splice(insertIndex, 0, newMessage);
+    } else {
+      draft.messages.push(newMessage);
+    }
+  });
+};
+
+/**
+ * 处理 LLM 消息完成输入
+ *
+ * 在 streaming 过程中，assistant message 的 content 保持为空字符串，
+ * 只有在此事件触发时才更新为完整的 content。
+ *
+ * @internal
+ */
+const handleLlmMessageCompleted = (
+  input: LlmMessageCompleted,
   state: AgentState
 ): AgentState => {
   return create(state, (draft) => {
@@ -82,22 +134,22 @@ const handleLlmChunk = (
     if (existingIndex >= 0) {
       const existingMessage = draft.messages[existingIndex];
       if (existingMessage && existingMessage.role === "assistant") {
-        // 更新现有助手消息的内容
+        // 更新消息内容为完整内容，并标记不再流式输出
         draft.messages[existingIndex] = {
           ...existingMessage,
-          content: existingMessage.content + input.chunk,
-          streaming: true,
+          content: input.content,
+          streaming: false,
         };
       }
     } else {
-      // 创建新的助手消息
+      // 如果消息不存在，创建新的助手消息
       const timestamp = Date.now();
       const newMessage = {
         id: input.messageId,
         role: "assistant" as const,
-        content: input.chunk,
+        content: input.content,
         timestamp,
-        streaming: true,
+        streaming: false,
         taskIds: [] as string[],
       };
 
@@ -115,39 +167,12 @@ const handleLlmChunk = (
 };
 
 /**
- * 处理 LLM 消息完成输入
- *
- * @internal
- */
-const handleLlmMessageComplete = (
-  input: LlmMessageCompleteInput,
-  state: AgentState
-): AgentState => {
-  return create(state, (draft) => {
-    const existingIndex = draft.messages.findIndex(
-      (msg) => msg.id === input.messageId
-    );
-
-    if (existingIndex >= 0) {
-      const existingMessage = draft.messages[existingIndex];
-      if (existingMessage && existingMessage.role === "assistant") {
-        // 标记消息不再流式输出
-        draft.messages[existingIndex] = {
-          ...existingMessage,
-          streaming: false,
-        };
-      }
-    }
-  });
-};
-
-/**
  * 处理 Tool Call 开始输入
  *
  * @internal
  */
 const handleToolCallStarted = (
-  input: ToolCallStartedInput,
+  input: ToolCallStarted,
   state: AgentState
 ): AgentState => {
   return create(state, (draft) => {
@@ -171,8 +196,8 @@ const handleToolCallStarted = (
  *
  * @internal
  */
-const handleToolCallResult = (
-  input: ToolCallResultInput,
+const handleToolCallCompleted = (
+  input: ToolCallCompleted,
   state: AgentState
 ): AgentState => {
   return create(state, (draft) => {
@@ -193,8 +218,8 @@ const handleToolCallResult = (
  *
  * @internal
  */
-const handleExpandContextWindow = (
-  input: ExpandContextWindowInput,
+const handleContextWindowExpanded = (
+  input: ContextWindowExpanded,
   state: AgentState,
   expandContextWindowSize: number
 ): AgentState => {
@@ -214,8 +239,8 @@ const handleExpandContextWindow = (
  *
  * @internal
  */
-const handleAddToolCallsToContext = (
-  input: AddToolCallsToContextInput,
+const handleHistoryToolCallsAdded = (
+  input: HistoryToolCallsAdded,
   state: AgentState
 ): AgentState => {
   return create(state, (draft) => {
@@ -241,7 +266,7 @@ const handleAddToolCallsToContext = (
  * ```typescript
  * const transition = agentTransition(
  *   {
- *     type: "user-message",
+ *     type: "user-message-received",
  *     messageId: "msg-1",
  *     content: "Hello",
  *     timestamp: Date.now(),
@@ -266,20 +291,20 @@ export function agentTransition(
 
   return (state: AgentState): AgentState => {
     switch (input.type) {
-      case "user-message":
+      case "user-message-received":
         return handleUserMessage(input, state);
-      case "llm-chunk":
-        return handleLlmChunk(input, state);
-      case "llm-message-complete":
-        return handleLlmMessageComplete(input, state);
+      case "llm-message-started":
+        return handleLlmMessageStarted(input, state);
+      case "llm-message-completed":
+        return handleLlmMessageCompleted(input, state);
       case "tool-call-started":
         return handleToolCallStarted(input, state);
-      case "tool-call-result":
-        return handleToolCallResult(input, state);
-      case "expand-context-window":
-        return handleExpandContextWindow(input, state, expandContextWindowSize);
-      case "add-tool-calls-to-context":
-        return handleAddToolCallsToContext(input, state);
+      case "tool-call-completed":
+        return handleToolCallCompleted(input, state);
+      case "context-window-expanded":
+        return handleContextWindowExpanded(input, state, expandContextWindowSize);
+      case "history-tool-calls-added":
+        return handleHistoryToolCallsAdded(input, state);
       default:
         // 确保所有 case 都被处理
         const _exhaustive: never = input;
