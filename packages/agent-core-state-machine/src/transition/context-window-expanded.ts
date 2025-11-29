@@ -2,7 +2,6 @@
 // Handle Context Window Expanded - 处理扩展上下文窗口输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { AgentState } from "../state";
 import type { ContextWindowExpanded } from "../input";
 
@@ -12,24 +11,38 @@ import type { ContextWindowExpanded } from "../input";
  * @internal
  */
 export const handleContextWindowExpanded = (
-  input: ContextWindowExpanded,
+  { timestamp }: ContextWindowExpanded,
   state: AgentState,
   expandContextWindowSize: number
 ): AgentState => {
-  return create(state, (draft) => {
-    if (draft.reactContext) {
-      // 增加上下文窗口大小
-      draft.reactContext.contextWindowSize += expandContextWindowSize;
-      // 限制为不超过实际消息数量
-      draft.reactContext.contextWindowSize = Math.min(
-        draft.reactContext.contextWindowSize,
-        draft.messages.length
-      );
-    }
+  const { reactContext } = state;
+
+  // 检查 reactContext 是否存在
+  if (!reactContext) {
+    console.warn(
+      `[AgentStateMachine] Ignoring context window expanded without react context`
+    );
+    return state;
+  }
+
+  return {
+    ...state,
+    reactContext: {
+      ...reactContext,
+
+      // 扩展上下文窗口大小，但不超过消息列表长度
+      contextWindowSize: Math.min(
+        reactContext.contextWindowSize + expandContextWindowSize,
+        state.messages.length
+      ),
+
+      // 更新 reactContext 时间戳
+      updatedAt: timestamp,
+    },
 
     // 更新状态时间戳
-    draft.timestamp = input.timestamp;
-  });
+    updatedAt: timestamp,
+  };
 };
 
 

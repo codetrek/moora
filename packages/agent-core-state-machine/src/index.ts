@@ -38,6 +38,7 @@ export {
 
 // Input 相关类型
 export type {
+  BaseAgentInput,
   UserMessageReceived,
   LlmMessageStarted,
   LlmMessageCompleted,
@@ -49,6 +50,7 @@ export type {
 } from "./input";
 
 export {
+  baseAgentInputSchema,
   userMessageReceivedSchema,
   llmMessageStartedSchema,
   llmMessageCompletedSchema,
@@ -63,6 +65,6 @@ export {
 // 导出 State Machine 函数
 // ============================================================================
 
-export { initialAgentState } from "./initial";
+export { initializeAgentState, createAgentInitial } from "./initial";
 export { createAgentTransition } from "./transition";
 export type { AgentTransitionOptions } from "./transition";

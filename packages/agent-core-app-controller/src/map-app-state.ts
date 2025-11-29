@@ -14,10 +14,10 @@ import type { AgentState } from "@moora/agent-core-state-machine";
  * @example
  * ```typescript
  * const agentState: AgentState = {
- *   messages: [{ id: "msg-1", role: "user", content: "Hello", timestamp: Date.now(), taskIds: [] }],
+ *   messages: [{ id: "msg-1", role: "user", content: "Hello", receivedAt: Date.now(), taskIds: [] }],
  *   tools: {},
  *   toolCalls: {},
- *   reactContext: { contextWindowSize: 10, toolCallIds: [] },
+ *   reactContext: { contextWindowSize: 10, toolCallIds: [], startedAt: Date.now(), updatedAt: Date.now() },
  * };
  *
  * const appState = mapAppState(agentState);
@@ -25,14 +25,14 @@ import type { AgentState } from "@moora/agent-core-state-machine";
  * ```
  */
 export function mapAppState(state: AgentState): AgentAppState {
-  // 转换消息格式：messages 已经是按时间戳排序的数组
+  // 转换消息格式：messages 已经是按 receivedAt 排序的数组
   const messages = state.messages.map((msg) => {
     if (msg.role === "user") {
       return {
         id: msg.id,
         role: "user" as const,
         content: msg.content,
-        timestamp: msg.timestamp,
+        receivedAt: msg.receivedAt,
         taskIds: msg.taskIds,
       };
     } else {
@@ -40,7 +40,8 @@ export function mapAppState(state: AgentState): AgentAppState {
         id: msg.id,
         role: "assistant" as const,
         content: msg.content,
-        timestamp: msg.timestamp,
+        receivedAt: msg.receivedAt,
+        updatedAt: msg.updatedAt,
         streaming: msg.streaming ?? false,
         taskIds: msg.taskIds,
       };
@@ -56,6 +57,7 @@ export function mapAppState(state: AgentState): AgentAppState {
   const tasks: AgentAppState["tasks"] = [];
 
   return {
+    updatedAt: state.updatedAt,
     messages,
     tasks,
   };

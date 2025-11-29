@@ -75,9 +75,12 @@ const baseMessageSchema = z.object({
   content: z.string(),
 
   /**
-   * 消息时间戳（Unix 时间戳，毫秒）
+   * 消息接收时间戳（Unix 时间戳，毫秒）
+   * 
+   * 对于用户消息，表示用户发送消息的时间。
+   * 对于助手消息，表示 LLM 开始生成消息的时间（llm-message-started 事件的时间戳）。
    */
-  timestamp: z.number(),
+  receivedAt: z.number(),
 
   /**
    * 关联的 Task ID 列表
@@ -99,7 +102,7 @@ const baseMessageSchema = z.object({
  *   id: 'msg-123',
  *   role: 'user',
  *   content: 'Hello, Agent!',
- *   timestamp: Date.now(),
+ *   receivedAt: Date.now(),
  *   taskIds: ['task-1', 'task-2'],
  * };
  * ```
@@ -128,7 +131,8 @@ export type UserMessage = z.infer<typeof userMessageSchema>;
  *   id: 'msg-124',
  *   role: 'assistant',
  *   content: 'Hello, User!',
- *   timestamp: Date.now(),
+ *   receivedAt: Date.now(),
+ *   updatedAt: Date.now(),
  *   streaming: false,
  *   taskIds: ['task-1'],
  * };
@@ -146,6 +150,14 @@ export const assistantMessageSchema = baseMessageSchema
      * 当 Agent 正在流式生成响应时，此字段为 `true`；否则为 `false`
      */
     streaming: z.boolean(),
+
+    /**
+     * 消息最后更新时间戳（Unix 时间戳，毫秒）
+     * 
+     * 表示消息最后更新的时间（llm-message-completed 事件的时间戳）。
+     * 当消息还在 streaming 时，此字段等于 receivedAt。
+     */
+    updatedAt: z.number(),
   })
   .readonly();
 
@@ -163,7 +175,7 @@ export type AssistantMessage = z.infer<typeof assistantMessageSchema>;
  *   id: 'msg-123',
  *   role: 'user',
  *   content: 'Hello, Agent!',
- *   timestamp: Date.now(),
+ *   receivedAt: Date.now(),
  *   taskIds: [],
  * };
  * 
@@ -171,7 +183,8 @@ export type AssistantMessage = z.infer<typeof assistantMessageSchema>;
  *   id: 'msg-124',
  *   role: 'assistant',
  *   content: 'Hello, User!',
- *   timestamp: Date.now(),
+ *   receivedAt: Date.now(),
+ *   updatedAt: Date.now(),
  *   streaming: false,
  *   taskIds: [],
  * };
@@ -198,8 +211,9 @@ export type AgentMessage = z.infer<typeof agentMessageSchema>;
  * @example
  * ```typescript
  * const state: AgentAppState = {
+ *   updatedAt: Date.now(),
  *   messages: [
- *     { id: '1', role: 'user', content: 'Hello', timestamp: Date.now(), taskIds: [] },
+ *     { id: '1', role: 'user', content: 'Hello', receivedAt: Date.now(), taskIds: [] },
  *   ],
  *   tasks: [
  *     { id: 'task-1', status: 'running', summary: '搜索相关信息' },
@@ -209,6 +223,13 @@ export type AgentMessage = z.infer<typeof agentMessageSchema>;
  */
 export const agentAppStateSchema = z
   .object({
+    /**
+     * 状态最后更新时间戳（Unix 时间戳，毫秒）
+     *
+     * 表示应用状态最后更新的时间。
+     */
+    updatedAt: z.number(),
+
     /**
      * 消息列表
      * 包含用户和 Agent 之间的对话消息，按时间顺序排列

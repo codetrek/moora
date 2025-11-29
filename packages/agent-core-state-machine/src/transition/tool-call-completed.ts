@@ -2,7 +2,6 @@
 // Handle Tool Call Completed - 处理 Tool Call 完成输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { AgentState } from "../state";
 import type { ToolCallCompleted } from "../input";
 
@@ -12,23 +11,37 @@ import type { ToolCallCompleted } from "../input";
  * @internal
  */
 export const handleToolCallCompleted = (
-  input: ToolCallCompleted,
+  { toolCallId, result, timestamp }: ToolCallCompleted,
   state: AgentState
 ): AgentState => {
-  return create(state, (draft) => {
-    const existingToolCall = draft.toolCalls[input.toolCallId];
+  const existingToolCall = state.toolCalls[toolCallId];
 
-    if (existingToolCall) {
-      // 更新 Tool Call 记录的结果
-      draft.toolCalls[input.toolCallId] = {
-        ...existingToolCall,
-        result: input.result,
-      };
-    }
+  // 检查 Tool Call 记录是否存在
+  if (!existingToolCall) {
+    console.warn(
+      `[AgentStateMachine] tool-call-completed received for non-existent tool call: ${toolCallId}`
+    );
+    return state;
+  }
 
+  // 更新 Tool Call 记录的结果，添加 receivedAt
+  const toolCall = {
+    ...existingToolCall,
+    result: {
+      ...result,
+      receivedAt: timestamp,
+    },
+  };
+
+  // 更新 Tool Call 记录
+  const toolCalls = { ...state.toolCalls, [toolCallId]: toolCall };
+
+  return {
+    ...state,
+    toolCalls,
     // 更新状态时间戳
-    draft.timestamp = input.timestamp;
-  });
+    updatedAt: timestamp,
+  };
 };
 
 

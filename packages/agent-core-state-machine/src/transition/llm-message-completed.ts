@@ -2,9 +2,9 @@
 // Handle LLM Message Completed - 处理 LLM 消息完成输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { AgentState } from "../state";
 import type { LlmMessageCompleted } from "../input";
+import { findMessageById } from "./utils";
 
 /**
  * 处理 LLM 消息完成输入
@@ -16,54 +16,44 @@ import type { LlmMessageCompleted } from "../input";
  * @internal
  */
 export const handleLlmMessageCompleted = (
-  input: LlmMessageCompleted,
+  { messageId, content, timestamp }: LlmMessageCompleted,
   state: AgentState
 ): AgentState => {
-  return create(state, (draft) => {
-    const existingIndex = draft.messages.findIndex(
-      (msg) => msg.id === input.messageId
+  const findResult = findMessageById(state.messages, messageId);
+
+  // 检查消息是否存在
+  if (!findResult) {
+    console.warn(
+      `[AgentStateMachine] llm-message-completed received for non-existent message: ${messageId}`
     );
+    return state;
+  }
 
-    if (existingIndex >= 0) {
-      const existingMessage = draft.messages[existingIndex];
-      if (existingMessage && existingMessage.role === "assistant") {
-        // 只更新消息内容为完整内容，并标记不再流式输出
-        // 不修改时间戳，保持以开始事件为准
-        draft.messages[existingIndex] = {
-          ...existingMessage,
-          content: input.content,
-          streaming: false,
-        };
-      }
-    } else {
-      // 如果消息不存在，创建新的助手消息
-      // 这种情况不应该发生，因为应该在 llm-message-started 时已创建
-      console.warn(
-        `[AgentStateMachine] llm-message-completed received for non-existent message: ${input.messageId}`
-      );
-      const newMessage = {
-        id: input.messageId,
-        role: "assistant" as const,
-        content: input.content,
-        timestamp: input.timestamp,
-        streaming: false,
-        taskIds: [] as string[],
-      };
+  const [existingIndex, existingMessage] = findResult;
 
-      // 保持按时间戳排序
-      const insertIndex = draft.messages.findIndex(
-        (msg) => msg.timestamp > input.timestamp
-      );
-      if (insertIndex >= 0) {
-        draft.messages.splice(insertIndex, 0, newMessage);
-      } else {
-        draft.messages.push(newMessage);
-      }
-    }
+  // 检查消息是否是助手消息
+  if (existingMessage.role !== "assistant") {
+    console.warn(
+      `[AgentStateMachine] llm-message-completed received for non-assistant message: ${messageId}`
+    );
+    return state;
+  }
 
-    // 更新状态时间戳
-    draft.timestamp = input.timestamp;
+  // 只更新消息内容为完整内容，并标记不再流式输出
+  // 更新 updatedAt，不修改 receivedAt，保持以开始事件为准
+  const messages = state.messages.with(existingIndex, {
+    ...existingMessage,
+    content,
+    updatedAt: timestamp,
+    streaming: false,
   });
+
+  return {
+    ...state,
+    messages,
+    // 更新状态时间戳
+    updatedAt: timestamp,
+  };
 };
 
 

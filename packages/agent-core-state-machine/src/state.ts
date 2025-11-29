@@ -27,40 +27,52 @@ export const toolDefinitionSchema = z
 export type ToolDefinition = z.infer<typeof toolDefinitionSchema>;
 
 /**
+ * Tool Call 结果基础类型
+ *
+ * 包含所有 Tool Call 结果的共同字段。
+ *
+ * @internal
+ */
+const toolCallResultBaseSchema = z.object({
+  /**
+   * 结果接收时间戳（Unix 时间戳，毫秒）
+   *
+   * 表示 Tool Call 完成并收到结果的时间。
+   */
+  receivedAt: z.number(),
+});
+
+/**
  * Tool Call 成功结果
  */
-export const toolCallSuccessSchema = z
-  .object({
-    /**
-     * 是否成功
-     */
-    isSuccess: z.literal(true),
+export const toolCallSuccessSchema = toolCallResultBaseSchema.extend({
+  /**
+   * 是否成功
+   */
+  isSuccess: z.literal(true),
 
-    /**
-     * 结果内容（string）
-     */
-    content: z.string(),
-  })
-  .readonly();
+  /**
+   * 结果内容（string）
+   */
+  content: z.string(),
+});
 
 export type ToolCallSuccess = z.infer<typeof toolCallSuccessSchema>;
 
 /**
  * Tool Call 失败结果
  */
-export const toolCallFailedSchema = z
-  .object({
-    /**
-     * 是否成功
-     */
-    isSuccess: z.literal(false),
+export const toolCallFailedSchema = toolCallResultBaseSchema.extend({
+  /**
+   * 是否成功
+   */
+  isSuccess: z.literal(false),
 
-    /**
-     * 错误信息
-     */
-    error: z.string(),
-  })
-  .readonly();
+  /**
+   * 错误信息
+   */
+  error: z.string(),
+});
 
 export type ToolCallFailed = z.infer<typeof toolCallFailedSchema>;
 
@@ -93,8 +105,10 @@ export const toolCallRecordSchema = z
 
     /**
      * 调用时间戳（Unix 时间戳，毫秒）
+     *
+     * 表示开始调用工具的时间。
      */
-    timestamp: z.number(),
+    calledAt: z.number(),
 
     /**
      * 调用结果
@@ -112,7 +126,6 @@ export type ToolCallRecord = z.infer<typeof toolCallRecordSchema>;
  * ReAct Loop 上下文
  *
  * 当前 ReAct Loop 涉及到的历史消息和 Tool Call。
- * 当没有消息需要响应时为 null。
  */
 export const reactContextSchema = z
   .object({
@@ -132,9 +145,15 @@ export const reactContextSchema = z
      * ReAct Loop 开始时间戳（Unix 时间戳，毫秒）
      */
     startedAt: z.number(),
+
+    /**
+     * ReAct Loop 最后更新时间戳（Unix 时间戳，毫秒）
+     *
+     * 表示最后一次更新 reactContext 的时间。
+     */
+    updatedAt: z.number(),
   })
-  .readonly()
-  .nullable();
+  .readonly();
 
 export type ReactContext = z.infer<typeof reactContextSchema>;
 
@@ -146,11 +165,11 @@ export type ReactContext = z.infer<typeof reactContextSchema>;
 export const agentStateSchema = z
   .object({
     /**
-     * 状态时间戳（Unix 时间戳，毫秒）
+     * 状态最后更新时间戳（Unix 时间戳，毫秒）
      *
      * 表示状态最后更新的时间，用于时间不可逆检查。
      */
-    timestamp: z.number(),
+    updatedAt: z.number(),
 
     /**
      * 历史消息
@@ -181,7 +200,7 @@ export const agentStateSchema = z
      * 包含当前 ReAct Loop 涉及到的历史消息和 Tool Call。
      * 当没有消息需要响应时为 null。
      */
-    reactContext: reactContextSchema,
+    reactContext: reactContextSchema.nullable(),
   })
   .readonly();
 

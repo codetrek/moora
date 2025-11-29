@@ -4,32 +4,47 @@
 
 import type { AgentInput } from "../input";
 import type { AgentState } from "../state";
+import type { AgentMessage } from "@moora/agent-webui-protocol";
 
 /**
- * 从输入中提取时间戳
+ * 检查消息 ID 是否存在
+ *
+ * 检查指定 ID 的消息是否已存在于状态中。
+ *
+ * @param state - Agent 状态
+ * @param messageId - 消息 ID
+ * @returns 如果消息存在返回 true，否则返回 false
  *
  * @internal
  */
-export const getInputTimestamp = (input: AgentInput): number => {
-  switch (input.type) {
-    case "user-message-received":
-      return input.timestamp;
-    case "llm-message-started":
-      return input.timestamp;
-    case "llm-message-completed":
-      return input.timestamp;
-    case "tool-call-started":
-      return input.timestamp;
-    case "tool-call-completed":
-      return input.timestamp;
-    case "context-window-expanded":
-      return input.timestamp;
-    case "history-tool-calls-added":
-      return input.timestamp;
-    default:
-      const _exhaustive: never = input;
-      return Date.now();
+export const messageIdExists = (
+  state: AgentState,
+  messageId: string
+): boolean => {
+  return state.messages.some((msg) => msg.id === messageId);
+};
+
+/**
+ * 查找消息索引
+ *
+ * 在消息列表中查找指定 ID 的消息，返回其索引。
+ * 如果未找到，返回 -1。
+ *
+ * @param messages - 消息列表
+ * @param messageId - 消息 ID
+ * @returns 消息索引，如果未找到则返回 -1
+ *
+ * @internal
+ */
+export const findMessageById = (
+  messages: readonly AgentMessage[],
+  messageId: string
+): [number, AgentMessage] | null => {
+  const index = messages.findIndex((msg) => msg.id === messageId);
+  if (index < 0) {
+    return null;
   }
+  return [index, messages[index]!];
 };
 
 /**
@@ -43,10 +58,9 @@ export const checkTimeIrreversibility = (
   input: AgentInput,
   state: AgentState
 ): boolean => {
-  const inputTimestamp = getInputTimestamp(input);
-  if (inputTimestamp <= state.timestamp) {
+  if (input.timestamp <= state.updatedAt) {
     console.warn(
-      `[AgentStateMachine] Ignoring input with invalid timestamp: type=${input.type}, inputTimestamp=${inputTimestamp}, stateTimestamp=${state.timestamp}`
+      `[AgentStateMachine] Ignoring input with invalid timestamp: type=${input.type}, inputTimestamp=${input.timestamp}, stateUpdatedAt=${state.updatedAt}`
     );
     return false;
   }

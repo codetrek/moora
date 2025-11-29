@@ -6,11 +6,25 @@ import { z } from "zod";
 import { toolCallResultSchema } from "./state";
 
 /**
+ * 基础 Agent 输入类型
+ *
+ * 所有 Agent 输入类型都包含时间戳字段。
+ */
+export const baseAgentInputSchema = z.object({
+  /**
+   * 时间戳（Unix 时间戳，毫秒）
+   */
+  timestamp: z.number(),
+});
+
+export type BaseAgentInput = z.infer<typeof baseAgentInputSchema>;
+
+/**
  * 收到用户消息
  *
  * 当用户发送消息时触发。
  */
-export const userMessageReceivedSchema = z.object({
+export const userMessageReceivedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
@@ -25,11 +39,6 @@ export const userMessageReceivedSchema = z.object({
    * 消息内容
    */
   content: z.string(),
-
-  /**
-   * 消息时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type UserMessageReceived = z.infer<typeof userMessageReceivedSchema>;
@@ -41,7 +50,7 @@ export type UserMessageReceived = z.infer<typeof userMessageReceivedSchema>;
  * 此事件会在 state 中创建一个 content 为空字符串的 assistant message，
  * 在 streaming 过程中 content 保持为空，直到 llm-message-completed 事件触发。
  */
-export const llmMessageStartedSchema = z.object({
+export const llmMessageStartedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
@@ -51,11 +60,6 @@ export const llmMessageStartedSchema = z.object({
    * 消息 ID
    */
   messageId: z.string(),
-
-  /**
-   * 时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type LlmMessageStarted = z.infer<typeof llmMessageStartedSchema>;
@@ -67,7 +71,7 @@ export type LlmMessageStarted = z.infer<typeof llmMessageStartedSchema>;
  * 注意：在 streaming 过程中，state 中的 assistant message content 保持为空字符串，
  * 只有在此事件触发时才更新为完整的 content。
  */
-export const llmMessageCompletedSchema = z.object({
+export const llmMessageCompletedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
@@ -82,11 +86,6 @@ export const llmMessageCompletedSchema = z.object({
    * 完整的消息内容
    */
   content: z.string(),
-
-  /**
-   * 时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type LlmMessageCompleted = z.infer<typeof llmMessageCompletedSchema>;
@@ -96,7 +95,7 @@ export type LlmMessageCompleted = z.infer<typeof llmMessageCompletedSchema>;
  *
  * 当开始调用外部工具时触发。
  */
-export const toolCallStartedSchema = z.object({
+export const toolCallStartedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
@@ -116,11 +115,6 @@ export const toolCallStartedSchema = z.object({
    * 参数（序列化为 string）
    */
   parameters: z.string(),
-
-  /**
-   * 调用时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type ToolCallStarted = z.infer<typeof toolCallStartedSchema>;
@@ -130,7 +124,7 @@ export type ToolCallStarted = z.infer<typeof toolCallStartedSchema>;
  *
  * 当外部工具调用完成时触发。
  */
-export const toolCallCompletedSchema = z.object({
+export const toolCallCompletedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
@@ -147,11 +141,6 @@ export const toolCallCompletedSchema = z.object({
    * - 失败：包含错误信息
    */
   result: toolCallResultSchema,
-
-  /**
-   * 时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type ToolCallCompleted = z.infer<typeof toolCallCompletedSchema>;
@@ -161,16 +150,11 @@ export type ToolCallCompleted = z.infer<typeof toolCallCompletedSchema>;
  *
  * 当需要扩展当前 ReAct Loop 上下文窗口时触发。
  */
-export const contextWindowExpandedSchema = z.object({
+export const contextWindowExpandedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
   type: z.literal("context-window-expanded"),
-
-  /**
-   * 时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type ContextWindowExpanded = z.infer<typeof contextWindowExpandedSchema>;
@@ -180,7 +164,7 @@ export type ContextWindowExpanded = z.infer<typeof contextWindowExpandedSchema>;
  *
  * 当需要将历史 Tool Call 添加到当前 ReAct Loop 上下文时触发。
  */
-export const historyToolCallsAddedSchema = z.object({
+export const historyToolCallsAddedSchema = baseAgentInputSchema.extend({
   /**
    * 输入类型标识
    */
@@ -190,11 +174,6 @@ export const historyToolCallsAddedSchema = z.object({
    * 要添加的 Tool Call ID 列表
    */
   toolCallIds: z.array(z.string()),
-
-  /**
-   * 时间戳（Unix 时间戳，毫秒）
-   */
-  timestamp: z.number(),
 });
 
 export type HistoryToolCallsAdded = z.infer<

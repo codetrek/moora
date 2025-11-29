@@ -2,7 +2,6 @@
 // Handle History Tool Calls Added - 处理加载历史 ToolCall 结果到上下文输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { AgentState } from "../state";
 import type { HistoryToolCallsAdded } from "../input";
 
@@ -12,22 +11,37 @@ import type { HistoryToolCallsAdded } from "../input";
  * @internal
  */
 export const handleHistoryToolCallsAdded = (
-  input: HistoryToolCallsAdded,
+  { toolCallIds, timestamp }: HistoryToolCallsAdded,
   state: AgentState
 ): AgentState => {
-  return create(state, (draft) => {
-    // 将 Tool Call ID 添加到当前 ReAct Loop 上下文
-    if (draft.reactContext) {
-      for (const toolCallId of input.toolCallIds) {
-        if (!draft.reactContext.toolCallIds.includes(toolCallId)) {
-          draft.reactContext.toolCallIds.push(toolCallId);
-        }
-      }
-    }
+  const { reactContext } = state;
+
+  // 检查 reactContext 是否存在
+  if (!reactContext) {
+    console.warn(
+      `[AgentStateMachine] Ignoring history tool calls added without react context`
+    );
+    return state;
+  }
+
+  return {
+    ...state,
+    reactContext: {
+      ...reactContext,
+
+      // 把 input.toolCallIds 添加到 reactContext.toolCallIds 中，去重
+      toolCallIds: [
+        ...new Set([
+          ...reactContext.toolCallIds,
+          ...toolCallIds,
+        ]),
+      ],
+
+      // 更新 reactContext 时间戳
+      updatedAt: timestamp,
+    },
 
     // 更新状态时间戳
-    draft.timestamp = input.timestamp;
-  });
+    updatedAt: timestamp,
+  };
 };
-
-

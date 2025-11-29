@@ -9,7 +9,8 @@ import type {
 } from "@moora/agent-core-state-machine";
 import type { AgentEffect, AgentMoorexOptions } from "../types";
 import {
-  initialAgentState,
+  initializeAgentState,
+  createAgentInitial,
   createAgentTransition,
 } from "@moora/agent-core-state-machine";
 import {
@@ -85,10 +86,24 @@ export const createAgentRunEffect = (options: AgentMoorexOptions) => (
 export const createAgentMoorexDefinition = (
   options: AgentMoorexOptions
 ): MoorexDefinition<AgentInput, AgentEffect, AgentState> => {
-  const { initialContextWindowSize, expandContextWindowSize } = options;
+  const { initialContextWindowSize, expandContextWindowSize, tools = {} } = options;
+
+  // 将 Tool 转换为 ToolDefinition
+  const toolDefinitions: Record<string, { description: string; schema: string }> = {};
+  for (const [toolName, tool] of Object.entries(tools)) {
+    toolDefinitions[toolName] = {
+      description: tool.description,
+      schema: JSON.stringify(tool.parameters ?? {}),
+    };
+  }
+
+  // 创建初始状态
+  const initialState = initializeAgentState({
+    tools: toolDefinitions,
+  });
 
   return {
-    initial: () => initialAgentState(initialContextWindowSize),
+    initial: createAgentInitial(initialState),
     transition: createAgentTransition({
       initialContextWindowSize,
       expandContextWindowSize,

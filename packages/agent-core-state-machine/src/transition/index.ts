@@ -2,6 +2,7 @@
 // Agent State Machine - Transition Functions
 // ============================================================================
 
+import type { Transition } from "@moora/moorex";
 import type { AgentInput } from "../input";
 import type { AgentState } from "../state";
 import { checkTimeIrreversibility } from "./utils";
@@ -13,18 +14,11 @@ import { handleToolCallCompleted } from "./tool-call-completed";
 import { handleContextWindowExpanded } from "./context-window-expanded";
 import { handleHistoryToolCallsAdded } from "./history-tool-calls-added";
 
-/**
- * Agent 状态转换选项
- */
-export type AgentTransitionOptions = {
-  /**
-   * 初始上下文窗口大小，默认为 10
-   */
-  initialContextWindowSize?: number;
+export const DEFAULT_INITIAL_CONTEXT_WINDOW_SIZE = 10 as const;
+export const DEFAULT_EXPAND_CONTEXT_WINDOW_SIZE = 10 as const;
 
-  /**
-   * 每次扩展上下文窗口的增量，默认为 10
-   */
+export type AgentTransitionOptions = {
+  initialContextWindowSize?: number;
   expandContextWindowSize?: number;
 };
 
@@ -53,13 +47,13 @@ export type AgentTransitionOptions = {
  * })(currentState);
  * ```
  */
-export function createAgentTransition(
-  options?: AgentTransitionOptions
-): (input: AgentInput) => (state: AgentState) => AgentState {
-  const expandContextWindowSize = options?.expandContextWindowSize ?? 10;
-  const initialContextWindowSize = options?.initialContextWindowSize ?? 10;
-
-  return (input: AgentInput) => (state: AgentState): AgentState => {
+export const createAgentTransition =
+  ({
+    initialContextWindowSize = DEFAULT_INITIAL_CONTEXT_WINDOW_SIZE,
+    expandContextWindowSize = DEFAULT_EXPAND_CONTEXT_WINDOW_SIZE,
+  }: AgentTransitionOptions = {}): Transition<AgentInput, AgentState> =>
+  (input) =>
+  (state) => {
     // 检查时间不可逆原则
     if (!checkTimeIrreversibility(input, state)) {
       return state;
@@ -77,7 +71,11 @@ export function createAgentTransition(
       case "tool-call-completed":
         return handleToolCallCompleted(input, state);
       case "context-window-expanded":
-        return handleContextWindowExpanded(input, state, expandContextWindowSize);
+        return handleContextWindowExpanded(
+          input,
+          state,
+          expandContextWindowSize
+        );
       case "history-tool-calls-added":
         return handleHistoryToolCallsAdded(input, state);
       default:
@@ -86,5 +84,3 @@ export function createAgentTransition(
         return state;
     }
   };
-}
-

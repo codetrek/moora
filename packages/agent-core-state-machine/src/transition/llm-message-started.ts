@@ -2,9 +2,10 @@
 // Handle LLM Message Started - 处理 LLM 消息开始输入
 // ============================================================================
 
-import { create } from "mutative";
+import type { AssistantMessage } from "@moora/agent-webui-protocol";
 import type { AgentState } from "../state";
 import type { LlmMessageStarted } from "../input";
+import { messageIdExists } from "./utils";
 
 /**
  * 处理 LLM 消息开始输入
@@ -17,50 +18,40 @@ import type { LlmMessageStarted } from "../input";
  * @internal
  */
 export const handleLlmMessageStarted = (
-  input: LlmMessageStarted,
+  { messageId, timestamp }: LlmMessageStarted,
   state: AgentState
 ): AgentState => {
   // 检查消息 ID 是否已存在
-  const existingIndex = state.messages.findIndex(
-    (msg) => msg.id === input.messageId
-  );
-
-  if (existingIndex >= 0) {
-    // 如果消息已存在，不做任何操作
+  if (messageIdExists(state, messageId)) {
     console.warn(
-      `[AgentStateMachine] Ignoring llm message started with duplicate ID: ${input.messageId}`
+      `[AgentStateMachine] Ignoring llm message started with duplicate ID: ${messageId}`
     );
     return state;
   }
 
-  return create(state, (draft) => {
-    // 创建新的助手消息，content 为空字符串
-    // 时间戳以开始事件为准
-    const newMessage = {
-      id: input.messageId,
-      role: "assistant" as const,
-      content: "",
-      timestamp: input.timestamp,
-      streaming: true,
-      taskIds: [] as string[],
-    };
+  // 创建新的助手消息，content 为空字符串
+  // receivedAt 以开始事件为准，updatedAt 暂时等于 receivedAt（会在 completed 时更新）
+  const newMessage: AssistantMessage = {
+    id: messageId,
+    role: "assistant",
+    content: "",
+    receivedAt: timestamp,
+    updatedAt: timestamp,
+    streaming: true,
+    taskIds: [],
+  };
 
-    // 保持按时间戳排序
-    const insertIndex = draft.messages.findIndex(
-      (msg) => msg.timestamp > input.timestamp
-    );
-    if (insertIndex >= 0) {
-      draft.messages.splice(insertIndex, 0, newMessage);
-    } else {
-      draft.messages.push(newMessage);
-    }
+  // 在消息列表末尾加入 newMessage
+  const messages = [...state.messages, newMessage];
 
-    // 结束 react-loop：把当前 reactContext 置空
-    draft.reactContext = null;
-
+  return {
+    ...state,
+    messages,
+    // 把 reactContext 置空，因为 Message Started 表示当前 ReAct Loop 结束
+    reactContext: null,
     // 更新状态时间戳
-    draft.timestamp = input.timestamp;
-  });
+    updatedAt: timestamp,
+  };
 };
 
 
