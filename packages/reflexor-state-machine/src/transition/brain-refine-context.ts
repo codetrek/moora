@@ -4,7 +4,7 @@
 
 import type { BrainRefineContext } from "../input";
 import type { ReflexorState } from "../state";
-import { findToolCallIndex } from "../state";
+import { findToolCallIndex } from "../state-helper";
 
 /**
  * 处理 Brain 优化上下文

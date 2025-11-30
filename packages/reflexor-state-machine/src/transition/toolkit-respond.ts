@@ -4,7 +4,7 @@
 
 import type { ToolkitRespond, ToolkitError } from "../input";
 import type { ReflexorState, ToolCallResult } from "../state";
-import { findToolCallIndex } from "../state";
+import { findToolCallIndex } from "../state-helper";
 
 /**
  * 处理 Toolkit 返回结果

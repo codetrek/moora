@@ -7,7 +7,7 @@ import type {
   BrainSendMessageComplete,
 } from "../input";
 import type { AssistantMessage, ReflexorState } from "../state";
-import { findAssistantMessageIndex } from "../state";
+import { findAssistantMessageIndex } from "../state-helper";
 
 /**
  * 处理 Brain 开始输出消息
@@ -52,46 +52,15 @@ export function handleBrainSendMessageComplete(
 ): ReflexorState {
   const messageIndex = findAssistantMessageIndex(state, input.messageId);
 
-  // 如果找不到消息，可能是乱序，直接创建
+  // 如果找不到消息，打 warning 并忽略
   if (messageIndex === -1) {
-    return createNewAssistantMessage(input, state);
+    console.warn(
+      `[brain-send-message-complete] Message not found: ${input.messageId}, ignoring.`
+    );
+    return state;
   }
 
   // 更新现有消息的内容
-  return updateExistingAssistantMessage(input, state, messageIndex);
-}
-
-/**
- * 创建新的 assistant message（乱序情况）
- */
-function createNewAssistantMessage(
-  input: BrainSendMessageComplete,
-  state: ReflexorState
-): ReflexorState {
-  const assistantMessage: AssistantMessage = {
-    kind: "assistant",
-    id: input.messageId,
-    content: input.content,
-    receivedAt: input.timestamp,
-    updatedAt: input.timestamp,
-  };
-
-  return {
-    ...state,
-    updatedAt: input.timestamp,
-    assistantMessages: [...state.assistantMessages, assistantMessage],
-    calledBrainAt: input.timestamp,
-  };
-}
-
-/**
- * 更新现有的 assistant message
- */
-function updateExistingAssistantMessage(
-  input: BrainSendMessageComplete,
-  state: ReflexorState,
-  messageIndex: number
-): ReflexorState {
   return {
     ...state,
     updatedAt: input.timestamp,

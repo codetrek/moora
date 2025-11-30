@@ -48,30 +48,22 @@ export {
   reflexorStateSchema,
 } from "./state";
 
-// State 索引计算函数
+// State 工具函数
 export {
   findAssistantMessageIndex,
   findToolCallIndex,
   getPendingToolCallIds,
   getLoadedToolCallIds,
-} from "./state";
-
-// State 消息查询函数
-export {
   getMergedMessages,
   getAllMessageIds,
   getLastUserMessageReceivedAt,
   getLastToolCallResultReceivedAt,
   isWaitingBrain,
-} from "./state";
-
-// State Context 相关函数
-export {
   getMessagesAfterCut,
   getToolCallsWithDetails,
   getLoadableToolCallIds,
   areAllPendingToolCallsCompleted,
-} from "./state";
+} from "./state-helper";
 
 // Input 相关类型
 export type {
