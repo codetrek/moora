@@ -2,7 +2,6 @@
 // 处理 BrainRefineContext 输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { BrainRefineContext } from "../input";
 import type {
   ReflexorState,
@@ -44,10 +43,11 @@ function handleCompress(
 ): ReflexorState {
   // 压缩上下文：用摘要替换现有消息
   // 这里简化处理，实际实现可能需要更复杂的逻辑
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
+  return {
+    ...state,
+    updatedAt: input.timestamp,
     // 保留压缩摘要作为系统消息或其他处理
-  });
+  };
 }
 
 /**
@@ -78,12 +78,13 @@ function handleLoadHistory(
     newAssistantMessageIndex[id] = index + offset;
   }
 
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
-    draft.userMessages = [...userMessages, ...state.userMessages];
-    draft.assistantMessages = [...assistantMessages, ...state.assistantMessages];
-    draft.assistantMessageIndex = newAssistantMessageIndex;
-  });
+  return {
+    ...state,
+    updatedAt: input.timestamp,
+    userMessages: [...userMessages, ...state.userMessages],
+    assistantMessages: [...assistantMessages, ...state.assistantMessages],
+    assistantMessageIndex: newAssistantMessageIndex,
+  };
 }
 
 /**
@@ -118,8 +119,9 @@ function handleLoadToolResults(
     return state;
   }
 
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
+  return {
+    ...state,
+    updatedAt: input.timestamp,
     // Tool results 已经在 toolCallRecords 中，这里只需要更新时间戳
-  });
+  };
 }

@@ -7,7 +7,6 @@ import type { ReflexorInput } from "../input";
 import type { ReflexorState } from "../state";
 import { checkTimeIrreversibility } from "./utils";
 import { handleUserSendMessage } from "./user-send-message";
-import { handleUserTakeAction } from "./user-take-action";
 import { handleBrainRefineContext } from "./brain-refine-context";
 import { handleBrainCallTools } from "./brain-call-tools";
 import {
@@ -52,8 +51,6 @@ export const createReflexorTransition =
       // User inputs
       case "user-send-message":
         return handleUserSendMessage(input, state);
-      case "user-take-action":
-        return handleUserTakeAction(input, state);
       // Brain inputs
       case "brain-refine-context":
         return handleBrainRefineContext(input, state);

@@ -6,6 +6,7 @@ import type { ReflexorState } from "@moora/reflexor-state-machine";
 import {
   getLastUserMessageReceivedAt,
   getLastToolCallResultReceivedAt,
+  isWaitingBrain,
 } from "@moora/reflexor-state-machine";
 import type { ReflexorEffect } from "./types";
 
@@ -24,7 +25,6 @@ import type { ReflexorEffect } from "./types";
  *   toolCallRecords: [],
  *   toolCallIndex: {},
  *   calledBrainAt: 0,
- *   isWaitingBrain: false,
  *   pendingToolCallIds: [],
  *   updatedAt: 1234567890,
  * };
@@ -65,7 +65,7 @@ const createAskBrainEffects = (
   state: ReflexorState
 ): Record<string, ReflexorEffect> => {
   // 检查条件 1: 当前没有在等待 Brain 响应
-  if (state.isWaitingBrain) {
+  if (isWaitingBrain(state)) {
     return {};
   }
 

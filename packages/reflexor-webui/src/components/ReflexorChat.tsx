@@ -3,6 +3,7 @@
 // ============================================================================
 
 import { Box, Paper } from "@mui/material";
+import { isWaitingBrain } from "@moora/reflexor-state-machine";
 import { useReflexor } from "../hooks/use-reflexor";
 import type { UseReflexorConfig } from "../hooks/use-reflexor";
 import { ChatHeader } from "./ChatHeader";
@@ -61,12 +62,9 @@ export const ReflexorChat = ({
     isConnected,
     isSending,
     sendMessage,
-    cancel,
-    retry,
-    clear,
   } = useReflexor({ baseUrl, autoConnect });
 
-  const isWaiting = state?.isWaitingBrain ?? false;
+  const isWaiting = state ? isWaitingBrain(state) : false;
 
   return (
     <Paper
@@ -85,9 +83,6 @@ export const ReflexorChat = ({
         title={title}
         isConnected={isConnected}
         isWaiting={isWaiting}
-        onCancel={cancel}
-        onRetry={retry}
-        onClear={clear}
       />
 
       {/* 消息列表 */}

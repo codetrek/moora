@@ -56,13 +56,13 @@ export {
   getAllMessageIds,
   getLastUserMessageReceivedAt,
   getLastToolCallResultReceivedAt,
+  isWaitingBrain,
 } from "./state";
 
 // Input 相关类型
 export type {
   BaseInput,
   UserSendMessage,
-  UserTakeAction,
   BrainRefineContext,
   BrainCallTools,
   BrainSendMessageStart,
@@ -76,7 +76,6 @@ export type {
 export {
   baseInputSchema,
   userSendMessageSchema,
-  userTakeActionSchema,
   brainRefineContextSchema,
   brainCallToolsSchema,
   brainSendMessageStartSchema,

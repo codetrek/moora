@@ -38,19 +38,6 @@ export const userSendMessageSchema = baseInputSchema.extend({
 
 export type UserSendMessage = z.infer<typeof userSendMessageSchema>;
 
-/**
- * 用户执行操作
- *
- * 用于 UI 上的各种操作，如取消、重试、清空等。
- * 操作数据以 JSON 编码的 string 形式传递。
- */
-export const userTakeActionSchema = baseInputSchema.extend({
-  type: z.literal("user-take-action"),
-  action: z.string(),
-});
-
-export type UserTakeAction = z.infer<typeof userTakeActionSchema>;
-
 // ============================================================================
 // Brain Inputs - 来自大模型的输入
 // ============================================================================
@@ -142,7 +129,6 @@ export type ToolkitError = z.infer<typeof toolkitErrorSchema>;
 export const reflexorInputSchema = z.discriminatedUnion("type", [
   // User inputs
   userSendMessageSchema,
-  userTakeActionSchema,
   // Brain inputs
   brainRefineContextSchema,
   brainCallToolsSchema,

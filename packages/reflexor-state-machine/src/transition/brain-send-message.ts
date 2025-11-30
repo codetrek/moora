@@ -2,7 +2,6 @@
 // 处理 BrainSendMessageStart 和 BrainSendMessageComplete 输入
 // ============================================================================
 
-import { create } from "mutative";
 import type {
   BrainSendMessageStart,
   BrainSendMessageComplete,
@@ -32,15 +31,15 @@ export function handleBrainSendMessageStart(
 
   const newIndex = state.assistantMessages.length;
 
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
-    draft.assistantMessages = [...state.assistantMessages, assistantMessage];
-    draft.assistantMessageIndex = {
+  return {
+    ...state,
+    updatedAt: input.timestamp,
+    assistantMessages: [...state.assistantMessages, assistantMessage],
+    assistantMessageIndex: {
       ...state.assistantMessageIndex,
       [input.messageId]: newIndex,
-    };
-    draft.isWaitingBrain = true;
-  });
+    },
+  };
 }
 
 /**
@@ -84,16 +83,16 @@ function createNewAssistantMessage(
 
   const newIndex = state.assistantMessages.length;
 
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
-    draft.assistantMessages = [...state.assistantMessages, assistantMessage];
-    draft.assistantMessageIndex = {
+  return {
+    ...state,
+    updatedAt: input.timestamp,
+    assistantMessages: [...state.assistantMessages, assistantMessage],
+    assistantMessageIndex: {
       ...state.assistantMessageIndex,
       [input.messageId]: newIndex,
-    };
-    draft.isWaitingBrain = false;
-    draft.calledBrainAt = input.timestamp;
-  });
+    },
+    calledBrainAt: input.timestamp,
+  };
 }
 
 /**
@@ -104,9 +103,10 @@ function updateExistingAssistantMessage(
   state: ReflexorState,
   messageIndex: number
 ): ReflexorState {
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
-    draft.assistantMessages = state.assistantMessages.map((msg, index) => {
+  return {
+    ...state,
+    updatedAt: input.timestamp,
+    assistantMessages: state.assistantMessages.map((msg, index) => {
       if (index === messageIndex) {
         return {
           ...msg,
@@ -115,8 +115,7 @@ function updateExistingAssistantMessage(
         };
       }
       return msg;
-    });
-    draft.isWaitingBrain = false;
-    draft.calledBrainAt = input.timestamp;
-  });
+    }),
+    calledBrainAt: input.timestamp,
+  };
 }

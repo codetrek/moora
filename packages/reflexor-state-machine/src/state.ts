@@ -241,11 +241,6 @@ export const reflexorStateSchema = z
     calledBrainAt: z.number(),
 
     /**
-     * 当前是否正在等待 Brain 响应
-     */
-    isWaitingBrain: z.boolean(),
-
-    /**
      * 待处理的 Tool Call IDs
      *
      * 当 Brain 请求调用工具时，这些 ID 会被添加到此列表。
@@ -323,4 +318,22 @@ export function getLastToolCallResultReceivedAt(state: ReflexorState): number {
   }
 
   return lastReceivedAt;
+}
+
+/**
+ * 检查是否正在等待 Brain 响应
+ *
+ * 通过检查是否有空的 assistant message（content === ""）来判断是否正在 streaming。
+ *
+ * @param state - Reflexor 状态
+ * @returns 如果正在等待 Brain 响应，返回 true
+ */
+export function isWaitingBrain(state: ReflexorState): boolean {
+  // 检查是否有空的 assistant message（正在 streaming）
+  for (const msg of state.assistantMessages) {
+    if (msg.content === "") {
+      return true;
+    }
+  }
+  return false;
 }

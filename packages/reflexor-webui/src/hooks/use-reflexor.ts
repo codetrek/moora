@@ -57,21 +57,6 @@ export type UseReflexorResult = {
   sendMessage: (content: string) => Promise<void>;
 
   /**
-   * 取消当前操作
-   */
-  cancel: () => Promise<void>;
-
-  /**
-   * 重试
-   */
-  retry: () => Promise<void>;
-
-  /**
-   * 清空对话
-   */
-  clear: () => Promise<void>;
-
-  /**
    * 连接到服务端
    */
   connect: () => void;
@@ -209,30 +194,6 @@ export const useReflexor = (config: UseReflexorConfig): UseReflexorResult => {
     [client, optimisticManager]
   );
 
-  // 取消
-  const cancel = useCallback(async (): Promise<void> => {
-    await client.send({
-      type: "user-take-action",
-      action: JSON.stringify({ kind: "cancel" }),
-    });
-  }, [client]);
-
-  // 重试
-  const retry = useCallback(async (): Promise<void> => {
-    await client.send({
-      type: "user-take-action",
-      action: JSON.stringify({ kind: "retry" }),
-    });
-  }, [client]);
-
-  // 清空
-  const clear = useCallback(async (): Promise<void> => {
-    await client.send({
-      type: "user-take-action",
-      action: JSON.stringify({ kind: "clear" }),
-    });
-  }, [client]);
-
   // 连接
   const connect = useCallback(() => {
     client.connect();
@@ -251,9 +212,6 @@ export const useReflexor = (config: UseReflexorConfig): UseReflexorResult => {
     isConnected,
     isSending,
     sendMessage,
-    cancel,
-    retry,
-    clear,
     connect,
     disconnect,
     client,

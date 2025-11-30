@@ -2,7 +2,6 @@
 // 处理 ToolkitRespond 和 ToolkitError 输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { ToolkitRespond, ToolkitError } from "../input";
 import type { ReflexorState, ToolCallResult } from "../state";
 
@@ -83,9 +82,10 @@ function updateToolCallResult(
     return state;
   }
 
-  return create(state, (draft) => {
-    draft.updatedAt = timestamp;
-    draft.toolCallRecords = state.toolCallRecords.map((record, index) => {
+  return {
+    ...state,
+    updatedAt: timestamp,
+    toolCallRecords: state.toolCallRecords.map((record, index) => {
       if (index === recordIndex) {
         return {
           ...record,
@@ -93,10 +93,10 @@ function updateToolCallResult(
         };
       }
       return record;
-    });
+    }),
     // 从 pending 列表中移除
-    draft.pendingToolCallIds = state.pendingToolCallIds.filter(
+    pendingToolCallIds: state.pendingToolCallIds.filter(
       (id) => id !== toolCallId
-    );
-  });
+    ),
+  };
 }

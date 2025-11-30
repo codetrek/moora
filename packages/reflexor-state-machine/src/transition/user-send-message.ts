@@ -2,7 +2,6 @@
 // 处理 UserSendMessage 输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { UserSendMessage } from "../input";
 import type { ReflexorState, UserMessage } from "../state";
 
@@ -24,8 +23,9 @@ export function handleUserSendMessage(
     receivedAt: input.timestamp,
   };
 
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
-    draft.userMessages = [...state.userMessages, userMessage];
-  });
+  return {
+    ...state,
+    updatedAt: input.timestamp,
+    userMessages: [...state.userMessages, userMessage],
+  };
 }

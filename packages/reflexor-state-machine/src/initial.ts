@@ -38,7 +38,6 @@ export function initializeReflexorState(): ReflexorState {
     toolCallRecords: [],
     toolCallIndex: {},
     calledBrainAt: 0,
-    isWaitingBrain: false,
     pendingToolCallIds: [],
   };
 }

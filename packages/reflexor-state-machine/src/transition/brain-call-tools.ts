@@ -2,7 +2,6 @@
 // 处理 BrainCallTools 输入
 // ============================================================================
 
-import { create } from "mutative";
 import type { BrainCallTools } from "../input";
 import type { ReflexorState, ToolCallRecord } from "../state";
 
@@ -37,14 +36,14 @@ export function handleBrainCallTools(
     currentIndex += 1;
   }
 
-  return create(state, (draft) => {
-    draft.updatedAt = input.timestamp;
-    draft.toolCallRecords = [...state.toolCallRecords, ...newToolCallRecords];
-    draft.toolCallIndex = { ...state.toolCallIndex, ...newToolCallIndex };
-    draft.pendingToolCallIds = [
+  return {
+    ...state,
+    updatedAt: input.timestamp,
+    toolCallRecords: [...state.toolCallRecords, ...newToolCallRecords],
+    toolCallIndex: { ...state.toolCallIndex, ...newToolCallIndex },
+    pendingToolCallIds: [
       ...state.pendingToolCallIds,
       ...toolCallIds,
-    ];
-    draft.isWaitingBrain = false;
-  });
+    ],
+  };
 }
