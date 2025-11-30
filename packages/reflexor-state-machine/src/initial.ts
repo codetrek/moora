@@ -19,12 +19,10 @@ import type { ReflexorState } from "./state";
  * //   updatedAt: Date.now(),
  * //   userMessages: [],
  * //   assistantMessages: [],
- * //   assistantMessageIndex: {},
  * //   toolCallRecords: [],
- * //   toolCallIndex: {},
  * //   calledBrainAt: 0,
- * //   isWaitingBrain: false,
- * //   pendingToolCallIds: [],
+ * //   contextSummary: "",
+ * //   summaryCutAt: 0,
  * // }
  * ```
  */
@@ -34,11 +32,10 @@ export function initializeReflexorState(): ReflexorState {
     updatedAt: now,
     userMessages: [],
     assistantMessages: [],
-    assistantMessageIndex: {},
     toolCallRecords: [],
-    toolCallIndex: {},
     calledBrainAt: 0,
-    pendingToolCallIds: [],
+    contextSummary: "",
+    summaryCutAt: 0,
   };
 }
 

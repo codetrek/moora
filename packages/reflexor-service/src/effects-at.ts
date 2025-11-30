@@ -7,6 +7,8 @@ import {
   getLastUserMessageReceivedAt,
   getLastToolCallResultReceivedAt,
   isWaitingBrain,
+  areAllPendingToolCallsCompleted,
+  getPendingToolCallIds,
 } from "@moora/reflexor-state-machine";
 import type { ReflexorEffect } from "./types";
 
@@ -21,11 +23,10 @@ import type { ReflexorEffect } from "./types";
  * const state: ReflexorState = {
  *   userMessages: [{ kind: 'user', id: 'msg-1', ... }],
  *   assistantMessages: [],
- *   assistantMessageIndex: {},
  *   toolCallRecords: [],
- *   toolCallIndex: {},
  *   calledBrainAt: 0,
- *   pendingToolCallIds: [],
+ *   contextSummary: "",
+ *   summaryCutAt: 0,
  *   updatedAt: 1234567890,
  * };
  *
@@ -110,48 +111,18 @@ const createRequestToolkitEffects = (
   state: ReflexorState
 ): Record<string, ReflexorEffect> => {
   const effects: Record<string, ReflexorEffect> = {};
+  const pendingToolCallIds = getPendingToolCallIds(state);
 
-  for (const toolCallId of state.pendingToolCallIds) {
-    const recordIndex = state.toolCallIndex[toolCallId];
-    const toolCall = recordIndex !== undefined
-      ? state.toolCallRecords[recordIndex]
-      : undefined;
+  for (const toolCallId of pendingToolCallIds) {
+    const key = `request-toolkit-${toolCallId}`;
 
-    // 只有 result 为 null 的 tool call 才需要执行
-    if (toolCall && toolCall.result === null) {
-      const key = `request-toolkit-${toolCallId}`;
-
-      effects[key] = {
-        kind: "request-toolkit",
-        toolCallId,
-      };
-    }
+    effects[key] = {
+      kind: "request-toolkit",
+      toolCallId,
+    };
   }
 
   return effects;
-};
-
-/**
- * 检查所有待处理的 tool-call 是否都已经返回了
- *
- * @internal
- * @param state - Reflexor 状态
- * @returns 如果所有 pending tool-call 都有结果，返回 true
- */
-const areAllPendingToolCallsCompleted = (state: ReflexorState): boolean => {
-  for (const toolCallId of state.pendingToolCallIds) {
-    const recordIndex = state.toolCallIndex[toolCallId];
-    const toolCall = recordIndex !== undefined
-      ? state.toolCallRecords[recordIndex]
-      : undefined;
-
-    // 如果 tool call 不存在或者没有结果，则说明还有未完成的
-    if (!toolCall || toolCall.result === null) {
-      return false;
-    }
-  }
-
-  return true;
 };
 
 /**

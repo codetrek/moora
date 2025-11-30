@@ -26,9 +26,8 @@ export type {
   ToolCallFailed,
   ToolCallResult,
   ToolCallRecord,
-  ContextCompress,
-  ContextLoadHistory,
-  ContextLoadToolResults,
+  CompressHistory,
+  LoadToolCall,
   ContextRefinement,
   ReflexorState,
 } from "./state";
@@ -43,20 +42,35 @@ export {
   toolCallFailedSchema,
   toolCallResultSchema,
   toolCallRecordSchema,
-  contextCompressSchema,
-  contextLoadHistorySchema,
-  contextLoadToolResultsSchema,
+  compressHistorySchema,
+  loadToolCallSchema,
   contextRefinementSchema,
   reflexorStateSchema,
 } from "./state";
 
-// State 工具函数
+// State 索引计算函数
+export {
+  findAssistantMessageIndex,
+  findToolCallIndex,
+  getPendingToolCallIds,
+  getLoadedToolCallIds,
+} from "./state";
+
+// State 消息查询函数
 export {
   getMergedMessages,
   getAllMessageIds,
   getLastUserMessageReceivedAt,
   getLastToolCallResultReceivedAt,
   isWaitingBrain,
+} from "./state";
+
+// State Context 相关函数
+export {
+  getMessagesAfterCut,
+  getToolCallsWithDetails,
+  getLoadableToolCallIds,
+  areAllPendingToolCallsCompleted,
 } from "./state";
 
 // Input 相关类型

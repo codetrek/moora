@@ -3,11 +3,8 @@
 // ============================================================================
 
 import type { BrainRefineContext } from "../input";
-import type {
-  ReflexorState,
-  UserMessage,
-  AssistantMessage,
-} from "../state";
+import type { ReflexorState } from "../state";
+import { findToolCallIndex } from "../state";
 
 /**
  * 处理 Brain 优化上下文
@@ -23,105 +20,91 @@ export function handleBrainRefineContext(
   const { refinement } = input;
 
   switch (refinement.kind) {
-    case "compress":
-      return handleCompress(input, state);
-    case "load-history":
-      return handleLoadHistory(input, state);
-    case "load-tool-results":
-      return handleLoadToolResults(input, state);
+    case "compress-history":
+      return handleCompressHistory(input, state);
+    case "load-tool-call":
+      return handleLoadToolCall(input, state);
     default:
       return state;
   }
 }
 
 /**
- * 处理上下文压缩
- */
-function handleCompress(
-  input: BrainRefineContext,
-  state: ReflexorState
-): ReflexorState {
-  // 压缩上下文：用摘要替换现有消息
-  // 这里简化处理，实际实现可能需要更复杂的逻辑
-  return {
-    ...state,
-    updatedAt: input.timestamp,
-    // 保留压缩摘要作为系统消息或其他处理
-  };
-}
-
-/**
- * 处理加载历史消息
+ * 处理压缩历史
  *
- * 将历史消息按类型分离添加到对应的数组前面，并更新索引。
+ * 将截止时间之前的历史压缩为摘要。
+ *
+ * @param input - BrainRefineContext 输入
+ * @param state - 当前状态
+ * @returns 新状态
  */
-function handleLoadHistory(
+function handleCompressHistory(
   input: BrainRefineContext,
   state: ReflexorState
 ): ReflexorState {
-  if (input.refinement.kind !== "load-history") {
+  if (input.refinement.kind !== "compress-history") {
     return state;
   }
 
-  const { userMessages, assistantMessages } = separateMessages(
-    input.refinement.messages
-  );
+  const { summary, cutAt } = input.refinement;
 
-  // 重建 assistantMessageIndex
-  const newAssistantMessageIndex: Record<string, number> = {};
-  assistantMessages.forEach((msg, index) => {
-    newAssistantMessageIndex[msg.id] = index;
+  // 压缩后，将 cutAt 之前的 tool calls 的 isLoaded 重置为 false
+  const updatedToolCallRecords = state.toolCallRecords.map((tc) => {
+    if (tc.calledAt <= cutAt && tc.isLoaded) {
+      return { ...tc, isLoaded: false };
+    }
+    return tc;
   });
-  // 调整现有索引的偏移量
-  const offset = assistantMessages.length;
-  for (const [id, index] of Object.entries(state.assistantMessageIndex)) {
-    newAssistantMessageIndex[id] = index + offset;
-  }
 
   return {
     ...state,
     updatedAt: input.timestamp,
-    userMessages: [...userMessages, ...state.userMessages],
-    assistantMessages: [...assistantMessages, ...state.assistantMessages],
-    assistantMessageIndex: newAssistantMessageIndex,
+    contextSummary: summary,
+    summaryCutAt: cutAt,
+    toolCallRecords: updatedToolCallRecords,
   };
 }
 
 /**
- * 分离混合消息数组为 user 和 assistant 消息
+ * 处理加载历史 Tool Call
+ *
+ * 将指定的 tool call 标记为已加载。
+ *
+ * @param input - BrainRefineContext 输入
+ * @param state - 当前状态
+ * @returns 新状态
  */
-function separateMessages(messages: readonly (UserMessage | AssistantMessage)[]): {
-  userMessages: UserMessage[];
-  assistantMessages: AssistantMessage[];
-} {
-  const userMessages: UserMessage[] = [];
-  const assistantMessages: AssistantMessage[] = [];
-
-  for (const msg of messages) {
-    if (msg.kind === "user") {
-      userMessages.push(msg);
-    } else {
-      assistantMessages.push(msg);
-    }
-  }
-
-  return { userMessages, assistantMessages };
-}
-
-/**
- * 处理加载历史 Tool Results
- */
-function handleLoadToolResults(
+function handleLoadToolCall(
   input: BrainRefineContext,
   state: ReflexorState
 ): ReflexorState {
-  if (input.refinement.kind !== "load-tool-results") {
+  if (input.refinement.kind !== "load-tool-call") {
     return state;
   }
 
+  const { toolCallId } = input.refinement;
+
+  // 查找 tool call
+  const index = findToolCallIndex(state, toolCallId);
+  if (index === -1) {
+    return state;
+  }
+
+  // 检查是否已经加载
+  const toolCall = state.toolCallRecords[index];
+  if (toolCall && toolCall.isLoaded) {
+    return state;
+  }
+
+  // 标记为已加载
   return {
     ...state,
     updatedAt: input.timestamp,
-    // Tool results 已经在 toolCallRecords 中，这里只需要更新时间戳
+    toolCallRecords: state.toolCallRecords.map((tc, i) => {
+      if (i === index) {
+        return { ...tc, isLoaded: true };
+      }
+      return tc;
+    }),
   };
 }

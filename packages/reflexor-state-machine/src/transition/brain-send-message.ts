@@ -7,6 +7,7 @@ import type {
   BrainSendMessageComplete,
 } from "../input";
 import type { AssistantMessage, ReflexorState } from "../state";
+import { findAssistantMessageIndex } from "../state";
 
 /**
  * 处理 Brain 开始输出消息
@@ -29,16 +30,10 @@ export function handleBrainSendMessageStart(
     updatedAt: input.timestamp,
   };
 
-  const newIndex = state.assistantMessages.length;
-
   return {
     ...state,
     updatedAt: input.timestamp,
     assistantMessages: [...state.assistantMessages, assistantMessage],
-    assistantMessageIndex: {
-      ...state.assistantMessageIndex,
-      [input.messageId]: newIndex,
-    },
   };
 }
 
@@ -55,10 +50,10 @@ export function handleBrainSendMessageComplete(
   input: BrainSendMessageComplete,
   state: ReflexorState
 ): ReflexorState {
-  const messageIndex = state.assistantMessageIndex[input.messageId];
+  const messageIndex = findAssistantMessageIndex(state, input.messageId);
 
   // 如果找不到消息，可能是乱序，直接创建
-  if (messageIndex === undefined) {
+  if (messageIndex === -1) {
     return createNewAssistantMessage(input, state);
   }
 
@@ -81,16 +76,10 @@ function createNewAssistantMessage(
     updatedAt: input.timestamp,
   };
 
-  const newIndex = state.assistantMessages.length;
-
   return {
     ...state,
     updatedAt: input.timestamp,
     assistantMessages: [...state.assistantMessages, assistantMessage],
-    assistantMessageIndex: {
-      ...state.assistantMessageIndex,
-      [input.messageId]: newIndex,
-    },
     calledBrainAt: input.timestamp,
   };
 }

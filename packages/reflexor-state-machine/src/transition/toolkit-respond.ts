@@ -4,6 +4,7 @@
 
 import type { ToolkitRespond, ToolkitError } from "../input";
 import type { ReflexorState, ToolCallResult } from "../state";
+import { findToolCallIndex } from "../state";
 
 /**
  * 处理 Toolkit 返回结果
@@ -16,8 +17,8 @@ export function handleToolkitRespond(
   input: ToolkitRespond,
   state: ReflexorState
 ): ReflexorState {
-  const toolCallIndex = state.toolCallIndex[input.toolCallId];
-  if (toolCallIndex === undefined) {
+  const toolCallIndex = findToolCallIndex(state, input.toolCallId);
+  if (toolCallIndex === -1) {
     // Tool call 不存在，忽略
     return state;
   }
@@ -28,7 +29,7 @@ export function handleToolkitRespond(
     receivedAt: input.timestamp,
   };
 
-  return updateToolCallResult(input.toolCallId, result, input.timestamp, state);
+  return updateToolCallResult(toolCallIndex, result, input.timestamp, state);
 }
 
 /**
@@ -42,8 +43,8 @@ export function handleToolkitError(
   input: ToolkitError,
   state: ReflexorState
 ): ReflexorState {
-  const toolCallIndex = state.toolCallIndex[input.toolCallId];
-  if (toolCallIndex === undefined) {
+  const toolCallIndex = findToolCallIndex(state, input.toolCallId);
+  if (toolCallIndex === -1) {
     // Tool call 不存在，忽略
     return state;
   }
@@ -54,34 +55,24 @@ export function handleToolkitError(
     receivedAt: input.timestamp,
   };
 
-  return updateToolCallResult(input.toolCallId, result, input.timestamp, state);
+  return updateToolCallResult(toolCallIndex, result, input.timestamp, state);
 }
 
 /**
  * 更新 Tool Call 结果
  *
- * @param toolCallId - Tool Call ID
+ * @param recordIndex - Tool Call 在数组中的索引
  * @param result - 结果
  * @param timestamp - 时间戳
  * @param state - 当前状态
  * @returns 新状态
  */
 function updateToolCallResult(
-  toolCallId: string,
+  recordIndex: number,
   result: ToolCallResult,
   timestamp: number,
   state: ReflexorState
 ): ReflexorState {
-  const recordIndex = state.toolCallIndex[toolCallId];
-  if (recordIndex === undefined) {
-    return state;
-  }
-
-  const existingRecord = state.toolCallRecords[recordIndex];
-  if (!existingRecord) {
-    return state;
-  }
-
   return {
     ...state,
     updatedAt: timestamp,
@@ -94,9 +85,5 @@ function updateToolCallResult(
       }
       return record;
     }),
-    // 从 pending 列表中移除
-    pendingToolCallIds: state.pendingToolCallIds.filter(
-      (id) => id !== toolCallId
-    ),
   };
 }

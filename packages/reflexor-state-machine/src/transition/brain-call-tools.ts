@@ -16,12 +16,8 @@ export function handleBrainCallTools(
   input: BrainCallTools,
   state: ReflexorState
 ): ReflexorState {
-  const toolCallIds = Object.keys(input.toolCalls);
-
   // 创建新的 tool call 记录数组
   const newToolCallRecords: ToolCallRecord[] = [];
-  const newToolCallIndex: Record<string, number> = {};
-  let currentIndex = state.toolCallRecords.length;
 
   for (const [id, request] of Object.entries(input.toolCalls)) {
     const record: ToolCallRecord = {
@@ -30,20 +26,14 @@ export function handleBrainCallTools(
       parameters: request.parameters,
       calledAt: request.calledAt,
       result: null,
+      isLoaded: false,
     };
     newToolCallRecords.push(record);
-    newToolCallIndex[id] = currentIndex;
-    currentIndex += 1;
   }
 
   return {
     ...state,
     updatedAt: input.timestamp,
     toolCallRecords: [...state.toolCallRecords, ...newToolCallRecords],
-    toolCallIndex: { ...state.toolCallIndex, ...newToolCallIndex },
-    pendingToolCallIds: [
-      ...state.pendingToolCallIds,
-      ...toolCallIds,
-    ],
   };
 }

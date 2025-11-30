@@ -108,6 +108,7 @@ export type ToolCallResult = z.infer<typeof toolCallResultSchema>;
  * Tool Call 记录
  *
  * 包含 id 字段，用于唯一标识每个 tool call。
+ * isLoaded 标记该 tool call 是否已被加载（用于 context 管理）。
  */
 export const toolCallRecordSchema = z
   .object({
@@ -116,6 +117,7 @@ export const toolCallRecordSchema = z
     parameters: z.string(),
     calledAt: z.number(),
     result: toolCallResultSchema.nullable(),
+    isLoaded: z.boolean(),
   })
   .readonly();
 
@@ -126,50 +128,41 @@ export type ToolCallRecord = z.infer<typeof toolCallRecordSchema>;
 // ============================================================================
 
 /**
- * 上下文压缩优化
+ * 压缩历史
+ *
+ * 将截止时间之前的历史压缩为摘要。
  */
-export const contextCompressSchema = z
+export const compressHistorySchema = z
   .object({
-    kind: z.literal("compress"),
+    kind: z.literal("compress-history"),
     summary: z.string(),
+    cutAt: z.number(),
   })
   .readonly();
 
-export type ContextCompress = z.infer<typeof contextCompressSchema>;
+export type CompressHistory = z.infer<typeof compressHistorySchema>;
 
 /**
- * 加载历史消息优化
+ * 加载历史 Tool Call
+ *
+ * 将指定的 tool call 标记为已加载，
+ * 下次发送给 Brain 时会带上完整详情。
  */
-export const contextLoadHistorySchema = z
+export const loadToolCallSchema = z
   .object({
-    kind: z.literal("load-history"),
-    messages: z.array(reflexorMessageSchema).readonly(),
+    kind: z.literal("load-tool-call"),
+    toolCallId: z.string(),
   })
   .readonly();
 
-export type ContextLoadHistory = z.infer<typeof contextLoadHistorySchema>;
-
-/**
- * 加载历史 Tool Result 优化
- */
-export const contextLoadToolResultsSchema = z
-  .object({
-    kind: z.literal("load-tool-results"),
-    toolCallIds: z.array(z.string()).readonly(),
-  })
-  .readonly();
-
-export type ContextLoadToolResults = z.infer<
-  typeof contextLoadToolResultsSchema
->;
+export type LoadToolCall = z.infer<typeof loadToolCallSchema>;
 
 /**
  * 上下文优化操作
  */
 export const contextRefinementSchema = z.discriminatedUnion("kind", [
-  contextCompressSchema,
-  contextLoadHistorySchema,
-  contextLoadToolResultsSchema,
+  compressHistorySchema,
+  loadToolCallSchema,
 ]);
 
 export type ContextRefinement = z.infer<typeof contextRefinementSchema>;
@@ -185,7 +178,18 @@ export type ContextRefinement = z.infer<typeof contextRefinementSchema>;
  *
  * 数据组织方式：
  * - userMessages, assistantMessages, toolCallRecords: 按生成时间顺序排序的数组
- * - assistantMessageIndex, toolCallIndex: id 到数组序号的索引，方便快速定位修改
+ *
+ * Context 管理：
+ * - contextSummary: 压缩后的历史摘要
+ * - summaryCutAt: summary 截止时间戳，该时间之前的消息已被压缩
+ * - toolCallRecords[].isLoaded: 标记已加载详情的历史 tool calls
+ *
+ * 发送给 Brain 的 context 构成：
+ * - contextSummary 内容
+ * - summaryCutAt 之后的 user/assistant messages
+ * - Tool calls：
+ *   - 完整详情：summaryCutAt 之后的 + isLoaded 为 true 的
+ *   - 仅 ID 列表（不带 result）：其他历史 tool calls，供后续加载
  */
 export const reflexorStateSchema = z
   .object({
@@ -211,27 +215,11 @@ export const reflexorStateSchema = z
     assistantMessages: z.array(assistantMessageSchema).readonly(),
 
     /**
-     * 助手消息索引
-     *
-     * 从 assistantMessage.id 到 assistantMessages 数组序号的映射，
-     * 方便快速定位和修改。
-     */
-    assistantMessageIndex: z.record(z.string(), z.number()).readonly(),
-
-    /**
      * Tool Call 记录列表
      *
      * 按 calledAt 时间顺序排序的数组。
      */
     toolCallRecords: z.array(toolCallRecordSchema).readonly(),
-
-    /**
-     * Tool Call 索引
-     *
-     * 从 toolCallRecord.id 到 toolCallRecords 数组序号的映射，
-     * 方便快速定位和修改。
-     */
-    toolCallIndex: z.record(z.string(), z.number()).readonly(),
 
     /**
      * 最近一次调用 LLM 的时间戳
@@ -241,19 +229,77 @@ export const reflexorStateSchema = z
     calledBrainAt: z.number(),
 
     /**
-     * 待处理的 Tool Call IDs
+     * 上下文摘要
      *
-     * 当 Brain 请求调用工具时，这些 ID 会被添加到此列表。
-     * 当工具返回结果时，对应的 ID 会被移除。
+     * 压缩后的历史摘要，空字符串表示没有摘要。
      */
-    pendingToolCallIds: z.array(z.string()).readonly(),
+    contextSummary: z.string(),
+
+    /**
+     * 摘要截止时间戳
+     *
+     * summary 截止时间戳，该时间之前的消息已被压缩。
+     * 0 表示没有摘要。
+     */
+    summaryCutAt: z.number(),
   })
   .readonly();
 
 export type ReflexorState = z.infer<typeof reflexorStateSchema>;
 
 // ============================================================================
-// 工具函数
+// 索引计算函数
+// ============================================================================
+
+/**
+ * 根据 ID 查找 assistant message 的索引
+ *
+ * @param state - Reflexor 状态
+ * @param id - assistant message ID
+ * @returns 索引，如果未找到返回 -1
+ */
+export function findAssistantMessageIndex(
+  state: ReflexorState,
+  id: string
+): number {
+  return state.assistantMessages.findIndex((msg) => msg.id === id);
+}
+
+/**
+ * 根据 ID 查找 tool call 的索引
+ *
+ * @param state - Reflexor 状态
+ * @param id - tool call ID
+ * @returns 索引，如果未找到返回 -1
+ */
+export function findToolCallIndex(state: ReflexorState, id: string): number {
+  return state.toolCallRecords.findIndex((tc) => tc.id === id);
+}
+
+/**
+ * 获取待处理的 Tool Call IDs
+ *
+ * @param state - Reflexor 状态
+ * @returns 待处理的 tool call IDs（result 为 null 的）
+ */
+export function getPendingToolCallIds(state: ReflexorState): string[] {
+  return state.toolCallRecords
+    .filter((tc) => tc.result === null)
+    .map((tc) => tc.id);
+}
+
+/**
+ * 获取已加载详情的 Tool Call IDs
+ *
+ * @param state - Reflexor 状态
+ * @returns 已加载的 tool call IDs（isLoaded 为 true 的）
+ */
+export function getLoadedToolCallIds(state: ReflexorState): string[] {
+  return state.toolCallRecords.filter((tc) => tc.isLoaded).map((tc) => tc.id);
+}
+
+// ============================================================================
+// 消息查询函数
 // ============================================================================
 
 /**
@@ -329,11 +375,96 @@ export function getLastToolCallResultReceivedAt(state: ReflexorState): number {
  * @returns 如果正在等待 Brain 响应，返回 true
  */
 export function isWaitingBrain(state: ReflexorState): boolean {
-  // 检查是否有空的 assistant message（正在 streaming）
   for (const msg of state.assistantMessages) {
     if (msg.content === "") {
       return true;
     }
   }
   return false;
+}
+
+// ============================================================================
+// Context 相关函数
+// ============================================================================
+
+/**
+ * 获取 summaryCutAt 之后的消息
+ *
+ * @param state - Reflexor 状态
+ * @returns 按时间排序的消息数组
+ */
+export function getMessagesAfterCut(state: ReflexorState): ReflexorMessage[] {
+  const cutAt = state.summaryCutAt;
+  const messages: ReflexorMessage[] = [];
+
+  for (const msg of state.userMessages) {
+    if (msg.receivedAt > cutAt) {
+      messages.push(msg);
+    }
+  }
+
+  for (const msg of state.assistantMessages) {
+    if (msg.receivedAt > cutAt) {
+      messages.push(msg);
+    }
+  }
+
+  return messages.sort((a, b) => a.receivedAt - b.receivedAt);
+}
+
+/**
+ * 获取需要发送完整详情的 Tool Calls
+ *
+ * 包括：summaryCutAt 之后的 + isLoaded 为 true 的
+ *
+ * @param state - Reflexor 状态
+ * @returns Tool Call 记录数组
+ */
+export function getToolCallsWithDetails(state: ReflexorState): ToolCallRecord[] {
+  const cutAt = state.summaryCutAt;
+  const result: ToolCallRecord[] = [];
+
+  for (const toolCall of state.toolCallRecords) {
+    if (toolCall.calledAt > cutAt || toolCall.isLoaded) {
+      result.push(toolCall);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 获取可加载的历史 Tool Call IDs
+ *
+ * 返回 summaryCutAt 之前且 isLoaded 为 false 的 tool call IDs。
+ *
+ * @param state - Reflexor 状态
+ * @returns Tool Call ID 数组
+ */
+export function getLoadableToolCallIds(state: ReflexorState): string[] {
+  const cutAt = state.summaryCutAt;
+  const result: string[] = [];
+
+  for (const toolCall of state.toolCallRecords) {
+    if (toolCall.calledAt <= cutAt && !toolCall.isLoaded) {
+      result.push(toolCall.id);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 检查所有待处理的 tool-call 是否都已经返回了
+ *
+ * @param state - Reflexor 状态
+ * @returns 如果所有 pending tool-call 都有结果，返回 true
+ */
+export function areAllPendingToolCallsCompleted(state: ReflexorState): boolean {
+  for (const toolCall of state.toolCallRecords) {
+    if (toolCall.result === null) {
+      return false;
+    }
+  }
+  return true;
 }
