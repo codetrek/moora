@@ -7,6 +7,136 @@ import type { EffectController } from "@moora/moorex";
 import type { ReflexorInput, ReflexorState } from "@moora/reflexor-state-machine";
 
 // ============================================================================
+// Tool 定义类型
+// ============================================================================
+
+/**
+ * Tool 参数定义
+ */
+export type ToolParameter = {
+  type: string;
+  description: string;
+  enum?: string[];
+};
+
+/**
+ * Tool 定义（发送给 LLM）
+ */
+export type ToolDefinition = {
+  name: string;
+  description: string;
+  parameters: Record<string, ToolParameter>;
+  required: string[];
+};
+
+/**
+ * Tool 执行函数
+ */
+export type ToolExecutor = (parameters: Record<string, unknown>) => Promise<string>;
+
+/**
+ * 扩展 Tool 定义（带执行函数）
+ */
+export type ToolDefinitionExt = ToolDefinition & {
+  execute: ToolExecutor;
+};
+
+// ============================================================================
+// LLM 相关类型
+// ============================================================================
+
+/**
+ * LLM 用户消息
+ */
+export type LlmUserMessage = {
+  role: "user";
+  content: string;
+};
+
+/**
+ * LLM 助手消息
+ */
+export type LlmAssistantMessage = {
+  role: "assistant";
+  content: string;
+};
+
+/**
+ * LLM 工具调用
+ */
+export type LlmToolCall = {
+  id: string;
+  name: string;
+  parameters: string;
+};
+
+/**
+ * LLM 助手工具调用消息
+ */
+export type LlmAssistantToolCallMessage = {
+  role: "assistant";
+  toolCalls: LlmToolCall[];
+};
+
+/**
+ * LLM 工具结果消息
+ */
+export type LlmToolMessage = {
+  role: "tool";
+  toolCallId: string;
+  content: string;
+};
+
+/**
+ * LLM 消息类型
+ */
+export type LlmMessage =
+  | LlmUserMessage
+  | LlmAssistantMessage
+  | LlmAssistantToolCallMessage
+  | LlmToolMessage;
+
+/**
+ * LLM 请求
+ */
+export type LlmRequest = {
+  prompt: string;
+  tools: Record<string, ToolDefinition>;
+  messages: LlmMessage[];
+  requiredTool: string | boolean;
+};
+
+/**
+ * LLM 响应中的 Tool Call 请求
+ */
+export type LlmToolCallRequest = {
+  id: string;
+  name: string;
+  parameters: string;
+};
+
+/**
+ * LLM 响应
+ */
+export type LlmResponse = {
+  message: string;
+  toolCalls: LlmToolCallRequest[];
+};
+
+/**
+ * 消息 chunk 回调
+ */
+export type OnMessageChunk = (content: string) => void;
+
+/**
+ * LLM 函数类型
+ */
+export type LlmFunction = (
+  request: LlmRequest,
+  onMessageChunk: OnMessageChunk
+) => Promise<LlmResponse>;
+
+// ============================================================================
 // Effect 类型
 // ============================================================================
 
@@ -58,7 +188,7 @@ export const reflexorEffectSchema = z.discriminatedUnion("kind", [
 export type ReflexorEffect = z.infer<typeof reflexorEffectSchema>;
 
 // ============================================================================
-// Brain 处理器类型
+// Handler 类型
 // ============================================================================
 
 /**
@@ -79,10 +209,6 @@ export type BrainHandler = {
     signalsCutAt: number
   ) => EffectController<ReflexorInput>;
 };
-
-// ============================================================================
-// Toolkit 处理器类型
-// ============================================================================
 
 /**
  * Toolkit 处理器
@@ -108,17 +234,26 @@ export type ToolkitHandler = {
 // ============================================================================
 
 /**
- * Reflexor 服务配置
+ * Reflexor Node 配置
  */
-export type ReflexorServiceConfig = {
+export type ReflexorNodeConfig = {
   /**
-   * Brain 处理器
+   * System prompt
    */
-  brain: BrainHandler;
+  prompt: string;
 
   /**
-   * Toolkit 处理器
+   * Tool 定义集合（带执行函数）
    */
-  toolkit: ToolkitHandler;
+  tools: Record<string, ToolDefinitionExt>;
+
+  /**
+   * LLM 函数
+   */
+  llm: LlmFunction;
+
+  /**
+   * 初始状态（可选）
+   */
+  initialState?: ReflexorState;
 };
-
