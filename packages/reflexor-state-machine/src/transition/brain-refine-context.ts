@@ -1,52 +1,25 @@
 // ============================================================================
-// 处理 BrainRefineContext 输入
+// 处理 Brain 上下文优化输入
 // ============================================================================
 
-import type { BrainRefineContext } from "../input";
+import type { BrainCompressHistory, BrainLoadToolCall } from "../input";
 import type { ReflexorState } from "../state";
 import { findToolCallIndex } from "../state-helper";
 
 /**
- * 处理 Brain 优化上下文
+ * 处理 Brain 压缩历史
  *
- * @param input - BrainRefineContext 输入
+ * 将截止时间之前的历史压缩为摘要，并将 cutAt 之前的 tool calls 的 isLoaded 重置为 false。
+ *
+ * @param input - BrainCompressHistory 输入
  * @param state - 当前状态
  * @returns 新状态
  */
-export function handleBrainRefineContext(
-  input: BrainRefineContext,
+export function handleBrainCompressHistory(
+  input: BrainCompressHistory,
   state: ReflexorState
 ): ReflexorState {
-  const { refinement } = input;
-
-  switch (refinement.kind) {
-    case "compress-history":
-      return handleCompressHistory(input, state);
-    case "load-tool-call":
-      return handleLoadToolCall(input, state);
-    default:
-      return state;
-  }
-}
-
-/**
- * 处理压缩历史
- *
- * 将截止时间之前的历史压缩为摘要。
- *
- * @param input - BrainRefineContext 输入
- * @param state - 当前状态
- * @returns 新状态
- */
-function handleCompressHistory(
-  input: BrainRefineContext,
-  state: ReflexorState
-): ReflexorState {
-  if (input.refinement.kind !== "compress-history") {
-    return state;
-  }
-
-  const { summary, cutAt } = input.refinement;
+  const { summary, cutAt } = input;
 
   // 压缩后，将 cutAt 之前的 tool calls 的 isLoaded 重置为 false
   const updatedToolCallRecords = state.toolCallRecords.map((tc) => {
@@ -62,31 +35,31 @@ function handleCompressHistory(
     contextSummary: summary,
     summaryCutAt: cutAt,
     toolCallRecords: updatedToolCallRecords,
+    calledBrainAt: input.calledBrainAt,
   };
 }
 
 /**
- * 处理加载历史 Tool Call
+ * 处理 Brain 加载历史 Tool Call
  *
  * 将指定的 tool call 标记为已加载。
  *
- * @param input - BrainRefineContext 输入
+ * @param input - BrainLoadToolCall 输入
  * @param state - 当前状态
  * @returns 新状态
  */
-function handleLoadToolCall(
-  input: BrainRefineContext,
+export function handleBrainLoadToolCall(
+  input: BrainLoadToolCall,
   state: ReflexorState
 ): ReflexorState {
-  if (input.refinement.kind !== "load-tool-call") {
-    return state;
-  }
-
-  const { toolCallId } = input.refinement;
+  const { toolCallId } = input;
 
   // 查找 tool call
   const index = findToolCallIndex(state, toolCallId);
   if (index === -1) {
+    console.warn(
+      `[brain-load-tool-call] Tool call not found: ${toolCallId}, ignoring.`
+    );
     return state;
   }
 
@@ -106,5 +79,6 @@ function handleLoadToolCall(
       }
       return tc;
     }),
+    calledBrainAt: input.calledBrainAt,
   };
 }

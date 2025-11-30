@@ -12,7 +12,7 @@ import { findAssistantMessageIndex } from "../state-helper";
 /**
  * 处理 Brain 开始输出消息
  *
- * 在 state 中创建空内容的 assistant message。
+ * 在 state 中创建空内容的 assistant message，并更新 calledBrainAt。
  *
  * @param input - BrainSendMessageStart 输入
  * @param state - 当前状态
@@ -34,6 +34,7 @@ export function handleBrainSendMessageStart(
     ...state,
     updatedAt: input.timestamp,
     assistantMessages: [...state.assistantMessages, assistantMessage],
+    calledBrainAt: input.calledBrainAt,
   };
 }
 
@@ -74,6 +75,6 @@ export function handleBrainSendMessageComplete(
       }
       return msg;
     }),
-    calledBrainAt: input.timestamp,
+    calledBrainAt: input.calledBrainAt,
   };
 }

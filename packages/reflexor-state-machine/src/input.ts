@@ -3,10 +3,7 @@
 // ============================================================================
 
 import { z } from "zod";
-import {
-  contextRefinementSchema,
-  toolCallRequestSchema,
-} from "./state";
+import { toolCallRequestSchema } from "./state";
 
 // ============================================================================
 // 基础类型
@@ -22,6 +19,18 @@ export const baseInputSchema = z.object({
 });
 
 export type BaseInput = z.infer<typeof baseInputSchema>;
+
+/**
+ * Brain Input 基础 Schema
+ *
+ * 所有 Brain Input 都必须包含 calledBrainAt 字段，
+ * 标记这是哪次 askBrain 的响应。
+ */
+export const baseBrainInputSchema = baseInputSchema.extend({
+  calledBrainAt: z.number(),
+});
+
+export type BaseBrainInput = z.infer<typeof baseBrainInputSchema>;
 
 // ============================================================================
 // User Inputs - 来自用户的输入
@@ -43,21 +52,35 @@ export type UserSendMessage = z.infer<typeof userSendMessageSchema>;
 // ============================================================================
 
 /**
- * Brain 优化上下文
+ * Brain 压缩历史
  *
- * 可能是压缩上下文、加载历史消息、或加载历史 Tool Result。
+ * 将截止时间之前的历史压缩为摘要。
  */
-export const brainRefineContextSchema = baseInputSchema.extend({
-  type: z.literal("brain-refine-context"),
-  refinement: contextRefinementSchema,
+export const brainCompressHistorySchema = baseBrainInputSchema.extend({
+  type: z.literal("brain-compress-history"),
+  summary: z.string(),
+  cutAt: z.number(),
 });
 
-export type BrainRefineContext = z.infer<typeof brainRefineContextSchema>;
+export type BrainCompressHistory = z.infer<typeof brainCompressHistorySchema>;
+
+/**
+ * Brain 加载历史 Tool Call
+ *
+ * 将指定的 tool call 标记为已加载，
+ * 下次发送给 Brain 时会带上完整详情。
+ */
+export const brainLoadToolCallSchema = baseBrainInputSchema.extend({
+  type: z.literal("brain-load-tool-call"),
+  toolCallId: z.string(),
+});
+
+export type BrainLoadToolCall = z.infer<typeof brainLoadToolCallSchema>;
 
 /**
  * Brain 请求调用工具
  */
-export const brainCallToolsSchema = baseInputSchema.extend({
+export const brainCallToolsSchema = baseBrainInputSchema.extend({
   type: z.literal("brain-call-tools"),
   toolCalls: z.record(z.string(), toolCallRequestSchema).readonly(),
 });
@@ -69,7 +92,7 @@ export type BrainCallTools = z.infer<typeof brainCallToolsSchema>;
  *
  * 标记流式输出的开始，此时在 state 中创建空内容的 assistant message。
  */
-export const brainSendMessageStartSchema = baseInputSchema.extend({
+export const brainSendMessageStartSchema = baseBrainInputSchema.extend({
   type: z.literal("brain-send-message-start"),
   messageId: z.string(),
 });
@@ -81,7 +104,7 @@ export type BrainSendMessageStart = z.infer<typeof brainSendMessageStartSchema>;
  *
  * 流式输出完成，更新 state 中的 assistant message 为完整内容。
  */
-export const brainSendMessageCompleteSchema = baseInputSchema.extend({
+export const brainSendMessageCompleteSchema = baseBrainInputSchema.extend({
   type: z.literal("brain-send-message-complete"),
   messageId: z.string(),
   content: z.string(),
@@ -130,7 +153,8 @@ export const reflexorInputSchema = z.discriminatedUnion("type", [
   // User inputs
   userSendMessageSchema,
   // Brain inputs
-  brainRefineContextSchema,
+  brainCompressHistorySchema,
+  brainLoadToolCallSchema,
   brainCallToolsSchema,
   brainSendMessageStartSchema,
   brainSendMessageCompleteSchema,

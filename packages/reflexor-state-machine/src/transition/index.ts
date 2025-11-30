@@ -7,7 +7,10 @@ import type { ReflexorInput } from "../input";
 import type { ReflexorState } from "../state";
 import { checkTimeIrreversibility } from "./utils";
 import { handleUserSendMessage } from "./user-send-message";
-import { handleBrainRefineContext } from "./brain-refine-context";
+import {
+  handleBrainCompressHistory,
+  handleBrainLoadToolCall,
+} from "./brain-refine-context";
 import { handleBrainCallTools } from "./brain-call-tools";
 import {
   handleBrainSendMessageStart,
@@ -52,8 +55,10 @@ export const createReflexorTransition =
       case "user-send-message":
         return handleUserSendMessage(input, state);
       // Brain inputs
-      case "brain-refine-context":
-        return handleBrainRefineContext(input, state);
+      case "brain-compress-history":
+        return handleBrainCompressHistory(input, state);
+      case "brain-load-tool-call":
+        return handleBrainLoadToolCall(input, state);
       case "brain-call-tools":
         return handleBrainCallTools(input, state);
       case "brain-send-message-start":
@@ -71,4 +76,3 @@ export const createReflexorTransition =
         return state;
     }
   };
-

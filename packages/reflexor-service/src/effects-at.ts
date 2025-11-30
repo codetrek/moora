@@ -6,7 +6,6 @@ import type { ReflexorState } from "@moora/reflexor-state-machine";
 import {
   getLastUserMessageReceivedAt,
   getLastToolCallResultReceivedAt,
-  isWaitingBrain,
   areAllPendingToolCallsCompleted,
   getPendingToolCallIds,
 } from "@moora/reflexor-state-machine";
@@ -54,9 +53,8 @@ export const reflexorEffectsAt = (
  * 计算需要触发的 ask-brain 副作用
  *
  * ask-brain effect 有效的条件：
- * 1. 当前没有在等待 Brain 响应
- * 2. 所有待处理的 tool-call 都已经返回了
- * 3. 存在尚未发送给 Brain 的 user message 或 tool-call result
+ * 1. 所有待处理的 tool-call 都已经返回了
+ * 2. 存在尚未发送给 Brain 的 user message 或 tool-call result
  *
  * @internal
  * @param state - Reflexor 状态
@@ -65,12 +63,7 @@ export const reflexorEffectsAt = (
 const createAskBrainEffects = (
   state: ReflexorState
 ): Record<string, ReflexorEffect> => {
-  // 检查条件 1: 当前没有在等待 Brain 响应
-  if (isWaitingBrain(state)) {
-    return {};
-  }
-
-  // 检查条件 2: 所有待处理的 tool-call 都已经返回了
+  // 检查条件 1: 所有待处理的 tool-call 都已经返回了
   if (!areAllPendingToolCallsCompleted(state)) {
     return {};
   }
@@ -79,7 +72,7 @@ const createAskBrainEffects = (
   const lastUserMessageReceivedAt = getLastUserMessageReceivedAt(state);
   const lastToolCallResultReceivedAt = getLastToolCallResultReceivedAt(state);
 
-  // 检查条件 3: 存在尚未发送给 Brain 的 user message 或 tool-call result
+  // 检查条件 2: 存在尚未发送给 Brain 的 user message 或 tool-call result
   if (!hasPendingSignal(state, lastUserMessageReceivedAt, lastToolCallResultReceivedAt)) {
     return {};
   }

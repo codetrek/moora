@@ -124,50 +124,6 @@ export const toolCallRecordSchema = z
 export type ToolCallRecord = z.infer<typeof toolCallRecordSchema>;
 
 // ============================================================================
-// 上下文优化类型
-// ============================================================================
-
-/**
- * 压缩历史
- *
- * 将截止时间之前的历史压缩为摘要。
- */
-export const compressHistorySchema = z
-  .object({
-    kind: z.literal("compress-history"),
-    summary: z.string(),
-    cutAt: z.number(),
-  })
-  .readonly();
-
-export type CompressHistory = z.infer<typeof compressHistorySchema>;
-
-/**
- * 加载历史 Tool Call
- *
- * 将指定的 tool call 标记为已加载，
- * 下次发送给 Brain 时会带上完整详情。
- */
-export const loadToolCallSchema = z
-  .object({
-    kind: z.literal("load-tool-call"),
-    toolCallId: z.string(),
-  })
-  .readonly();
-
-export type LoadToolCall = z.infer<typeof loadToolCallSchema>;
-
-/**
- * 上下文优化操作
- */
-export const contextRefinementSchema = z.discriminatedUnion("kind", [
-  compressHistorySchema,
-  loadToolCallSchema,
-]);
-
-export type ContextRefinement = z.infer<typeof contextRefinementSchema>;
-
-// ============================================================================
 // 主状态类型
 // ============================================================================
 

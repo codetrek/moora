@@ -26,9 +26,6 @@ export type {
   ToolCallFailed,
   ToolCallResult,
   ToolCallRecord,
-  CompressHistory,
-  LoadToolCall,
-  ContextRefinement,
   ReflexorState,
 } from "./state";
 
@@ -42,9 +39,6 @@ export {
   toolCallFailedSchema,
   toolCallResultSchema,
   toolCallRecordSchema,
-  compressHistorySchema,
-  loadToolCallSchema,
-  contextRefinementSchema,
   reflexorStateSchema,
 } from "./state";
 
@@ -68,8 +62,10 @@ export {
 // Input 相关类型
 export type {
   BaseInput,
+  BaseBrainInput,
   UserSendMessage,
-  BrainRefineContext,
+  BrainCompressHistory,
+  BrainLoadToolCall,
   BrainCallTools,
   BrainSendMessageStart,
   BrainSendMessageComplete,
@@ -81,8 +77,10 @@ export type {
 // Input 相关 Schemas
 export {
   baseInputSchema,
+  baseBrainInputSchema,
   userSendMessageSchema,
-  brainRefineContextSchema,
+  brainCompressHistorySchema,
+  brainLoadToolCallSchema,
   brainCallToolsSchema,
   brainSendMessageStartSchema,
   brainSendMessageCompleteSchema,

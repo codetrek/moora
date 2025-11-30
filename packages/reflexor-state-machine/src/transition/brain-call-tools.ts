@@ -35,5 +35,6 @@ export function handleBrainCallTools(
     ...state,
     updatedAt: input.timestamp,
     toolCallRecords: [...state.toolCallRecords, ...newToolCallRecords],
+    calledBrainAt: input.calledBrainAt,
   };
 }
