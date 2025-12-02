@@ -54,7 +54,7 @@ export type {
   Signal,
   Effect,
   StateForChannel,
-  RunEffectOptions,
+  MakeRunEffectOptions,
 } from "./unified";
 
 // ============================================================================
@@ -122,7 +122,7 @@ export {
   initial,
   transition,
   effectsAt,
-  runEffect,
+  makeRunEffect,
   getStateForChannel,
 } from "./unified";
 export {

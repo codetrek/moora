@@ -13,7 +13,8 @@ import {
   initial,
   transition,
   effectsAt,
-  runEffect as unifiedRunEffect,
+  makeRunEffect,
+  type MakeRunEffectOptions,
 } from "./unified";
 import type {
   CallLLMFn,
@@ -130,27 +131,20 @@ export function createTripletAgentMoorex(
     initialState,
   } = options;
   
-  // 创建带上下文的 runEffect 函数
-  const runEffectWithContext = (
-    effect: Effect,
-    state: State,
-    key: string
-  ): EffectController<Signal> => {
-    // 调用 unifiedRunEffect，传入所有依赖（除了 dispatch，dispatch 在 start 中提供）
-    return unifiedRunEffect(effect, state, key, {
-      updateUI,
-      callLLM,
-      prompt,
-      getToolNames,
-      getToolDefinitions,
-    });
-  };
+  // 使用 makeRunEffect 创建带依赖注入的 runEffect 函数
+  const runEffect = makeRunEffect({
+    updateUI,
+    callLLM,
+    prompt,
+    getToolNames,
+    getToolDefinitions,
+  });
   
   return createMoorex({
     initial: initialState ? () => initialState : initial,
     transition,
     effectsAt,
-    runEffect: runEffectWithContext,
+    runEffect,
   });
 }
 
