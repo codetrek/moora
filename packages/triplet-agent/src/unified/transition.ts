@@ -10,16 +10,27 @@ import {
   transitionAgentToolkit,
   transitionToolkitAgent,
   transitionAgentUser,
-  transitionUserUser,
   transitionAgentAgent,
   transitionToolkitToolkit,
 } from "../transition";
+import {
+  stateForUserAgent,
+  stateForAgentToolkit,
+  stateForToolkitAgent,
+  stateForAgentUser,
+  stateForAgentAgent,
+  stateForToolkitToolkit,
+} from "./state-for-channel";
 
 /**
- * transition 函数
+ * 统合的 transition 函数
  * 
- * 根据 Signal 的来源，更新对应的 Channel State。
- * 统合所有 Channel 的 transition 函数。
+ * 实现逻辑：
+ * - 根据 signal 的类型和来源，确定需要更新的 Channel
+ * - 使用对应的 stateForXxxYyy 函数从统合 State 提取 Channel State
+ * - 调用对应的 Channel transition 函数
+ * - 使用 mutative 的 create() 进行不可变更新，更新统合 State 中对应的字段
+ * - 返回更新后的统合 State
  * 
  * 注意：Moorex 的 Transition 类型是 (input) => (state) => State
  */
@@ -28,11 +39,13 @@ export function transition(signal: Signal): (state: State) => State {
     // 来自 User 的 Output
     if (signal.type === "sendMessage" || signal.type === "cancelStreaming") {
       const userOutput = signal as OutputFromUser;
+      const userAgentState = stateForUserAgent(state);
+      
+      const newUserAgentState = transitionUserAgent(userOutput, userAgentState);
+      
       return create(state, (draft) => {
-        // 更新 USER -> AGENT Channel State
-        draft.userAgent = transitionUserAgent(userOutput, state.userAgent);
-        // 更新 USER -> USER (Loopback) Channel State
-        draft.userUser = transitionUserUser(userOutput, state.userUser);
+        draft.userMessages = newUserAgentState.userMessages;
+        draft.canceledStreamingMessageIds = newUserAgentState.canceledStreamingMessageIds;
       });
     }
 
@@ -43,36 +56,45 @@ export function transition(signal: Signal): (state: State) => State {
       signal.type === "completeMessage"
     ) {
       const agentOutput = signal as OutputFromAgent;
+      const agentAgentState = stateForAgentAgent(state);
+      const newAgentAgentState = transitionAgentAgent(agentOutput, agentAgentState);
+      
       return create(state, (draft) => {
         if (agentOutput.type === "callTool") {
-          // 更新 AGENT -> TOOLKIT Channel State
-          draft.agentToolkit = transitionAgentToolkit(
+          const agentToolkitState = stateForAgentToolkit(state);
+          const newAgentToolkitState = transitionAgentToolkit(
             agentOutput,
-            state.agentToolkit
+            agentToolkitState
           );
+          draft.pendingToolCalls = newAgentToolkitState.pendingToolCalls;
         } else {
-          // 更新 AGENT -> USER Channel State
-          draft.agentUser = transitionAgentUser(agentOutput, state.agentUser);
+          const agentUserState = stateForAgentUser(state);
+          const newAgentUserState = transitionAgentUser(agentOutput, agentUserState);
+          draft.messages = newAgentUserState.messages;
+          draft.streamingChunks = newAgentUserState.streamingChunks;
         }
-        // 更新 AGENT -> AGENT (Loopback) Channel State
-        draft.agentAgent = transitionAgentAgent(agentOutput, state.agentAgent);
+        draft.processingHistory = newAgentAgentState.processingHistory;
       });
     }
 
     // 来自 Toolkit 的 Output
     if (signal.type === "toolResult" || signal.type === "toolError") {
       const toolkitOutput = signal as OutputFromToolkit;
+      const toolkitAgentState = stateForToolkitAgent(state);
+      const toolkitToolkitState = stateForToolkitToolkit(state);
+      
+      const newToolkitAgentState = transitionToolkitAgent(
+        toolkitOutput,
+        toolkitAgentState
+      );
+      const newToolkitToolkitState = transitionToolkitToolkit(
+        toolkitOutput,
+        toolkitToolkitState
+      );
+      
       return create(state, (draft) => {
-        // 更新 TOOLKIT -> AGENT Channel State
-        draft.toolkitAgent = transitionToolkitAgent(
-          toolkitOutput,
-          state.toolkitAgent
-        );
-        // 更新 TOOLKIT -> TOOLKIT (Loopback) Channel State
-        draft.toolkitToolkit = transitionToolkitToolkit(
-          toolkitOutput,
-          state.toolkitToolkit
-        );
+        draft.toolResults = newToolkitAgentState.toolResults;
+        draft.executionHistory = newToolkitToolkitState.executionHistory;
       });
     }
 

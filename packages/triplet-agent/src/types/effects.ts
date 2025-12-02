@@ -6,7 +6,6 @@ import type { Dispatch } from "@moora/moorex";
 import type { OutputFromUser } from "./signal";
 import type {
   StateAgentUser,
-  StateUserUser,
   StateUserAgent,
   StateToolkitAgent,
   StateAgentAgent,
@@ -117,11 +116,10 @@ export type UpdateUIFn = (
 /**
  * User 节点的 StateForUser 类型（打包 User 需要的所有 Channel State）
  * 
- * User 的入边：Channel_AGENT_USER, Channel_USER_USER (loopback)
+ * User 的入边：Channel_AGENT_USER
  */
 export type StateForUser = {
   agentUser: StateAgentUser;
-  userUser: StateUserUser;
 };
 
 /**

@@ -5,35 +5,33 @@
 import type { State } from "../types/unified";
 
 /**
- * initial 函数
+ * 初始化函数
  * 
- * 返回初始 State。
+ * 实现逻辑：
+ * - 返回所有去重后字段的初始值
+ * - 构建符合 State 类型的初始状态对象
  */
 export function initial(): State {
   return {
-    userAgent: {
-      userMessages: [],
-      canceledStreamingMessageIds: [],
-    },
-    agentToolkit: {
-      pendingToolCalls: [],
-    },
-    toolkitAgent: {
-      toolResults: [],
-    },
-    agentUser: {
-      messages: [],
-      streamingChunks: {},
-    },
-    userUser: {
-      actionHistory: [],
-    },
-    agentAgent: {
-      processingHistory: [],
-    },
-    toolkitToolkit: {
-      executionHistory: [],
-    },
+    // 来自 StateUserAgent
+    userMessages: [],
+    canceledStreamingMessageIds: [],
+    
+    // 来自 StateAgentToolkit
+    pendingToolCalls: [],
+    
+    // 来自 StateToolkitAgent
+    toolResults: [],
+    
+    // 来自 StateAgentUser
+    messages: [],
+    streamingChunks: {},
+    
+    // 来自 StateAgentAgent
+    processingHistory: [],
+    
+    // 来自 StateToolkitToolkit
+    executionHistory: [],
   };
 }
 

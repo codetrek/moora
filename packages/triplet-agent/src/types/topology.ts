@@ -93,17 +93,6 @@ export const Channel_AGENT_USER = {
 } as const;
 
 /**
- * Channel: USER -> USER (Loopback)
- * 
- * User 节点的自环通道，用于感知自身状态迭代。
- * 信息流：OutputFromUser -> InputForUser
- */
-export const Channel_USER_USER = {
-  source: USER,
-  target: USER,
-} as const;
-
-/**
  * Channel: AGENT -> AGENT (Loopback)
  * 
  * Agent 节点的自环通道，用于感知自身状态迭代。
@@ -150,11 +139,6 @@ export type ChannelToolkitAgent = typeof Channel_TOOLKIT_AGENT;
 export type ChannelAgentUser = typeof Channel_AGENT_USER;
 
 /**
- * Channel USER -> USER (Loopback) 的类型
- */
-export type ChannelUserUser = typeof Channel_USER_USER;
-
-/**
  * Channel AGENT -> AGENT (Loopback) 的类型
  */
 export type ChannelAgentAgent = typeof Channel_AGENT_AGENT;
@@ -172,7 +156,6 @@ export type Channel =
   | ChannelAgentToolkit
   | ChannelToolkitAgent
   | ChannelAgentUser
-  | ChannelUserUser
   | ChannelAgentAgent
   | ChannelToolkitToolkit;
 
@@ -201,7 +184,6 @@ export function isValidChannel(
     channel === Channel_AGENT_TOOLKIT ||
     channel === Channel_TOOLKIT_AGENT ||
     channel === Channel_AGENT_USER ||
-    channel === Channel_USER_USER ||
     channel === Channel_AGENT_AGENT ||
     channel === Channel_TOOLKIT_TOOLKIT
   );

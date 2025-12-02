@@ -18,6 +18,14 @@ import {
   makeRunEffectForAgent,
   makeRunEffectForToolkit,
 } from "../runEffect";
+import {
+  stateForAgentUser,
+  stateForUserAgent,
+  stateForToolkitAgent,
+  stateForAgentAgent,
+  stateForAgentToolkit,
+  stateForToolkitToolkit,
+} from "./state-for-channel";
 
 /**
  * makeRunEffect 函数
@@ -51,32 +59,31 @@ export function makeRunEffect(
 
   return (effect: Effect, state: State, key: string): EffectController<Signal> => {
     if (effect.kind === "updateUI") {
-      // 从全局 State 提取 StateForUser
+      // 使用 stateForXxxYyy 函数从统合 State 提取 StateForUser
       const stateForUser: StateForUser = {
-        agentUser: state.agentUser,
-        userUser: state.userUser,
+        agentUser: stateForAgentUser(state),
       };
       // 调用 makeRunEffectForUser 返回的函数
       return runEffectForUser(effect as EffectOfUser, stateForUser, key);
     }
 
     if (effect.kind === "callLLM") {
-      // 从全局 State 提取 StateForAgent
+      // 使用 stateForXxxYyy 函数从统合 State 提取 StateForAgent
       const stateForAgent: StateForAgent = {
-        userAgent: state.userAgent,
-        toolkitAgent: state.toolkitAgent,
-        agentAgent: state.agentAgent,
-        agentToolkit: state.agentToolkit,
+        userAgent: stateForUserAgent(state),
+        toolkitAgent: stateForToolkitAgent(state),
+        agentAgent: stateForAgentAgent(state),
+        agentToolkit: stateForAgentToolkit(state),
       };
       // 调用 makeRunEffectForAgent 返回的函数
       return runEffectForAgent(effect as EffectOfAgent, stateForAgent, key);
     }
 
     if (effect.kind === "executeTool") {
-      // 从全局 State 提取 StateForToolkit
+      // 使用 stateForXxxYyy 函数从统合 State 提取 StateForToolkit
       const stateForToolkit: StateForToolkit = {
-        agentToolkit: state.agentToolkit,
-        toolkitToolkit: state.toolkitToolkit,
+        agentToolkit: stateForAgentToolkit(state),
+        toolkitToolkit: stateForToolkitToolkit(state),
       };
       // 调用 makeRunEffectForToolkit 返回的函数
       return runEffectForToolkit(effect as EffectOfToolkit, stateForToolkit, key);

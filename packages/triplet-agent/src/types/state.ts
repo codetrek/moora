@@ -6,55 +6,31 @@ import { z } from "zod";
 import { messageSchema } from "./signal";
 
 // ============================================================================
-// Channel USER -> AGENT 的 State Schema
+// 公共 Schema 和类型定义（供 Channel State 和统合 State 复用）
 // ============================================================================
 
 /**
- * Channel USER -> AGENT 的 State Schema
- * 
- * Agent 对 User 状态的关注点：
- * - 用户发送的消息列表
- * - 被取消流式输出的消息 ID 列表
+ * 用户消息 Schema（公共类型）
  */
-export const stateUserAgentSchema = z.object({
-  userMessages: z.array(
-    z.object({
-      id: z.string(),
-      content: z.string(),
-      timestamp: z.number(),
-    })
-  ),
-  canceledStreamingMessageIds: z.array(z.string()),
+export const userMessageSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  timestamp: z.number(),
 });
 
-export type StateUserAgent = z.infer<typeof stateUserAgentSchema>;
-
-// ============================================================================
-// Channel AGENT -> TOOLKIT 的 State Schema
-// ============================================================================
+export type UserMessage = z.infer<typeof userMessageSchema>;
 
 /**
- * Channel AGENT -> TOOLKIT 的 State Schema
- * 
- * Toolkit 对 Agent 状态的关注点：
- * - 待执行的工具调用请求列表
+ * 工具调用 Schema（公共类型）
  */
-export const stateAgentToolkitSchema = z.object({
-  pendingToolCalls: z.array(
-    z.object({
-      toolCallId: z.string(),
-      toolName: z.string(),
-      parameters: z.string(), // JSON string
-      timestamp: z.number(),
-    })
-  ),
+export const toolCallSchema = z.object({
+  toolCallId: z.string(),
+  toolName: z.string(),
+  parameters: z.string(), // JSON string
+  timestamp: z.number(),
 });
 
-export type StateAgentToolkit = z.infer<typeof stateAgentToolkitSchema>;
-
-// ============================================================================
-// Channel TOOLKIT -> AGENT 的 State Schema
-// ============================================================================
+export type ToolCall = z.infer<typeof toolCallSchema>;
 
 /**
  * 工具执行成功结果 Schema
@@ -92,6 +68,79 @@ export const toolResultSchema = z.discriminatedUnion("isSuccess", [
 
 export type ToolResult = z.infer<typeof toolResultSchema>;
 
+
+/**
+ * Agent 处理历史项 Schema（公共类型）
+ */
+export const agentProcessingHistoryItemSchema = z.object({
+  type: z.enum(["callTool", "sendChunk", "completeMessage"]),
+  toolCallId: z.string().optional(),
+  messageId: z.string().optional(),
+  timestamp: z.number(),
+});
+
+export type AgentProcessingHistoryItem = z.infer<
+  typeof agentProcessingHistoryItemSchema
+>;
+
+/**
+ * Toolkit 执行历史项 Schema（公共类型）
+ */
+export const toolkitExecutionHistoryItemSchema = z.object({
+  type: z.enum(["toolResult", "toolError"]),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  timestamp: z.number(),
+});
+
+export type ToolkitExecutionHistoryItem = z.infer<
+  typeof toolkitExecutionHistoryItemSchema
+>;
+
+/**
+ * Assistant 消息 Schema（公共类型）
+ * 
+ * 注意：这是专门用于 Agent -> User Channel 的消息类型，只包含 assistant 角色的消息。
+ */
+export const assistantMessageSchema = z.object({
+  id: z.string(),
+  role: z.literal("assistant"),
+  content: z.string(),
+  timestamp: z.number(),
+});
+
+export type AssistantMessage = z.infer<typeof assistantMessageSchema>;
+
+// ============================================================================
+// Channel State Schema（使用公共 schema 组合）
+// ============================================================================
+
+/**
+ * Channel USER -> AGENT 的 State Schema
+ * 
+ * Agent 对 User 状态的关注点：
+ * - 用户发送的消息列表
+ * - 被取消流式输出的消息 ID 列表
+ */
+export const stateUserAgentSchema = z.object({
+  userMessages: z.array(userMessageSchema),
+  canceledStreamingMessageIds: z.array(z.string()),
+});
+
+export type StateUserAgent = z.infer<typeof stateUserAgentSchema>;
+
+/**
+ * Channel AGENT -> TOOLKIT 的 State Schema
+ * 
+ * Toolkit 对 Agent 状态的关注点：
+ * - 待执行的工具调用请求列表
+ */
+export const stateAgentToolkitSchema = z.object({
+  pendingToolCalls: z.array(toolCallSchema),
+});
+
+export type StateAgentToolkit = z.infer<typeof stateAgentToolkitSchema>;
+
 /**
  * Channel TOOLKIT -> AGENT 的 State Schema
  * 
@@ -112,38 +161,17 @@ export type StateToolkitAgent = z.infer<typeof stateToolkitAgentSchema>;
  * Channel AGENT -> USER 的 State Schema
  * 
  * User 对 Agent 状态的关注点：
- * - 消息列表（用于显示）
+ * - 消息列表（用于显示，只包含 assistant 角色的消息）
  * - 正在流式输出的消息对应的 chunks（Record<messageId, chunks[]>）
  *   注意：streamingChunks 的 keys 就是正在流式输出的消息 ID 列表
  */
 export const stateAgentUserSchema = z.object({
-  messages: z.array(messageSchema),
+  messages: z.array(assistantMessageSchema),
   streamingChunks: z.record(z.string(), z.array(z.string())),
 });
 
 export type StateAgentUser = z.infer<typeof stateAgentUserSchema>;
 
-// ============================================================================
-// Channel USER -> USER (Loopback) 的 State Schema
-// ============================================================================
-
-/**
- * Channel USER -> USER (Loopback) 的 State Schema
- * 
- * User 对自身状态的关注点：
- * - 用户操作历史（用于状态迭代感知）
- */
-export const stateUserUserSchema = z.object({
-  actionHistory: z.array(
-    z.object({
-      type: z.enum(["sendMessage", "cancelStreaming"]),
-      messageId: z.string(),
-      timestamp: z.number(),
-    })
-  ),
-});
-
-export type StateUserUser = z.infer<typeof stateUserUserSchema>;
 
 // ============================================================================
 // Channel AGENT -> AGENT (Loopback) 的 State Schema
@@ -156,14 +184,7 @@ export type StateUserUser = z.infer<typeof stateUserUserSchema>;
  * - Agent 处理历史（用于状态迭代感知）
  */
 export const stateAgentAgentSchema = z.object({
-  processingHistory: z.array(
-    z.object({
-      type: z.enum(["callTool", "sendChunk", "completeMessage"]),
-      toolCallId: z.string().optional(),
-      messageId: z.string().optional(),
-      timestamp: z.number(),
-    })
-  ),
+  processingHistory: z.array(agentProcessingHistoryItemSchema),
 });
 
 export type StateAgentAgent = z.infer<typeof stateAgentAgentSchema>;
@@ -179,14 +200,7 @@ export type StateAgentAgent = z.infer<typeof stateAgentAgentSchema>;
  * - 工具执行历史（用于状态迭代感知）
  */
 export const stateToolkitToolkitSchema = z.object({
-  executionHistory: z.array(
-    z.object({
-      type: z.enum(["toolResult", "toolError"]),
-      toolCallId: z.string(),
-      toolName: z.string(),
-      timestamp: z.number(),
-    })
-  ),
+  executionHistory: z.array(toolkitExecutionHistoryItemSchema),
 });
 
 export type StateToolkitToolkit = z.infer<typeof stateToolkitToolkitSchema>;

@@ -91,7 +91,7 @@
 | 步骤 3：识别单向数据流 | `types/topology.ts` | 在步骤 1 的基础上添加 Channel 定义 |
 | 步骤 4：聚焦通道关注点 | `types/state.ts`<br>`transition/*.ts`<br>`transition/index.ts` | 定义各 Channel 的 State 类型和 transition 函数 |
 | 步骤 5：节点状态推着走 | `types/effects.ts`<br>`effectsAt/*.ts`<br>`effectsAt/index.ts`<br>`runEffect/*.ts`<br>`runEffect/index.ts` | 定义 Effect 类型、effectsAt 和 runEffect 函数 |
-| 步骤 6：最后统合去冗余 | `types/unified.ts`<br>`unified/initial.ts`<br>`unified/transition.ts`<br>`unified/effectsAt.ts`<br>`unified/runEffect.ts`<br>`unified/state-for-channel.ts` | 统合全局类型和函数，State 去重，定义 stateForXxxYyy 函数 |
+| 步骤 6：最后统合去冗余 | `types/state.ts`（更新）<br>`types/unified.ts`<br>`unified/initial.ts`<br>`unified/transition.ts`<br>`unified/effectsAt.ts`<br>`unified/runEffect.ts`<br>`unified/state-for-channel.ts` | 提取公共 schema/类型定义，统合全局类型和函数，State 去重，定义 stateForXxxYyy 函数 |
 | 步骤 7：精巧模型便在手 | `create-xxx-moorex.ts` | 创建工厂函数 |
 
 ## 实施流程
@@ -677,6 +677,11 @@ export { makeRunEffectForToolkit } from "./toolkit";
   2. 识别重复的字段（相同名称和类型的字段）
   3. 去重后构建一个新的统一 State 类型
   4. 这个统一 State 类型应该包含所有唯一的字段，避免冗余
+- **重要：提取公共 Schema/类型定义**：在统合 State 时，要注意提取公共的 schema/类型定义（如 `UserMessage`、`ToolCall`、`ToolResult` 等），在统合 State 和 ChannelState 之间复用：
+  1. 在 `types/state.ts` 中定义公共的 schema 和类型（如 `userMessageSchema`、`toolCallSchema`、`toolResultSchema` 等）
+  2. 各个 Channel State 的 schema 使用这些公共 schema 组合而成
+  3. 统合 State 的类型定义也使用这些公共类型，而不是内联定义
+  4. 这样可以避免重复定义，保持类型一致性，便于维护
 - Signal 是各个 Participant 的 Output 的 union（改名为 Signal，不再是 Input）
 - Effect 是各个 Participant Effect 的 union
 - **重要**：为各个 Channel 定义 `stateForXxxYyy` 函数，用来从统合 State 推导出对应的 Channel State
@@ -684,13 +689,14 @@ export { makeRunEffectForToolkit } from "./toolkit";
 - **重要**：统合后的 `initial`、`transition`、`effectsAt`、`runEffect` 函数必须符合 `@moora/moorex` 的 `MoorexDefinition<Input, Effect, State>` 类型定义：
 
 **涉及文件**：
-- `types/unified.ts` - 创建此文件，定义统合后的全局类型（State、Signal、Effect）
+- `types/state.ts` - 更新此文件，提取公共的 schema 和类型定义（如 `UserMessage`、`ToolCall`、`ToolResult` 等），供 Channel State 和统合 State 复用
+- `types/unified.ts` - 创建此文件，定义统合后的全局类型（State、Signal、Effect），State 类型使用公共类型定义
 - `unified/` 文件夹 - 创建此文件夹，包含统合后的函数：
   - `unified/initial.ts` - initial 函数
   - `unified/transition.ts` - 统合的 transition 函数
   - `unified/effectsAt.ts` - 统合的 effectsAt 函数
   - `unified/runEffect.ts` - 统合的 runEffect 函数（makeRunEffect）
-  - `unified/state-for-channel.ts` - getStateForChannel 函数
+  - `unified/state-for-channel.ts` - stateForXxxYyy 函数（从统合 State 推导各 Channel State）
   ```typescript
   type MoorexDefinition<Input, Effect, State> = {
     /** 初始化函数，返回初始状态 */
@@ -720,7 +726,8 @@ export { makeRunEffectForToolkit } from "./toolkit";
 - **重要**：在步骤 5 中，每个 Participant 的 runEffect 已经使用 `makeRunEffectForXxx` 模式。在步骤 6 中，`makeRunEffect` 函数需要调用这些 `makeRunEffectForXxx` 函数，并传入对应的 options 和从全局 State 提取的 `StateForXxx`
 
 **输出**：
-- 统一的 `State` 类型（所有 Channel State 字段去重后的合并）
+- 公共的 schema 和类型定义（在 `types/state.ts` 中）：如 `UserMessage`、`ToolCall`、`ToolResult` 等
+- 统一的 `State` 类型（所有 Channel State 字段去重后的合并，使用公共类型定义）
 - 统一的 `Signal` 类型（各个 Participant Output 的 union）
 - 统一的 `Effect` 类型（各个 Participant Effect 的 union）
 - `initial` 函数：返回初始 State（符合 `() => State` 类型）
@@ -731,8 +738,92 @@ export { makeRunEffectForToolkit } from "./toolkit";
 
 **示例**：
 ```typescript
+// types/state.ts（更新，提取公共 schema 和类型定义）
+import { z } from "zod";
+
+// ============================================================================
+// 公共 Schema 和类型定义（供 Channel State 和统合 State 复用）
+// ============================================================================
+
+/**
+ * 用户消息 Schema（公共类型）
+ */
+export const userMessageSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  timestamp: z.number(),
+});
+export type UserMessage = z.infer<typeof userMessageSchema>;
+
+/**
+ * 工具调用 Schema（公共类型）
+ */
+export const toolCallSchema = z.object({
+  toolCallId: z.string(),
+  toolName: z.string(),
+  parameters: z.string(), // JSON string
+  timestamp: z.number(),
+});
+export type ToolCall = z.infer<typeof toolCallSchema>;
+
+/**
+ * 工具执行结果 Schema（公共类型）
+ */
+export const toolResultSuccessSchema = z.object({
+  isSuccess: z.literal(true),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  result: z.string(),
+  timestamp: z.number(),
+});
+export const toolResultFailureSchema = z.object({
+  isSuccess: z.literal(false),
+  toolCallId: z.string(),
+  toolName: z.string(),
+  error: z.string(),
+  timestamp: z.number(),
+});
+export const toolResultSchema = z.discriminatedUnion("isSuccess", [
+  toolResultSuccessSchema,
+  toolResultFailureSchema,
+]);
+export type ToolResult = z.infer<typeof toolResultSchema>;
+
+// ... 其他公共 schema 和类型定义 ...
+
+// ============================================================================
+// Channel State Schema（使用公共 schema 组合）
+// ============================================================================
+
+/**
+ * Channel USER -> AGENT 的 State Schema
+ */
+export const stateUserAgentSchema = z.object({
+  userMessages: z.array(userMessageSchema),
+  canceledStreamingMessageIds: z.array(z.string()),
+});
+export type StateUserAgent = z.infer<typeof stateUserAgentSchema>;
+
+/**
+ * Channel AGENT -> TOOLKIT 的 State Schema
+ */
+export const stateAgentToolkitSchema = z.object({
+  pendingToolCalls: z.array(toolCallSchema),
+});
+export type StateAgentToolkit = z.infer<typeof stateAgentToolkitSchema>;
+
+/**
+ * Channel TOOLKIT -> AGENT 的 State Schema
+ */
+export const stateToolkitAgentSchema = z.object({
+  toolResults: z.array(toolResultSchema),
+});
+export type StateToolkitAgent = z.infer<typeof stateToolkitAgentSchema>;
+
+// ... 其他 Channel State Schema ...
+
 // types/unified.ts
-import type { StateUserAgent, StateAgentToolkit, StateToolkitAgent, StateAgentUser, /* ... */ } from "./state";
+import type { UserMessage, ToolCall, ToolResult, /* ... */ } from "./state";
 import type { OutputFromUser, OutputFromAgent, OutputFromToolkit } from "./signal";
 import type { EffectOfUser, EffectOfAgent, EffectOfToolkit } from "./effects";
 
@@ -744,25 +835,31 @@ import type { EffectOfUser, EffectOfAgent, EffectOfToolkit } from "./effects";
 // 1. 找出所有 Channel State 中的所有字段
 // 2. 识别重复的字段（相同名称和类型的字段）
 // 3. 去重后构建一个新的统一 State 类型
+// 4. **重要**：使用公共类型定义，而不是内联定义，保持类型一致性
 // 
 // 例如：
-// - StateUserAgent 可能有字段：{ userMessages: ... }
-// - StateAgentUser 可能有字段：{ messages: ..., streamingChunks: ... }
-// - StateAgentToolkit 可能有字段：{ pendingToolCalls: ... }
-// - StateToolkitAgent 可能有字段：{ toolResults: ... }
+// - StateUserAgent 可能有字段：{ userMessages: UserMessage[] }
+// - StateAgentUser 可能有字段：{ messages: Message[], streamingChunks: ... }
+// - StateAgentToolkit 可能有字段：{ pendingToolCalls: ToolCall[] }
+// - StateToolkitAgent 可能有字段：{ toolResults: ToolResult[] }
 // 
-// 统合后的 State 应该包含所有这些唯一字段，例如：
+// 统合后的 State 应该包含所有这些唯一字段，并使用公共类型：
 // {
-//   userMessages: ...,
-//   messages: ...,
+//   userMessages: UserMessage[],
+//   messages: Message[],
 //   streamingChunks: ...,
-//   pendingToolCalls: ...,
-//   toolResults: ...,
+//   pendingToolCalls: ToolCall[],
+//   toolResults: ToolResult[],
 //   // ... 其他唯一字段
 // }
 export type State = {
   // 列出所有去重后的字段
-  // 字段名和类型应该来自各个 Channel State 的分析
+  // 字段名和类型应该使用公共类型定义（如 UserMessage, ToolCall, ToolResult 等）
+  userMessages: UserMessage[];
+  canceledStreamingMessageIds: string[];
+  pendingToolCalls: ToolCall[];
+  toolResults: ToolResult[];
+  // ... 其他唯一字段，都使用公共类型定义
 };
 
 // Signal 是各个 Participant Output 的 union
