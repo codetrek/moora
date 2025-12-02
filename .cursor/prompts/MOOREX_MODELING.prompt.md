@@ -205,33 +205,48 @@ type RunEffectFn<P extends Participants> = (
 - 绘制有向图，表示信息流向
 - 每条边代表一条 Channel（从 Source 节点到 Target 节点）
 - 明确信息流的单向性（避免循环依赖）
+- **重要**：每个 Participant 节点都需要一个 Loopback Channel（自环通道），用于感知自身状态迭代
+  - Loopback Channel 允许节点观察自身状态的变化
+  - 这对于状态机的状态迭代和自反馈机制至关重要
 - 定义 Channel 类型和常量
 
 **输出**：
 - Channel 常量定义：`const Channel_USER_AGENT = { source: USER, target: AGENT }`
+- Loopback Channel 常量定义：`const Channel_USER_USER = { source: USER, target: USER }`
 - Channel 类型定义：`type ChannelUserAgent = typeof Channel_USER_AGENT`
 - 所有 Channel 的联合类型：`type Channel = ChannelUserAgent | ...`
 
 **示例**：
 ```typescript
-// Channel 常量定义
+// Channel 常量定义（节点间通道）
 const Channel_USER_AGENT = { source: USER, target: AGENT };
 const Channel_AGENT_TOOLKIT = { source: AGENT, target: TOOLKIT };
 const Channel_TOOLKIT_AGENT = { source: TOOLKIT, target: AGENT };
 const Channel_AGENT_USER = { source: AGENT, target: USER };
+
+// Loopback Channel 常量定义（自环通道）
+const Channel_USER_USER = { source: USER, target: USER };
+const Channel_AGENT_AGENT = { source: AGENT, target: AGENT };
+const Channel_TOOLKIT_TOOLKIT = { source: TOOLKIT, target: TOOLKIT };
 
 // Channel 类型定义
 type ChannelUserAgent = typeof Channel_USER_AGENT;
 type ChannelAgentToolkit = typeof Channel_AGENT_TOOLKIT;
 type ChannelToolkitAgent = typeof Channel_TOOLKIT_AGENT;
 type ChannelAgentUser = typeof Channel_AGENT_USER;
+type ChannelUserUser = typeof Channel_USER_USER;
+type ChannelAgentAgent = typeof Channel_AGENT_AGENT;
+type ChannelToolkitToolkit = typeof Channel_TOOLKIT_TOOLKIT;
 
 // 所有 Channel 的联合类型
 type Channel = 
   | ChannelUserAgent 
   | ChannelAgentToolkit 
   | ChannelToolkitAgent 
-  | ChannelAgentUser;
+  | ChannelAgentUser
+  | ChannelUserUser
+  | ChannelAgentAgent
+  | ChannelToolkitToolkit;
 ```
 
 **⚠️ 完成此步骤后，必须：**

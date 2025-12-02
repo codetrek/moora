@@ -30,7 +30,8 @@
     "baseUrl": ".",
     "paths": {
       "@moora/moorex": ["./packages/moorex"],
-      "@moora/moorex-fastify": ["./packages/moorex-fastify"]
+      "@moora/moorex-fastify": ["./packages/moorex-fastify"],
+      "@moora/triplet-agent": ["./packages/triplet-agent"]
     }
   }
 }
