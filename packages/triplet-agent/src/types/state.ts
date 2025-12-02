@@ -3,7 +3,7 @@
 // ============================================================================
 
 import { z } from "zod";
-import { messageSchema } from "./io";
+import { messageSchema } from "./signal";
 
 // ============================================================================
 // Channel USER -> AGENT 的 State Schema

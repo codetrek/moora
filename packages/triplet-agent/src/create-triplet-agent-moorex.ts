@@ -3,25 +3,19 @@
 // ============================================================================
 
 import { createMoorex } from "@moora/moorex";
-import type { Moorex, EffectController } from "@moora/moorex";
-import type {
-  State,
-  Signal,
-  Effect,
-} from "./unified";
-import {
-  initial,
-  transition,
-  effectsAt,
-  makeRunEffect,
-  type MakeRunEffectOptions,
-} from "./unified";
+import type { Moorex } from "@moora/moorex";
+import type { State, Signal, Effect } from "./types/unified";
+import { initial } from "./unified/initial";
+import { transition } from "./unified/transition";
+import { effectsAt } from "./unified/effectsAt";
+import { makeRunEffect } from "./unified/runEffect";
+import type { MakeRunEffectOptions } from "./types/unified";
 import type {
   CallLLMFn,
   GetToolNamesFn,
   GetToolDefinitionsFn,
   UpdateUIFn,
-} from "./effects";
+} from "./types/effects";
 
 // ============================================================================
 // 工厂函数选项类型

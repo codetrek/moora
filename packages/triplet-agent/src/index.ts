@@ -1,7 +1,7 @@
 // ============================================================================
 // 导出所有类型
 // ============================================================================
-export type { Participants } from "./participants";
+export type { Participants } from "./types/topology";
 export type {
   Message,
   InputForUser,
@@ -14,7 +14,7 @@ export type {
   InputFor,
   OutputFrom,
   RunEffectFn,
-} from "./io";
+} from "./types/signal";
 export type {
   Channel,
   ChannelUserAgent,
@@ -26,7 +26,7 @@ export type {
   ChannelToolkitToolkit,
   ChannelSource,
   ChannelTarget,
-} from "./channels";
+} from "./types/topology";
 export type {
   ToolResultSuccess,
   ToolResultFailure,
@@ -38,7 +38,7 @@ export type {
   StateUserUser,
   StateAgentAgent,
   StateToolkitToolkit,
-} from "./state";
+} from "./types/state";
 export type {
   EffectOfUser,
   EffectOfAgent,
@@ -48,19 +48,19 @@ export type {
   GetToolNamesFn,
   GetToolDefinitionsFn,
   UpdateUIFn,
-} from "./effects";
+} from "./types/effects";
 export type {
   State,
   Signal,
   Effect,
   StateForChannel,
   MakeRunEffectOptions,
-} from "./unified";
+} from "./types/unified";
 
 // ============================================================================
 // 导出常量
 // ============================================================================
-export { USER, AGENT, TOOLKIT } from "./participants";
+export { USER, AGENT, TOOLKIT } from "./types/topology";
 export {
   Channel_USER_AGENT,
   Channel_AGENT_TOOLKIT,
@@ -69,7 +69,7 @@ export {
   Channel_USER_USER,
   Channel_AGENT_AGENT,
   Channel_TOOLKIT_TOOLKIT,
-} from "./channels";
+} from "./types/topology";
 
 // ============================================================================
 // 导出 Schema（用于运行时验证）
@@ -83,7 +83,7 @@ export {
   outputFromAgentSchema,
   inputForToolkitSchema,
   outputFromToolkitSchema,
-} from "./io";
+} from "./types/signal";
 export {
   toolResultSuccessSchema,
   toolResultFailureSchema,
@@ -95,12 +95,12 @@ export {
   stateUserUserSchema,
   stateAgentAgentSchema,
   stateToolkitToolkitSchema,
-} from "./state";
+} from "./types/state";
 
 // ============================================================================
 // 导出工具函数
 // ============================================================================
-export { isValidChannel } from "./channels";
+export { isValidChannel } from "./types/topology";
 export {
   transitionUserAgent,
   transitionAgentToolkit,
@@ -112,23 +112,18 @@ export {
 } from "./transition";
 export {
   effectsAtForUser,
-  runEffectForUser,
   effectsAtForAgent,
-  runEffectForAgent,
   effectsAtForToolkit,
+} from "./effectsAt";
+export {
+  runEffectForUser,
+  runEffectForAgent,
   runEffectForToolkit,
-} from "./effects";
-export {
-  initial,
-  transition,
-  effectsAt,
-  makeRunEffect,
-  getStateForChannel,
-} from "./unified";
-export {
-  createTripletAgentMoorex,
-} from "./create-triplet-agent-moorex";
-export type {
-  CreateTripletAgentMoorexOptions,
-} from "./create-triplet-agent-moorex";
-
+} from "./runEffect";
+export { initial } from "./unified/initial";
+export { transition } from "./unified/transition";
+export { effectsAt } from "./unified/effectsAt";
+export { makeRunEffect } from "./unified/runEffect";
+export { getStateForChannel } from "./unified/state-for-channel";
+export { createTripletAgentMoorex } from "./create-triplet-agent-moorex";
+export type { CreateTripletAgentMoorexOptions } from "./create-triplet-agent-moorex";

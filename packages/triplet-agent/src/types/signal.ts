@@ -3,8 +3,8 @@
 // ============================================================================
 
 import { z } from "zod";
-import type { Participants } from "./participants";
-import { USER, AGENT, TOOLKIT } from "./participants";
+import type { Participants } from "./topology";
+import { USER, AGENT, TOOLKIT } from "./topology";
 
 // ============================================================================
 // 共享的消息类型定义
