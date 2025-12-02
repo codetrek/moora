@@ -27,6 +27,18 @@ export type {
   ChannelSource,
   ChannelTarget,
 } from "./channels";
+export type {
+  ToolResultSuccess,
+  ToolResultFailure,
+  ToolResult,
+  StateUserAgent,
+  StateAgentToolkit,
+  StateToolkitAgent,
+  StateAgentUser,
+  StateUserUser,
+  StateAgentAgent,
+  StateToolkitToolkit,
+} from "./state";
 
 // ============================================================================
 // 导出常量
@@ -55,9 +67,30 @@ export {
   inputForToolkitSchema,
   outputFromToolkitSchema,
 } from "./io";
+export {
+  toolResultSuccessSchema,
+  toolResultFailureSchema,
+  toolResultSchema,
+  stateUserAgentSchema,
+  stateAgentToolkitSchema,
+  stateToolkitAgentSchema,
+  stateAgentUserSchema,
+  stateUserUserSchema,
+  stateAgentAgentSchema,
+  stateToolkitToolkitSchema,
+} from "./state";
 
 // ============================================================================
 // 导出工具函数
 // ============================================================================
 export { isValidChannel } from "./channels";
+export {
+  transitionUserAgent,
+  transitionAgentToolkit,
+  transitionToolkitAgent,
+  transitionAgentUser,
+  transitionUserUser,
+  transitionAgentAgent,
+  transitionToolkitToolkit,
+} from "./transition";
 
