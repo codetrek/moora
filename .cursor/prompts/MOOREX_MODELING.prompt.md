@@ -381,6 +381,10 @@ export { transitionAgentToolkit } from "./agent-toolkit";
 - **runEffect 函数**：执行副作用，调用对应的异步 Actor，传递 State 和 dispatch 方法
 - runEffect 是带自动机状态的，可以从状态中获取的 properties 不需要进 Effect
 - **重要**：Effect 的 IO 类型（InputFor 和 OutputFrom）也定义在 effects.ts 中
+- **重要**：每个 Participant 的 runEffect 必须使用 `makeRunEffectForXxx` 模式，柯里化注入 options
+  - 定义 `StateForXxx` 类型：打包该 Participant 需要的所有 Channel State（所有入边 Channel 的 State）
+  - 定义 `MakeRunEffectForXxxOptions` 类型：包含该 Participant 需要的所有依赖注入
+  - 函数签名：`makeRunEffectForXxx: (options: MakeRunEffectForXxxOptions) => (effect: EffectOfXxx, state: StateForXxx, key: string) => EffectController<OutputFromXxx>`
 
 **涉及文件**：
 - `types/effects.ts` - 创建此文件，定义所有 Participant 的 Effect 类型，以及 Effect 相关的 IO 类型（InputFor 和 OutputFrom）
@@ -397,14 +401,25 @@ export { transitionAgentToolkit } from "./agent-toolkit";
 
 **输出**：
 - 每个 Participant 的 Effect 类型定义
+- 每个 Participant 的 `StateForXxx` 类型：打包该 Participant 需要的所有 Channel State
+- 每个 Participant 的 `MakeRunEffectForXxxOptions` 类型：包含该 Participant 需要的所有依赖注入
 - 每个 Participant 的 `effectsAtFor<P>` 函数：返回 Record<string, Effect>（表示要更新 UI 或触发异步操作）
-- 每个 Participant 的 `runEffectFor<P>` 函数：调用 render UI callback 或其他异步操作，传递 State 和 dispatch 方法
+- 每个 Participant 的 `makeRunEffectForXxx` 函数：柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数
 
 **示例**：
 ```typescript
 // types/effects.ts
 import type { Dispatch, EffectController } from "@moora/moorex";
 import type { OutputFromUser, OutputFromAgent, OutputFromToolkit } from "./signal";
+import type {
+  StateAgentUser,
+  StateUserUser,
+  StateUserAgent,
+  StateToolkitAgent,
+  StateAgentAgent,
+  StateAgentToolkit,
+  StateToolkitToolkit,
+} from "./state";
 
 // 为每个 Participant 定义极简的 Effect 类型
 // Effect 只包含无法从状态中获取的信息
@@ -414,22 +429,111 @@ export type EffectOfUser = {
 };
 
 export type EffectOfAgent = {
-  kind: "callLLM" | "callTool";
+  kind: "callLLM";
   // 不需要包含完整的 context，因为可以从 state 中获取
 };
 
 export type EffectOfToolkit = {
   kind: "executeTool";
-  // ... 其他 Effect 类型
+  toolCallId: string; // 需要知道执行哪个工具调用
 };
 
-// Effect 的 IO 类型（如果需要）
-export type EffectInputForUser = {
-  // Effect 执行时需要的输入
+// ============================================================================
+// Effect 相关的 IO 类型（依赖注入类型）
+// ============================================================================
+
+import type { Message, ToolDefinition } from "./signal";
+
+/**
+ * LLM 调用函数类型
+ */
+export type CallLLMFn = (
+  prompt: string,
+  tools: ToolDefinition[],
+  messages: Message[]
+) => Promise<LLMResponse>;
+
+/**
+ * LLM 响应类型
+ */
+export type LLMResponse =
+  | {
+      type: "message";
+      messageId: string;
+      chunks: AsyncIterable<string>;
+    }
+  | {
+      type: "toolCall";
+      toolCallId: string;
+      toolName: string;
+      parameters: string;
+    };
+
+/**
+ * 获取工具名称列表的函数类型
+ */
+export type GetToolNamesFn = () => Promise<string[]>;
+
+/**
+ * 获取工具定义的函数类型
+ */
+export type GetToolDefinitionsFn = (
+  names: string[]
+) => Promise<ToolDefinition[]>;
+
+/**
+ * 更新 UI 的回调函数类型
+ */
+export type UpdateUIFn = (
+  stateAgentUser: StateAgentUser,
+  dispatch: Dispatch<OutputFromUser>
+) => void;
+
+// ============================================================================
+// StateForXxx 和 MakeRunEffectForXxxOptions 类型定义
+// ============================================================================
+
+// User 节点的 StateForUser 类型（打包 User 需要的所有 Channel State）
+// User 的入边：Channel_AGENT_USER, Channel_USER_USER (loopback)
+export type StateForUser = {
+  agentUser: StateAgentUser;
+  userUser: StateUserUser;
 };
 
-export type EffectOutputFromUser = {
-  // Effect 执行后产生的输出
+// User 节点的 MakeRunEffectForUserOptions 类型
+export type MakeRunEffectForUserOptions = {
+  updateUI: UpdateUIFn;
+};
+
+// Agent 节点的 StateForAgent 类型（打包 Agent 需要的所有 Channel State）
+// Agent 的入边：Channel_USER_AGENT, Channel_TOOLKIT_AGENT, Channel_AGENT_AGENT (loopback)
+// 注意：也可能需要 Channel_AGENT_TOOLKIT 的 State（用于查找 tool call 请求信息）
+export type StateForAgent = {
+  userAgent: StateUserAgent;
+  toolkitAgent: StateToolkitAgent;
+  agentAgent: StateAgentAgent;
+  agentToolkit: StateAgentToolkit; // 用于查找 tool call 请求信息
+};
+
+// Agent 节点的 MakeRunEffectForAgentOptions 类型
+export type MakeRunEffectForAgentOptions = {
+  callLLM: CallLLMFn;
+  prompt: string;
+  getToolNames: GetToolNamesFn;
+  getToolDefinitions: GetToolDefinitionsFn;
+};
+
+// Toolkit 节点的 StateForToolkit 类型（打包 Toolkit 需要的所有 Channel State）
+// Toolkit 的入边：Channel_AGENT_TOOLKIT, Channel_TOOLKIT_TOOLKIT (loopback)
+export type StateForToolkit = {
+  agentToolkit: StateAgentToolkit;
+  toolkitToolkit: StateToolkitToolkit;
+};
+
+// Toolkit 节点的 MakeRunEffectForToolkitOptions 类型
+export type MakeRunEffectForToolkitOptions = {
+  getToolNames: GetToolNamesFn;
+  getToolDefinitions: GetToolDefinitionsFn;
 };
 
 // effectsAt/user.ts
@@ -452,31 +556,127 @@ export function effectsAtForUser(
   return effects;
 }
 
+
 // runEffect/user.ts
 import type { Dispatch, EffectController } from "@moora/moorex";
-import type { EffectOfUser } from "../types/effects";
-import type { StateAgentUser } from "../types/state";
+import type {
+  EffectOfUser,
+  MakeRunEffectForUserOptions,
+  StateForUser,
+} from "../types/effects";
 import type { OutputFromUser } from "../types/signal";
 
 /**
- * User 节点的 runEffect 函数
+ * User 节点的 makeRunEffectForUser 函数
  * 
- * 执行副作用，调用对应的异步 Actor。
+ * 柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数。
+ * 
+ * @param options - 包含所有需要注入的依赖
+ * @returns 符合 MoorexDefinition 要求的 runEffect 函数
  */
-export function runEffectForUser(
+export function makeRunEffectForUser(
+  options: MakeRunEffectForUserOptions
+): (
   effect: EffectOfUser,
-  state: StateAgentUser,
-  dispatch: Dispatch<OutputFromUser>,
-  updateUI: (state: StateAgentUser, dispatch: Dispatch<OutputFromUser>) => void
-): EffectController<OutputFromUser> {
-  return {
-    start: async (dispatch: Dispatch<OutputFromUser>) => {
-      // 调用 UI render callback，传递 state 和 dispatch
-      updateUI(state, dispatch);
-    },
-    cancel: () => {
-      // 清理 UI 资源
-    },
+  state: StateForUser,
+  key: string
+) => EffectController<OutputFromUser> {
+  return (
+    effect: EffectOfUser,
+    state: StateForUser,
+    key: string
+  ): EffectController<OutputFromUser> => {
+    return {
+      start: async (dispatch: Dispatch<OutputFromUser>) => {
+        // 调用 UI render callback，传递 state 和 dispatch
+        options.updateUI(state.agentUser, dispatch);
+      },
+      cancel: () => {
+        // 清理 UI 资源
+      },
+    };
+  };
+}
+
+// runEffect/agent.ts
+import type { Dispatch, EffectController } from "@moora/moorex";
+import type {
+  EffectOfAgent,
+  MakeRunEffectForAgentOptions,
+  StateForAgent,
+} from "../types/effects";
+import type { OutputFromAgent } from "../types/signal";
+
+/**
+ * Agent 节点的 makeRunEffectForAgent 函数
+ * 
+ * 柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数。
+ * 
+ * @param options - 包含所有需要注入的依赖
+ * @returns 符合 MoorexDefinition 要求的 runEffect 函数
+ */
+export function makeRunEffectForAgent(
+  options: MakeRunEffectForAgentOptions
+): (
+  effect: EffectOfAgent,
+  state: StateForAgent,
+  key: string
+) => EffectController<OutputFromAgent> {
+  return (
+    effect: EffectOfAgent,
+    state: StateForAgent,
+    key: string
+  ): EffectController<OutputFromAgent> => {
+    return {
+      start: async (dispatch: Dispatch<OutputFromAgent>) => {
+        // 从 state 中获取完整信息，调用 LLM API，根据响应 dispatch 相应的 Output
+        // 实现逻辑...
+      },
+      cancel: () => {
+        // 取消 LLM 调用
+      },
+    };
+  };
+}
+
+// runEffect/toolkit.ts
+import type { Dispatch, EffectController } from "@moora/moorex";
+import type {
+  EffectOfToolkit,
+  MakeRunEffectForToolkitOptions,
+  StateForToolkit,
+} from "../types/effects";
+import type { OutputFromToolkit } from "../types/signal";
+
+/**
+ * Toolkit 节点的 makeRunEffectForToolkit 函数
+ * 
+ * 柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数。
+ * 
+ * @param options - 包含所有需要注入的依赖
+ * @returns 符合 MoorexDefinition 要求的 runEffect 函数
+ */
+export function makeRunEffectForToolkit(
+  options: MakeRunEffectForToolkitOptions
+): (
+  effect: EffectOfToolkit,
+  state: StateForToolkit,
+  key: string
+) => EffectController<OutputFromToolkit> {
+  return (
+    effect: EffectOfToolkit,
+    state: StateForToolkit,
+    key: string
+  ): EffectController<OutputFromToolkit> => {
+    return {
+      start: async (dispatch: Dispatch<OutputFromToolkit>) => {
+        // 从 state 中获取工具调用信息，执行工具，dispatch 结果
+        // 实现逻辑...
+      },
+      cancel: () => {
+        // 取消工具执行
+      },
+    };
   };
 }
 
@@ -486,9 +686,9 @@ export { effectsAtForAgent } from "./agent";
 export { effectsAtForToolkit } from "./toolkit";
 
 // runEffect/index.ts
-export { runEffectForUser } from "./user";
-export { runEffectForAgent } from "./agent";
-export { runEffectForToolkit } from "./toolkit";
+export { makeRunEffectForUser } from "./user";
+export { makeRunEffectForAgent } from "./agent";
+export { makeRunEffectForToolkit } from "./toolkit";
 ```
 
 **⚠️ 完成此步骤后，必须：**
@@ -543,7 +743,8 @@ export { runEffectForToolkit } from "./toolkit";
     ) => EffectController<Input>;
   };
   ```
-- **重要**：`runEffect` 函数往往需要注入依赖（如 LLM client、tool executor、UI render callback 等），这些依赖应该通过柯里化的方式传入。定义 `makeRunEffectForXxx` 函数，接收一个 options 对象，返回符合 `MoorexDefinition` 要求的 `runEffect` 函数
+- **重要**：`runEffect` 函数往往需要注入依赖（如 LLM client、tool executor、UI render callback 等），这些依赖应该通过柯里化的方式传入
+- **重要**：在步骤 5 中，每个 Participant 的 runEffect 已经使用 `makeRunEffectForXxx` 模式。在步骤 6 中，`makeRunEffect` 函数需要调用这些 `makeRunEffectForXxx` 函数，并传入对应的 options 和从全局 State 提取的 `StateForXxx`
 
 **输出**：
 - 统一的 `State` 类型（所有 Channel State 的合并）
@@ -626,22 +827,95 @@ export function effectsAt(state: State): Record<string, Effect> {
 // unified/runEffect.ts
 import type { EffectController, Dispatch } from "@moora/moorex";
 import type { Effect, Signal, State } from "../types/unified";
-import { runEffectForUser, runEffectForAgent, runEffectForToolkit } from "../runEffect";
+import type {
+  EffectOfUser,
+  EffectOfAgent,
+  EffectOfToolkit,
+  MakeRunEffectForUserOptions,
+  MakeRunEffectForAgentOptions,
+  MakeRunEffectForToolkitOptions,
+  StateForUser,
+  StateForAgent,
+  StateForToolkit,
+} from "../types/effects";
+import {
+  makeRunEffectForUser,
+  makeRunEffectForAgent,
+  makeRunEffectForToolkit,
+} from "../runEffect";
 
-export type MakeRunEffectOptions = {
-  renderUI: (state: StateUserAgent, dispatch: Dispatch<OutputFromUser>) => void;
-  llmClient: { call: (context: LLMContext) => Promise<LLMResponse> };
-  toolExecutor: { execute: (toolName: string, args: Record<string, unknown>) => Promise<string> };
-  // ... 其他依赖
-};
+/**
+ * makeRunEffect 函数选项
+ * 
+ * 包含所有 Participant 需要的依赖注入选项。
+ */
+export type MakeRunEffectOptions = MakeRunEffectForUserOptions &
+  MakeRunEffectForAgentOptions &
+  MakeRunEffectForToolkitOptions;
 
+/**
+ * makeRunEffect 函数
+ * 
+ * 柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数。
+ * 根据 Effect 的类型，调用对应的 makeRunEffectForXxx 函数。
+ * 
+ * @param options - 包含所有需要注入的依赖
+ * @returns 符合 MoorexDefinition 要求的 runEffect 函数
+ */
 export function makeRunEffect(
   options: MakeRunEffectOptions
 ): (effect: Effect, state: State, key: string) => EffectController<Signal> {
+  // 为每个 Participant 创建对应的 makeRunEffectForXxx 函数实例
+  const runEffectForUser = makeRunEffectForUser({
+    updateUI: options.updateUI,
+  });
+
+  const runEffectForAgent = makeRunEffectForAgent({
+    callLLM: options.callLLM,
+    prompt: options.prompt,
+    getToolNames: options.getToolNames,
+    getToolDefinitions: options.getToolDefinitions,
+  });
+
+  const runEffectForToolkit = makeRunEffectForToolkit({
+    getToolNames: options.getToolNames,
+    getToolDefinitions: options.getToolDefinitions,
+  });
+
   return (effect: Effect, state: State, key: string): EffectController<Signal> => {
-    // 根据 effect.kind 判断类型
-    // 调用对应的 runEffectFor<P> 函数，传递必要的 state 和 dispatch
-    // 返回 EffectController，包含 start 和 cancel 方法
+    if (effect.kind === "updateUI") {
+      // 从全局 State 提取 StateForUser
+      const stateForUser: StateForUser = {
+        agentUser: state.agentUser,
+        userUser: state.userUser,
+      };
+      // 调用 makeRunEffectForUser 返回的函数
+      return runEffectForUser(effect as EffectOfUser, stateForUser, key);
+    }
+
+    if (effect.kind === "callLLM") {
+      // 从全局 State 提取 StateForAgent
+      const stateForAgent: StateForAgent = {
+        userAgent: state.userAgent,
+        toolkitAgent: state.toolkitAgent,
+        agentAgent: state.agentAgent,
+        agentToolkit: state.agentToolkit,
+      };
+      // 调用 makeRunEffectForAgent 返回的函数
+      return runEffectForAgent(effect as EffectOfAgent, stateForAgent, key);
+    }
+
+    if (effect.kind === "executeTool") {
+      // 从全局 State 提取 StateForToolkit
+      const stateForToolkit: StateForToolkit = {
+        agentToolkit: state.agentToolkit,
+        toolkitToolkit: state.toolkitToolkit,
+      };
+      // 调用 makeRunEffectForToolkit 返回的函数
+      return runEffectForToolkit(effect as EffectOfToolkit, stateForToolkit, key);
+    }
+
+    throw new Error(`Unknown effect kind: ${(effect as Effect).kind}`);
   };
 }
 ```

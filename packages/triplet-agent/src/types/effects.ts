@@ -4,7 +4,15 @@
 
 import type { Dispatch } from "@moora/moorex";
 import type { OutputFromUser } from "./signal";
-import type { StateAgentUser } from "./state";
+import type {
+  StateAgentUser,
+  StateUserUser,
+  StateUserAgent,
+  StateToolkitAgent,
+  StateAgentAgent,
+  StateAgentToolkit,
+  StateToolkitToolkit,
+} from "./state";
 import type { Message, ToolDefinition } from "./signal";
 
 // ============================================================================
@@ -101,4 +109,66 @@ export type UpdateUIFn = (
   stateAgentUser: StateAgentUser,
   dispatch: Dispatch<OutputFromUser>
 ) => void;
+
+// ============================================================================
+// StateForXxx 和 MakeRunEffectForXxxOptions 类型定义
+// ============================================================================
+
+/**
+ * User 节点的 StateForUser 类型（打包 User 需要的所有 Channel State）
+ * 
+ * User 的入边：Channel_AGENT_USER, Channel_USER_USER (loopback)
+ */
+export type StateForUser = {
+  agentUser: StateAgentUser;
+  userUser: StateUserUser;
+};
+
+/**
+ * User 节点的 MakeRunEffectForUserOptions 类型
+ */
+export type MakeRunEffectForUserOptions = {
+  updateUI: UpdateUIFn;
+};
+
+/**
+ * Agent 节点的 StateForAgent 类型（打包 Agent 需要的所有 Channel State）
+ * 
+ * Agent 的入边：Channel_USER_AGENT, Channel_TOOLKIT_AGENT, Channel_AGENT_AGENT (loopback)
+ * 注意：也可能需要 Channel_AGENT_TOOLKIT 的 State（用于查找 tool call 请求信息）
+ */
+export type StateForAgent = {
+  userAgent: StateUserAgent;
+  toolkitAgent: StateToolkitAgent;
+  agentAgent: StateAgentAgent;
+  agentToolkit: StateAgentToolkit; // 用于查找 tool call 请求信息
+};
+
+/**
+ * Agent 节点的 MakeRunEffectForAgentOptions 类型
+ */
+export type MakeRunEffectForAgentOptions = {
+  callLLM: CallLLMFn;
+  prompt: string;
+  getToolNames: GetToolNamesFn;
+  getToolDefinitions: GetToolDefinitionsFn;
+};
+
+/**
+ * Toolkit 节点的 StateForToolkit 类型（打包 Toolkit 需要的所有 Channel State）
+ * 
+ * Toolkit 的入边：Channel_AGENT_TOOLKIT, Channel_TOOLKIT_TOOLKIT (loopback)
+ */
+export type StateForToolkit = {
+  agentToolkit: StateAgentToolkit;
+  toolkitToolkit: StateToolkitToolkit;
+};
+
+/**
+ * Toolkit 节点的 MakeRunEffectForToolkitOptions 类型
+ */
+export type MakeRunEffectForToolkitOptions = {
+  getToolNames: GetToolNamesFn;
+  getToolDefinitions: GetToolDefinitionsFn;
+};
 

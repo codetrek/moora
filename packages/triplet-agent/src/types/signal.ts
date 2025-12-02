@@ -12,10 +12,15 @@ import { USER, AGENT, TOOLKIT } from "./topology";
 
 /**
  * 消息 Schema（User 和 Agent 共用）
+ * 
+ * 支持三种角色：
+ * - user: 用户消息
+ * - assistant: 助手消息（包括工具调用请求）
+ * - tool: 工具执行结果消息
  */
 export const messageSchema = z.object({
   id: z.string(),
-  role: z.enum(["user", "assistant"]),
+  role: z.enum(["user", "assistant", "tool"]),
   content: z.string(),
   timestamp: z.number(),
 });

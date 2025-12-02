@@ -2,7 +2,7 @@
 // 导出所有 runEffect 函数
 // ============================================================================
 
-export { runEffectForUser } from "./user";
-export { runEffectForAgent } from "./agent";
-export { runEffectForToolkit } from "./toolkit";
+export { makeRunEffectForUser } from "./user";
+export { makeRunEffectForAgent } from "./agent";
+export { makeRunEffectForToolkit } from "./toolkit";
 

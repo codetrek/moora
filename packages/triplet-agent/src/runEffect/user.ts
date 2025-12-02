@@ -1,37 +1,44 @@
 // ============================================================================
-// User 节点的 runEffect 函数
+// User 节点的 makeRunEffectForUser 函数
 // ============================================================================
 
 import type { Dispatch, EffectController } from "@moora/moorex";
-import type { EffectOfUser } from "../types/effects";
-import type { StateAgentUser } from "../types/state";
+import type {
+  EffectOfUser,
+  MakeRunEffectForUserOptions,
+  StateForUser,
+} from "../types/effects";
 import type { OutputFromUser } from "../types/signal";
-import type { UpdateUIFn } from "../types/effects";
 
 /**
- * User 节点的 runEffect 函数
+ * User 节点的 makeRunEffectForUser 函数
  * 
- * 执行副作用，调用 UI render callback，传递 State 和 dispatch 方法。
+ * 柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数。
  * 
- * @param effect - Effect 实例（极简，只包含必要信息）
- * @param stateAgentUser - Channel AGENT -> USER 的 State（包含完整的 UI 状态）
- * @param dispatch - Dispatch 函数，用于发送 OutputFromUser
- * @param updateUI - 注入的更新 UI 回调函数
+ * @param options - 包含所有需要注入的依赖
+ * @returns 符合 MoorexDefinition 要求的 runEffect 函数
  */
-export function runEffectForUser(
+export function makeRunEffectForUser(
+  options: MakeRunEffectForUserOptions
+): (
   effect: EffectOfUser,
-  stateAgentUser: StateAgentUser,
-  dispatch: Dispatch<OutputFromUser>,
-  updateUI: UpdateUIFn
-): EffectController<OutputFromUser> {
-  return {
-    start: async () => {
-      // 调用 UI render callback，传递 state 和 dispatch
-      updateUI(stateAgentUser, dispatch);
-    },
-    cancel: () => {
-      // 清理 UI 资源（如果需要）
-    },
+  state: StateForUser,
+  key: string
+) => EffectController<OutputFromUser> {
+  return (
+    effect: EffectOfUser,
+    state: StateForUser,
+    key: string
+  ): EffectController<OutputFromUser> => {
+    return {
+      start: async (dispatch: Dispatch<OutputFromUser>) => {
+        // 调用 UI render callback，传递 state 和 dispatch
+        options.updateUI(state.agentUser, dispatch);
+      },
+      cancel: () => {
+        // 清理 UI 资源（如果需要）
+      },
+    };
   };
 }
 

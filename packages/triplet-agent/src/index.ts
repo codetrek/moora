@@ -48,6 +48,12 @@ export type {
   GetToolNamesFn,
   GetToolDefinitionsFn,
   UpdateUIFn,
+  StateForUser,
+  StateForAgent,
+  StateForToolkit,
+  MakeRunEffectForUserOptions,
+  MakeRunEffectForAgentOptions,
+  MakeRunEffectForToolkitOptions,
 } from "./types/effects";
 export type {
   State,
@@ -116,9 +122,9 @@ export {
   effectsAtForToolkit,
 } from "./effectsAt";
 export {
-  runEffectForUser,
-  runEffectForAgent,
-  runEffectForToolkit,
+  makeRunEffectForUser,
+  makeRunEffectForAgent,
+  makeRunEffectForToolkit,
 } from "./runEffect";
 export { initial } from "./unified/initial";
 export { transition } from "./unified/transition";

@@ -111,22 +111,17 @@ export type StateForChannel<C extends Channel> =
 // ============================================================================
 
 import type {
-  CallLLMFn,
-  GetToolNamesFn,
-  GetToolDefinitionsFn,
-  UpdateUIFn,
+  MakeRunEffectForUserOptions,
+  MakeRunEffectForAgentOptions,
+  MakeRunEffectForToolkitOptions,
 } from "./effects";
 
 /**
- * makeRunEffect 函数选项（不包含 dispatch）
+ * makeRunEffect 函数选项
  * 
- * 包含所有需要注入的依赖（dispatch 在 EffectController.start 中提供）。
+ * 包含所有 Participant 需要的依赖注入选项。
  */
-export type MakeRunEffectOptions = {
-  updateUI: UpdateUIFn;
-  callLLM: CallLLMFn;
-  prompt: string;
-  getToolNames: GetToolNamesFn;
-  getToolDefinitions: GetToolDefinitionsFn;
-};
+export type MakeRunEffectOptions = MakeRunEffectForUserOptions &
+  MakeRunEffectForAgentOptions &
+  MakeRunEffectForToolkitOptions;
 

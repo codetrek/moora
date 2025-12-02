@@ -1,111 +1,129 @@
 // ============================================================================
-// Agent 节点的 runEffect 函数
+// Agent 节点的 makeRunEffectForAgent 函数
 // ============================================================================
 
 import type { Dispatch, EffectController } from "@moora/moorex";
-import type { EffectOfAgent } from "../types/effects";
-import type { StateUserAgent, StateToolkitAgent } from "../types/state";
-import type { OutputFromAgent } from "../types/signal";
 import type {
-  CallLLMFn,
-  GetToolNamesFn,
-  GetToolDefinitionsFn,
+  EffectOfAgent,
+  MakeRunEffectForAgentOptions,
+  StateForAgent,
 } from "../types/effects";
+import type { OutputFromAgent } from "../types/signal";
 import type { Message } from "../types/signal";
 
 /**
- * Agent 节点的 runEffect 函数
+ * Agent 节点的 makeRunEffectForAgent 函数
  * 
- * 执行副作用，调用 LLM API，传递完整的 context 和 dispatch 方法。
+ * 柯里化函数，接收 options，返回符合 MoorexDefinition 要求的 runEffect 函数。
  * 
- * @param effect - Effect 实例（极简）
- * @param stateUserAgent - Channel USER -> AGENT 的 State
- * @param stateToolkitAgent - Channel TOOLKIT -> AGENT 的 State
- * @param dispatch - Dispatch 函数，用于发送 OutputFromAgent
- * @param callLLM - 注入的 LLM 调用函数
- * @param prompt - 系统提示词
- * @param getToolNames - 注入的获取工具名称列表的函数
- * @param getToolDefinitions - 注入的获取工具定义的函数
+ * @param options - 包含所有需要注入的依赖
+ * @returns 符合 MoorexDefinition 要求的 runEffect 函数
  */
-export function runEffectForAgent(
+export function makeRunEffectForAgent(
+  options: MakeRunEffectForAgentOptions
+): (
   effect: EffectOfAgent,
-  stateUserAgent: StateUserAgent,
-  stateToolkitAgent: StateToolkitAgent,
-  dispatch: Dispatch<OutputFromAgent>,
-  callLLM: CallLLMFn,
-  prompt: string,
-  getToolNames: GetToolNamesFn,
-  getToolDefinitions: GetToolDefinitionsFn
-): EffectController<OutputFromAgent> {
-  return {
-    start: async () => {
-      // 获取工具名称列表
-      const toolNames = await getToolNames();
-      // 获取工具定义
-      const tools = await getToolDefinitions(toolNames);
+  state: StateForAgent,
+  key: string
+) => EffectController<OutputFromAgent> {
+  return (
+    effect: EffectOfAgent,
+    state: StateForAgent,
+    key: string
+  ): EffectController<OutputFromAgent> => {
+    return {
+      start: async (dispatch: Dispatch<OutputFromAgent>) => {
+        // 获取工具名称列表
+        const toolNames = await options.getToolNames();
+        // 获取工具定义
+        const tools = await options.getToolDefinitions(toolNames);
 
-      // 构建 messages：包含 user messages 和 tool messages
-      const messages: Message[] = [];
+        // 构建 messages：包含 user messages 和 tool messages
+        const messages: Message[] = [];
 
-      // 添加用户消息
-      for (const userMsg of stateUserAgent.userMessages) {
-        messages.push({
-          id: userMsg.id,
-          role: "user",
-          content: userMsg.content,
-          timestamp: userMsg.timestamp,
-        });
-      }
-
-      // 将工具执行结果整合为 tool messages（格式：tool message）
-      for (const toolResult of stateToolkitAgent.toolResults) {
-        if (toolResult.isSuccess) {
+        // 添加用户消息
+        for (const userMsg of state.userAgent.userMessages) {
           messages.push({
-            id: `tool-${toolResult.toolCallId}`,
-            role: "assistant", // tool message 使用 assistant role
-            content: `Tool ${toolResult.toolName} result: ${toolResult.result}`,
-            timestamp: toolResult.timestamp,
+            id: userMsg.id,
+            role: "user",
+            content: userMsg.content,
+            timestamp: userMsg.timestamp,
+          });
+        }
+
+        // 将工具执行结果整合为 tool messages
+        // 对于每个 tool result，需要添加两条消息：
+        // 1. assistant 消息：模拟 assistant request for tool call
+        // 2. tool 消息：工具执行结果（role: 'tool'）
+        for (const toolResult of state.toolkitAgent.toolResults) {
+          // 查找对应的 tool call 请求（从 pendingToolCalls 或已执行的 tool calls 中查找）
+          // 如果找不到，使用 toolResult 中的信息来构建
+          const toolCall = state.agentToolkit.pendingToolCalls.find(
+            (tc) => tc.toolCallId === toolResult.toolCallId
+          );
+
+          // 1. 添加 assistant 消息：模拟 assistant request for tool call
+          // 这条消息表示 assistant 请求调用工具
+          const assistantMessageId = `assistant-tool-call-${toolResult.toolCallId}`;
+          const toolCallContent = toolCall
+            ? `Tool call: ${toolResult.toolName}(${toolCall.parameters})`
+            : `Tool call: ${toolResult.toolName} (toolCallId: ${toolResult.toolCallId})`;
+          messages.push({
+            id: assistantMessageId,
+            role: "assistant",
+            content: toolCallContent,
+            timestamp: toolResult.timestamp - 1, // 确保在 tool 消息之前
+          });
+
+          // 2. 添加 tool 消息：工具执行结果（role: 'tool'）
+          if (toolResult.isSuccess) {
+            messages.push({
+              id: `tool-${toolResult.toolCallId}`,
+              role: "tool",
+              content: toolResult.result,
+              timestamp: toolResult.timestamp,
+            });
+          } else {
+            messages.push({
+              id: `tool-error-${toolResult.toolCallId}`,
+              role: "tool",
+              content: `Error: ${toolResult.error}`,
+              timestamp: toolResult.timestamp,
+            });
+          }
+        }
+
+        // 调用 LLM API
+        const response = await options.callLLM(options.prompt, tools, messages);
+
+        // 根据响应 dispatch 相应的 Output
+        if (response.type === "toolCall") {
+          dispatch({
+            type: "callTool",
+            toolCallId: response.toolCallId,
+            toolName: response.toolName,
+            parameters: response.parameters,
           });
         } else {
-          messages.push({
-            id: `tool-error-${toolResult.toolCallId}`,
-            role: "assistant",
-            content: `Tool ${toolResult.toolName} error: ${toolResult.error}`,
-            timestamp: toolResult.timestamp,
-          });
-        }
-      }
-
-      // 调用 LLM API
-      const response = await callLLM(prompt, tools, messages);
-
-      // 根据响应 dispatch 相应的 Output
-      if (response.type === "toolCall") {
-        dispatch({
-          type: "callTool",
-          toolCallId: response.toolCallId,
-          toolName: response.toolName,
-          parameters: response.parameters,
-        });
-      } else {
-        // 流式输出消息
-        const messageId = response.messageId;
-        for await (const chunk of response.chunks) {
+          // 流式输出消息
+          const messageId = response.messageId;
+          for await (const chunk of response.chunks) {
+            dispatch({
+              type: "sendChunk",
+              messageId,
+              chunk,
+            });
+          }
           dispatch({
-            type: "sendChunk",
+            type: "completeMessage",
             messageId,
-            chunk,
           });
         }
-        dispatch({
-          type: "completeMessage",
-          messageId,
-        });
-      }
-    },
-    cancel: () => {
-      // 取消 LLM 调用（如果需要）
-    },
+      },
+      cancel: () => {
+        // 取消 LLM 调用（如果需要）
+      },
+    };
   };
 }
 
