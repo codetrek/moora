@@ -25,25 +25,98 @@
 精巧模型便在手 (7)
 ```
 
+## 文件结构规范
+
+**重要：所有生成的内容必须按照以下文件结构组织**
+
+### 目录结构
+
+```
+<target-directory>/
+├── types/                          # 类型定义文件夹
+│   ├── topology.ts                 # Participants 和 Channels 定义
+│   ├── state.ts                    # 各 Channel 的 State 类型定义
+│   ├── signal.ts                   # Signal 类型定义（各 Participant Output 的 union）
+│   ├── effects.ts                  # Effect 类型定义（包含各个 effect 的 IO）
+│   └── unified.ts                  # 统合的类型定义（全局 State、Signal、Effect）
+├── transition/                     # transition 函数文件夹（按 Channel 分文件）
+│   ├── user-agent.ts               # Channel USER -> AGENT 的 transition
+│   ├── agent-toolkit.ts            # Channel AGENT -> TOOLKIT 的 transition
+│   ├── toolkit-agent.ts            # Channel TOOLKIT -> AGENT 的 transition
+│   ├── agent-user.ts               # Channel AGENT -> USER 的 transition
+│   ├── user-user.ts                # Channel USER -> USER (Loopback) 的 transition
+│   ├── agent-agent.ts              # Channel AGENT -> AGENT (Loopback) 的 transition
+│   ├── toolkit-toolkit.ts          # Channel TOOLKIT -> TOOLKIT (Loopback) 的 transition
+│   └── index.ts                    # 导出所有 transition 函数
+├── effectsAt/                      # effectsAt 函数文件夹（按 Participant 分文件）
+│   ├── user.ts                     # User 节点的 effectsAt
+│   ├── agent.ts                    # Agent 节点的 effectsAt
+│   ├── toolkit.ts                  # Toolkit 节点的 effectsAt
+│   └── index.ts                    # 导出所有 effectsAt 函数
+├── runEffect/                      # runEffect 函数文件夹（按 Participant 分文件）
+│   ├── user.ts                     # User 节点的 runEffect
+│   ├── agent.ts                    # Agent 节点的 runEffect
+│   ├── toolkit.ts                  # Toolkit 节点的 runEffect
+│   └── index.ts                    # 导出所有 runEffect 函数
+├── unified/                        # 统合函数文件夹
+│   ├── initial.ts                  # initial 函数
+│   ├── transition.ts               # 统合的 transition 函数
+│   ├── effectsAt.ts                # 统合的 effectsAt 函数
+│   ├── runEffect.ts               # 统合的 runEffect 函数（makeRunEffect）
+│   └── state-for-channel.ts        # getStateForChannel 函数
+└── create-xxx-moorex.ts            # 工厂函数（步骤 7 创建）
+```
+
+### 文件组织原则
+
+1. **类型定义集中管理**：所有类型定义放在 `types/` 文件夹中
+2. **实现按功能分离**：transition、effectsAt、runEffect 分别建立文件夹
+3. **按维度分文件**：
+   - transition 按 Channel 分文件（每个 Channel 一个文件）
+   - effectsAt 和 runEffect 按 Participant 分文件（每个 Participant 一个文件）
+4. **统合逻辑独立**：unified 文件夹包含所有统合后的函数
+5. **每个文件夹都有 index.ts**：用于导出该文件夹的所有内容
+
+### 目标目录确定
+
+- **独立 package**：如果是在独立的 package 中，所有内容放在 `packages/<package-name>/src/` 目录下
+- **用户指定路径**：如果用户指定了路径，按照用户指定的路径创建文件结构
+
+### 步骤与文件映射表
+
+| 步骤 | 涉及文件 | 说明 |
+|------|---------|------|
+| 步骤 1：对节点 | `types/topology.ts` | 定义 Participants 常量类型 |
+| 步骤 2：理 I/O | `types/signal.ts` | 定义所有 Participant 的 InputFor 和 OutputFrom 类型 |
+| 步骤 3：识别单向数据流 | `types/topology.ts` | 在步骤 1 的基础上添加 Channel 定义 |
+| 步骤 4：聚焦通道关注点 | `types/state.ts`<br>`transition/*.ts`<br>`transition/index.ts` | 定义各 Channel 的 State 类型和 transition 函数 |
+| 步骤 5：节点状态推着走 | `types/effects.ts`<br>`effectsAt/*.ts`<br>`effectsAt/index.ts`<br>`runEffect/*.ts`<br>`runEffect/index.ts` | 定义 Effect 类型、effectsAt 和 runEffect 函数 |
+| 步骤 6：最后统合去冗余 | `types/unified.ts`<br>`unified/initial.ts`<br>`unified/transition.ts`<br>`unified/effectsAt.ts`<br>`unified/runEffect.ts`<br>`unified/state-for-channel.ts` | 统合全局类型和函数 |
+| 步骤 7：精巧模型便在手 | `create-xxx-moorex.ts` | 创建工厂函数 |
+
 ## 实施流程
 
 **重要：AI Agent 必须严格按照以下流程执行**
 
 ### 开始前的准备
 
-1. **创建初始检查清单**：
+1. **确定目标目录**：
+   - 询问用户目标目录，或根据上下文确定（独立 package 的 `/src` 或用户指定路径）
+   - 创建完整的文件夹结构（types、transition、effectsAt、runEffect、unified）
+
+2. **创建初始检查清单**：
    - 在开始建模前，AI Agent 必须先创建一个包含所有 7 个步骤的检查清单
    - 使用 `todo_write` 工具创建任务列表，每个步骤作为一个独立任务
    - 检查清单应该包含每个步骤的预期输出和完成标准
 
-2. **逐步执行**：
+3. **逐步执行**：
    - **必须严格按照步骤顺序执行**，不能跳过或合并步骤
    - 每完成一个步骤，必须：
      1. 更新检查清单，标记当前步骤为完成
      2. **暂停执行**，等待用户审查和确认
      3. 只有在用户明确确认后，才能继续下一步
 
-3. **审查要点**：
+4. **审查要点**：
    - 每步完成后，向用户展示：
      - 该步骤的输出结果
      - 是否符合预期
@@ -70,12 +143,16 @@
 - 明确每个节点的职责和边界
 - **重要**：所有节点都应该是业务层面的概念，而不是技术架构层面的概念（如数据库、缓存、消息队列等）
 
+**涉及文件**：
+- `types/topology.ts` - 创建此文件，定义 Participants 常量类型
+
 **输出**：
 - String enum 类型：`type Participants = typeof USER | typeof AGENT | typeof TOOLKIT`
 - 参与者常量定义
 
 **示例**：
 ```typescript
+// types/topology.ts
 const USER = "user";
 const AGENT = "agent";
 const TOOLKIT = "toolkit";
@@ -101,6 +178,9 @@ type Participants = typeof USER | typeof AGENT | typeof TOOLKIT;
 - 所有类型必须使用 **Zod@4 Schema** 定义
 - 定义工具类型用于类型推导
 
+**涉及文件**：
+- `types/signal.ts` - 创建此文件，定义所有 Participant 的 InputFor 和 OutputFrom 类型（使用 Zod Schema），以及工具类型
+
 **输出**：
 - 每个参与者的 `InputFor<P>` 类型（使用 Zod@4 Schema）
 - 每个参与者的 `OutputFrom<P>` 类型（使用 Zod@4 Schema）
@@ -110,28 +190,31 @@ type Participants = typeof USER | typeof AGENT | typeof TOOLKIT;
 
 **示例**：
 ```typescript
+// types/signal.ts
 import { z } from "zod";
+import type { Participants } from "./topology";
+import { USER, AGENT, TOOLKIT } from "./topology";
 
 // 为每个 Participant 定义 InputFor 和 OutputFrom 的 Zod Schema
 // InputForUser: UI State（如 messages 列表）
 const inputForUserSchema = z.object({ /* ... */ });
-type InputForUser = z.infer<typeof inputForUserSchema>;
+export type InputForUser = z.infer<typeof inputForUserSchema>;
 
 // OutputFromUser: User Actions（如 sendMessage, cancelStreaming）
 const outputFromUserSchema = z.discriminatedUnion("type", [ /* ... */ ]);
-type OutputFromUser = z.infer<typeof outputFromUserSchema>;
+export type OutputFromUser = z.infer<typeof outputFromUserSchema>;
 
 // 类似地为其他 Participant 定义 I/O Schema
 // InputForAgent, OutputFromAgent, InputForToolkit, OutputFromToolkit...
 
 // 工具类型：根据 Participant 类型推导对应的 Input/Output
-type InputFor<P extends Participants> = 
+export type InputFor<P extends Participants> = 
   P extends typeof USER ? InputForUser :
   P extends typeof AGENT ? InputForAgent :
   P extends typeof TOOLKIT ? InputForToolkit :
   never;
 
-type OutputFrom<P extends Participants> = 
+export type OutputFrom<P extends Participants> = 
   P extends typeof USER ? OutputFromUser :
   P extends typeof AGENT ? OutputFromAgent :
   P extends typeof TOOLKIT ? OutputFromToolkit :
@@ -157,6 +240,9 @@ type OutputFrom<P extends Participants> =
   - 这对于状态机的状态迭代和自反馈机制至关重要
 - 定义 Channel 类型和常量
 
+**涉及文件**：
+- `types/topology.ts` - 更新此文件，添加 Channel 常量定义和类型（在步骤 1 的基础上）
+
 **输出**：
 - Channel 常量定义：`const Channel_USER_AGENT = { source: USER, target: AGENT }`
 - Loopback Channel 常量定义：`const Channel_USER_USER = { source: USER, target: USER }`
@@ -165,28 +251,31 @@ type OutputFrom<P extends Participants> =
 
 **示例**：
 ```typescript
+// types/topology.ts（在步骤 1 的基础上添加）
+// ... 步骤 1 的 Participants 定义 ...
+
 // Channel 常量定义（节点间通道）
-const Channel_USER_AGENT = { source: USER, target: AGENT };
-const Channel_AGENT_TOOLKIT = { source: AGENT, target: TOOLKIT };
-const Channel_TOOLKIT_AGENT = { source: TOOLKIT, target: AGENT };
-const Channel_AGENT_USER = { source: AGENT, target: USER };
+export const Channel_USER_AGENT = { source: USER, target: AGENT } as const;
+export const Channel_AGENT_TOOLKIT = { source: AGENT, target: TOOLKIT } as const;
+export const Channel_TOOLKIT_AGENT = { source: TOOLKIT, target: AGENT } as const;
+export const Channel_AGENT_USER = { source: AGENT, target: USER } as const;
 
 // Loopback Channel 常量定义（自环通道）
-const Channel_USER_USER = { source: USER, target: USER };
-const Channel_AGENT_AGENT = { source: AGENT, target: AGENT };
-const Channel_TOOLKIT_TOOLKIT = { source: TOOLKIT, target: TOOLKIT };
+export const Channel_USER_USER = { source: USER, target: USER } as const;
+export const Channel_AGENT_AGENT = { source: AGENT, target: AGENT } as const;
+export const Channel_TOOLKIT_TOOLKIT = { source: TOOLKIT, target: TOOLKIT } as const;
 
 // Channel 类型定义
-type ChannelUserAgent = typeof Channel_USER_AGENT;
-type ChannelAgentToolkit = typeof Channel_AGENT_TOOLKIT;
-type ChannelToolkitAgent = typeof Channel_TOOLKIT_AGENT;
-type ChannelAgentUser = typeof Channel_AGENT_USER;
-type ChannelUserUser = typeof Channel_USER_USER;
-type ChannelAgentAgent = typeof Channel_AGENT_AGENT;
-type ChannelToolkitToolkit = typeof Channel_TOOLKIT_TOOLKIT;
+export type ChannelUserAgent = typeof Channel_USER_AGENT;
+export type ChannelAgentToolkit = typeof Channel_AGENT_TOOLKIT;
+export type ChannelToolkitAgent = typeof Channel_TOOLKIT_AGENT;
+export type ChannelAgentUser = typeof Channel_AGENT_USER;
+export type ChannelUserUser = typeof Channel_USER_USER;
+export type ChannelAgentAgent = typeof Channel_AGENT_AGENT;
+export type ChannelToolkitToolkit = typeof Channel_TOOLKIT_TOOLKIT;
 
 // 所有 Channel 的联合类型
-type Channel = 
+export type Channel = 
   | ChannelUserAgent 
   | ChannelAgentToolkit 
   | ChannelToolkitAgent 
@@ -212,6 +301,18 @@ type Channel =
 - 定义 transition 函数，描述 State 如何随 Source 节点的 Output 变化
 - transition 函数必须是纯函数
 
+**涉及文件**：
+- `types/state.ts` - 创建此文件，定义所有 Channel 的 State Schema 和类型
+- `transition/` 文件夹 - 创建此文件夹，为每个 Channel 创建对应的 transition 文件：
+  - `transition/user-agent.ts` - Channel USER -> AGENT 的 transition
+  - `transition/agent-toolkit.ts` - Channel AGENT -> TOOLKIT 的 transition
+  - `transition/toolkit-agent.ts` - Channel TOOLKIT -> AGENT 的 transition
+  - `transition/agent-user.ts` - Channel AGENT -> USER 的 transition
+  - `transition/user-user.ts` - Channel USER -> USER (Loopback) 的 transition
+  - `transition/agent-agent.ts` - Channel AGENT -> AGENT (Loopback) 的 transition
+  - `transition/toolkit-toolkit.ts` - Channel TOOLKIT -> TOOLKIT (Loopback) 的 transition
+  - `transition/index.ts` - 导出所有 transition 函数
+
 **输出**：
 - 每条 Channel 的 State Schema：`const stateUserAgentSchema = ...`
 - 每条 Channel 的 State 类型：`type StateUserAgent = z.infer<typeof stateUserAgentSchema>`
@@ -219,38 +320,49 @@ type Channel =
 
 **示例**：
 ```typescript
+// types/state.ts
 import { z } from "zod";
 
 // 为每条 Channel 定义 State Schema（表示 Target 节点对 Source 节点状态的关注点）
-const stateUserAgentSchema = z.object({
+export const stateUserAgentSchema = z.object({
   latestUserMessage: z.string(),
   messageHistory: z.array(/* ... */),
 });
-type StateUserAgent = z.infer<typeof stateUserAgentSchema>;
+export type StateUserAgent = z.infer<typeof stateUserAgentSchema>;
 
-const stateAgentToolkitSchema = z.object({
+export const stateAgentToolkitSchema = z.object({
   pendingToolCalls: z.array(/* ... */),
 });
-type StateAgentToolkit = z.infer<typeof stateAgentToolkitSchema>;
+export type StateAgentToolkit = z.infer<typeof stateAgentToolkitSchema>;
 
-// 为每条 Channel 定义 transition 函数（纯函数）
-// transition 函数描述 State 如何随 Source 节点的 Output 变化
-const transitionUserAgent = (
+// ... 其他 Channel 的 State Schema ...
+
+// transition/user-agent.ts
+import { create } from "mutative";
+import type { OutputFromUser } from "../types/signal";
+import type { StateUserAgent } from "../types/state";
+
+/**
+ * Channel USER -> AGENT 的 transition 函数
+ * 
+ * 描述 State 如何随 Source 节点的 Output 变化。
+ */
+export function transitionUserAgent(
   output: OutputFromUser,
   state: StateUserAgent
-): StateUserAgent => {
+): StateUserAgent {
   // 根据 output 的类型，使用 mutative 的 create() 进行不可变更新
   // 例如：如果 output.type === "sendMessage"，更新 latestUserMessage 和 messageHistory
   // 返回新的 State
-};
+  return create(state, (draft) => {
+    // ... 更新逻辑 ...
+  });
+}
 
-const transitionAgentToolkit = (
-  output: OutputFromAgent,
-  state: StateAgentToolkit
-): StateAgentToolkit => {
-  // 根据 output 的类型更新对应的 State
-  // 例如：如果 output.type === "callTool"，添加到 pendingToolCalls
-};
+// transition/index.ts
+export { transitionUserAgent } from "./user-agent";
+export { transitionAgentToolkit } from "./agent-toolkit";
+// ... 导出其他 transition 函数 ...
 ```
 
 **⚠️ 完成此步骤后，必须：**
@@ -268,65 +380,115 @@ const transitionAgentToolkit = (
 - **effectsAt 函数**：根据节点的"综合观察"（所有入边 Channel 的 State）推导出要触发的 Effect
 - **runEffect 函数**：执行副作用，调用对应的异步 Actor，传递 State 和 dispatch 方法
 - runEffect 是带自动机状态的，可以从状态中获取的 properties 不需要进 Effect
+- **重要**：Effect 的 IO 类型（InputFor 和 OutputFrom）也定义在 effects.ts 中
+
+**涉及文件**：
+- `types/effects.ts` - 创建此文件，定义所有 Participant 的 Effect 类型，以及 Effect 相关的 IO 类型（InputFor 和 OutputFrom）
+- `effectsAt/` 文件夹 - 创建此文件夹，为每个 Participant 创建对应的 effectsAt 文件：
+  - `effectsAt/user.ts` - User 节点的 effectsAt
+  - `effectsAt/agent.ts` - Agent 节点的 effectsAt
+  - `effectsAt/toolkit.ts` - Toolkit 节点的 effectsAt
+  - `effectsAt/index.ts` - 导出所有 effectsAt 函数
+- `runEffect/` 文件夹 - 创建此文件夹，为每个 Participant 创建对应的 runEffect 文件：
+  - `runEffect/user.ts` - User 节点的 runEffect
+  - `runEffect/agent.ts` - Agent 节点的 runEffect
+  - `runEffect/toolkit.ts` - Toolkit 节点的 runEffect
+  - `runEffect/index.ts` - 导出所有 runEffect 函数
 
 **输出**：
 - 每个 Participant 的 Effect 类型定义
-- 每个 Participant 的 `effectsAtFor<P>` 函数：返回单个 Effect（表示要更新 UI 或触发异步操作）
+- 每个 Participant 的 `effectsAtFor<P>` 函数：返回 Record<string, Effect>（表示要更新 UI 或触发异步操作）
 - 每个 Participant 的 `runEffectFor<P>` 函数：调用 render UI callback 或其他异步操作，传递 State 和 dispatch 方法
 
 **示例**：
 ```typescript
+// types/effects.ts
 import type { Dispatch, EffectController } from "@moora/moorex";
+import type { OutputFromUser, OutputFromAgent, OutputFromToolkit } from "./signal";
 
 // 为每个 Participant 定义极简的 Effect 类型
 // Effect 只包含无法从状态中获取的信息
-type EffectOfUser = {
+export type EffectOfUser = {
   kind: "updateUI";
   // 不需要包含 messages，因为可以从 state 中获取
 };
 
-type EffectOfAgent = {
+export type EffectOfAgent = {
   kind: "callLLM" | "callTool";
   // 不需要包含完整的 context，因为可以从 state 中获取
 };
 
-// effectsAt 函数：根据节点的"综合观察"（所有入边 Channel 的 State）推导出要触发的 Effect
-const effectsAtForUser = (
-  state: StateUserAgent
-): EffectOfUser | null => {
+export type EffectOfToolkit = {
+  kind: "executeTool";
+  // ... 其他 Effect 类型
+};
+
+// Effect 的 IO 类型（如果需要）
+export type EffectInputForUser = {
+  // Effect 执行时需要的输入
+};
+
+export type EffectOutputFromUser = {
+  // Effect 执行后产生的输出
+};
+
+// effectsAt/user.ts
+import type { StateAgentUser, StateUserUser } from "../types/state";
+import type { EffectOfUser } from "../types/effects";
+
+/**
+ * User 节点的 effectsAt 函数
+ * 
+ * 根据节点的"综合观察"（所有入边 Channel 的 State）推导出要触发的 Effect。
+ */
+export function effectsAtForUser(
+  stateAgentUser: StateAgentUser,
+  stateUserUser: StateUserUser
+): Record<string, EffectOfUser> {
+  const effects: Record<string, EffectOfUser> = {};
   // 根据 state 判断是否需要触发 Effect
-  // 例如：如果有新消息，返回 { kind: "updateUI" }
-  // 否则返回 null
-};
+  // 例如：如果有新消息，添加 { kind: "updateUI" }
+  // 返回 Effect Record，key 作为 Effect 的标识
+  return effects;
+}
 
-const effectsAtForAgent = (
-  stateUserAgent: StateUserAgent,
-  stateToolkitAgent: StateToolkitAgent
-): EffectOfAgent | null => {
-  // 综合多个 Channel State，判断需要触发的 Effect
-  // 例如：如果有新的用户消息或工具调用结果，返回 { kind: "callLLM" }
-};
+// runEffect/user.ts
+import type { Dispatch, EffectController } from "@moora/moorex";
+import type { EffectOfUser } from "../types/effects";
+import type { StateAgentUser } from "../types/state";
+import type { OutputFromUser } from "../types/signal";
 
-// runEffect 函数：执行副作用，调用对应的异步 Actor
-const runEffectForUser = (
+/**
+ * User 节点的 runEffect 函数
+ * 
+ * 执行副作用，调用对应的异步 Actor。
+ */
+export function runEffectForUser(
   effect: EffectOfUser,
-  state: StateUserAgent,
-  dispatch: Dispatch<OutputFromUser>
-): EffectController<OutputFromUser> => {
-  // 返回 EffectController，包含 start 和 cancel 方法
-  // start: 调用 UI render callback，传递 state 和 dispatch
-  // cancel: 清理 UI 资源
-};
+  state: StateAgentUser,
+  dispatch: Dispatch<OutputFromUser>,
+  updateUI: (state: StateAgentUser, dispatch: Dispatch<OutputFromUser>) => void
+): EffectController<OutputFromUser> {
+  return {
+    start: async (dispatch: Dispatch<OutputFromUser>) => {
+      // 调用 UI render callback，传递 state 和 dispatch
+      updateUI(state, dispatch);
+    },
+    cancel: () => {
+      // 清理 UI 资源
+    },
+  };
+}
 
-const runEffectForAgent = (
-  effect: EffectOfAgent,
-  stateUserAgent: StateUserAgent,
-  stateToolkitAgent: StateToolkitAgent,
-  dispatch: Dispatch<OutputFromAgent>
-): EffectController<OutputFromAgent> => {
-  // start: 从 state 中获取完整信息，调用 LLM API，根据响应 dispatch 相应的 Output
-  // cancel: 取消 LLM 调用
-};
+// effectsAt/index.ts
+export { effectsAtForUser } from "./user";
+export { effectsAtForAgent } from "./agent";
+export { effectsAtForToolkit } from "./toolkit";
+
+// runEffect/index.ts
+export { runEffectForUser } from "./user";
+export { runEffectForAgent } from "./agent";
+export { runEffectForToolkit } from "./toolkit";
 ```
 
 **⚠️ 完成此步骤后，必须：**
@@ -347,6 +509,15 @@ const runEffectForAgent = (
 - 定义从全局 State 推导每个 Channel State 的函数
 - 统合所有 transition、effectsAt、runEffect 函数
 - **重要**：统合后的 `initial`、`transition`、`effectsAt`、`runEffect` 函数必须符合 `@moora/moorex` 的 `MoorexDefinition<Input, Effect, State>` 类型定义：
+
+**涉及文件**：
+- `types/unified.ts` - 创建此文件，定义统合后的全局类型（State、Signal、Effect）
+- `unified/` 文件夹 - 创建此文件夹，包含统合后的函数：
+  - `unified/initial.ts` - initial 函数
+  - `unified/transition.ts` - 统合的 transition 函数
+  - `unified/effectsAt.ts` - 统合的 effectsAt 函数
+  - `unified/runEffect.ts` - 统合的 runEffect 函数（makeRunEffect）
+  - `unified/state-for-channel.ts` - getStateForChannel 函数
   ```typescript
   type MoorexDefinition<Input, Effect, State> = {
     /** 初始化函数，返回初始状态 */
@@ -386,10 +557,14 @@ const runEffectForAgent = (
 
 **示例**：
 ```typescript
-import type { MoorexDefinition, EffectController } from "@moora/moorex";
+// types/unified.ts
+import type { StateUserAgent, StateAgentToolkit, /* ... */ } from "./state";
+import type { OutputFromUser, OutputFromAgent, OutputFromToolkit } from "./signal";
+import type { EffectOfUser, EffectOfAgent, EffectOfToolkit } from "./effects";
+import type { Channel } from "./topology";
 
 // 统合后的全局 State（所有 Channel State 的合并）
-type State = {
+export type State = {
   userAgent: StateUserAgent;
   agentToolkit: StateAgentToolkit;
   toolkitAgent: StateToolkitAgent;
@@ -398,69 +573,77 @@ type State = {
 };
 
 // Signal 是各个 Participant Output 的 union
-type Signal = OutputFromUser | OutputFromAgent | OutputFromToolkit;
+export type Signal = OutputFromUser | OutputFromAgent | OutputFromToolkit;
 
 // Effect 是各个 Participant Effect 的 union
-type Effect = EffectOfUser | EffectOfAgent | EffectOfToolkit;
+export type Effect = EffectOfUser | EffectOfAgent | EffectOfToolkit;
 
-// 从 State 推导每个 Channel State 的函数
-const getStateForChannel = <C extends Channel>(
+// unified/state-for-channel.ts
+import type { State } from "../types/unified";
+import type { Channel, ChannelUserAgent, /* ... */ } from "../types/topology";
+import type { StateUserAgent, /* ... */ } from "../types/state";
+
+export type StateForChannel<C extends Channel> = 
+  C extends ChannelUserAgent ? StateUserAgent :
+  // ... 其他 Channel 类型映射
+  never;
+
+export function getStateForChannel<C extends Channel>(
   state: State,
   channel: C
-): StateForChannel<C> => {
+): StateForChannel<C> {
   // 根据 channel 返回对应的 State 字段
-};
+}
 
-// initial 函数：返回初始 State（符合 () => State 类型）
-const initial = (): State => {
+// unified/initial.ts
+import type { State } from "../types/unified";
+
+export function initial(): State {
   // 返回所有 Channel State 的初始值
-};
+}
 
-// transition 函数：处理 Signal，更新 State
-// 必须符合 (input: Signal) => (state: State) => State 类型（柯里化形式）
-const transition = (signal: Signal) => (state: State): State => {
-  // 根据 signal 的类型和来源，调用对应的 Channel transition 函数
-  // 使用 mutative 的 create() 进行不可变更新
-  // 例如：如果 signal 来自 User，调用 transitionUserAgent 更新 userAgent
-};
+// unified/transition.ts
+import { create } from "mutative";
+import type { Signal, State } from "../types/unified";
+import { transitionUserAgent, /* ... */ } from "../transition";
 
-// effectsAt 函数：从 State 推导 Effect（符合 (state: State) => Record<string, Effect> 类型）
-const effectsAt = (state: State): Record<string, Effect> => {
+export function transition(signal: Signal): (state: State) => State {
+  return (state: State): State => {
+    // 根据 signal 的类型和来源，调用对应的 Channel transition 函数
+    // 使用 mutative 的 create() 进行不可变更新
+  };
+}
+
+// unified/effectsAt.ts
+import type { State, Effect } from "../types/unified";
+import { effectsAtForUser, effectsAtForAgent, effectsAtForToolkit } from "../effectsAt";
+
+export function effectsAt(state: State): Record<string, Effect> {
   // 调用各个节点的 effectsAtFor<P> 函数
-  // 收集所有非 null 的 Effect，以节点名作为 key
-  // 返回 Effect Record
-};
+  // 收集所有 Effect，返回 Effect Record
+}
 
-// runEffect 的 options 类型定义（包含所有需要的依赖）
-type MakeRunEffectOptions = {
+// unified/runEffect.ts
+import type { EffectController, Dispatch } from "@moora/moorex";
+import type { Effect, Signal, State } from "../types/unified";
+import { runEffectForUser, runEffectForAgent, runEffectForToolkit } from "../runEffect";
+
+export type MakeRunEffectOptions = {
   renderUI: (state: StateUserAgent, dispatch: Dispatch<OutputFromUser>) => void;
   llmClient: { call: (context: LLMContext) => Promise<LLMResponse> };
   toolExecutor: { execute: (toolName: string, args: Record<string, unknown>) => Promise<string> };
   // ... 其他依赖
 };
 
-// makeRunEffect 函数：柯里化函数，接收 options，返回 runEffect 函数
-// 返回的函数必须符合 (effect: Effect, state: State, key: string) => EffectController<Signal> 类型
-const makeRunEffect = (
+export function makeRunEffect(
   options: MakeRunEffectOptions
-): ((effect: Effect, state: State, key: string) => EffectController<Signal>) => {
-  // 从 options 中解构依赖（renderUI, llmClient, toolExecutor 等）
-  
-  // 返回 runEffect 函数
+): (effect: Effect, state: State, key: string) => EffectController<Signal> {
   return (effect: Effect, state: State, key: string): EffectController<Signal> => {
     // 根据 effect.kind 判断类型
     // 调用对应的 runEffectFor<P> 函数，传递必要的 state 和 dispatch
     // 返回 EffectController，包含 start 和 cancel 方法
   };
-};
-
-// 类型验证：确保统合后的函数符合 MoorexDefinition 类型
-const _typeCheck: MoorexDefinition<Signal, Effect, State> = {
-  initial,
-  transition,
-  effectsAt,
-  runEffect: makeRunEffect({ /* 占位 options */ }),
-};
+}
 ```
 
 **⚠️ 完成此步骤后，必须：**
@@ -484,6 +667,9 @@ const _typeCheck: MoorexDefinition<Signal, Effect, State> = {
   - 处理异步副作用
   - 协调多个节点的交互
 
+**涉及文件**：
+- `create-xxx-moorex.ts` - 创建此文件（文件名根据实际 Agent 名称确定），定义工厂函数
+
 **输出**：
 - `createXxxMoorex` 工厂函数
 - 函数接受配置参数，返回 Moorex 实例
@@ -491,13 +677,16 @@ const _typeCheck: MoorexDefinition<Signal, Effect, State> = {
 
 **示例**：
 ```typescript
+// create-xxx-moorex.ts
 import { createMoorex } from "@moora/moorex";
-import type { Moorex } from "@moora/moorex";
+import type { Moorex, MoorexDefinition } from "@moora/moorex";
+import type { Signal, Effect, State } from "./types/unified";
+import { initial } from "./unified/initial";
+import { transition } from "./unified/transition";
+import { effectsAt } from "./unified/effectsAt";
+import { makeRunEffect, type MakeRunEffectOptions } from "./unified/runEffect";
 
-type CreateXxxMoorexOptions = {
-  renderUI: (state: StateUserAgent, dispatch: Dispatch<OutputFromUser>) => void;
-  llmClient: { call: (context: LLMContext) => Promise<LLMResponse> };
-  toolExecutor: { execute: (toolName: string, args: Record<string, unknown>) => Promise<string> };
+export type CreateXxxMoorexOptions = MakeRunEffectOptions & {
   initialState?: State; // 可选的初始状态（用于恢复）
 };
 
