@@ -65,14 +65,24 @@ export type OutputFromUser = z.infer<typeof outputFromUserSchema>;
 
 /**
  * 工具定义 Schema
+ * 
+ * 注意：run 函数不能在 Zod Schema 中定义，使用 TypeScript 类型定义
  */
 export const toolDefinitionSchema = z.object({
   name: z.string(),
   description: z.string(),
-  parametersSchema: z.string(), // JSON string
+  schema: z.string(), // JSON string (parameters schema)
+  // run 函数通过 TypeScript 类型定义，不在 Schema 中
 });
 
-export type ToolDefinition = z.infer<typeof toolDefinitionSchema>;
+/**
+ * 工具定义类型
+ * 
+ * 包含 run 函数：parameters: string -> Promise<string>
+ */
+export type ToolDefinition = z.infer<typeof toolDefinitionSchema> & {
+  run: (parameters: string) => Promise<string>;
+};
 
 /**
  * Agent 节点的 Input Schema

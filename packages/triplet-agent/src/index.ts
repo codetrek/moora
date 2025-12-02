@@ -39,6 +39,21 @@ export type {
   StateAgentAgent,
   StateToolkitToolkit,
 } from "./state";
+export type {
+  EffectOfUser,
+  EffectOfAgent,
+  EffectOfToolkit,
+  CallLLMFn,
+  LLMResponse,
+  GetToolNamesFn,
+  GetToolDefinitionsFn,
+  UpdateUIFn,
+} from "./effects";
+export type {
+  EffectOfUser,
+  EffectOfAgent,
+  EffectOfToolkit,
+} from "./effects";
 
 // ============================================================================
 // 导出常量
@@ -93,4 +108,12 @@ export {
   transitionAgentAgent,
   transitionToolkitToolkit,
 } from "./transition";
+export {
+  effectsAtForUser,
+  runEffectForUser,
+  effectsAtForAgent,
+  runEffectForAgent,
+  effectsAtForToolkit,
+  runEffectForToolkit,
+} from "./effects";
 
