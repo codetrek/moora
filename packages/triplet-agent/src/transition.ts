@@ -157,8 +157,10 @@ export const transitionAgentUser = (
       // 追加内容块到消息
       message.content += output.chunk;
       message.timestamp = Date.now();
-      // 记录 chunk 到 streamingChunks
-      draft.streamingChunks[output.messageId].push(output.chunk);
+      // 记录 chunk 到 streamingChunks（确保数组存在）
+      const chunks = draft.streamingChunks[output.messageId] ?? [];
+      chunks.push(output.chunk);
+      draft.streamingChunks[output.messageId] = chunks;
     });
   }
   if (output.type === "completeMessage") {
