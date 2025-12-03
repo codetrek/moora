@@ -338,7 +338,6 @@ export type StateAgentToolkit = z.infer<typeof stateAgentToolkitSchema>;
 // ... 其他 Channel 的 State Schema ...
 
 // transition/user-agent.ts
-import { create } from "mutative";
 import type { OutputFromUser } from "../types/signal";
 import type { StateUserAgent } from "../types/state";
 
@@ -346,18 +345,16 @@ import type { StateUserAgent } from "../types/state";
  * Channel USER -> AGENT 的 transition 函数
  * 
  * 描述 State 如何随 Source 节点的 Output 变化。
+ * 
+ * 实现逻辑：
+ * - 根据 output 的类型，使用 mutative 的 create() 进行不可变更新
+ * - 例如：如果 output.type === "sendMessage"，更新 latestUserMessage 和 messageHistory
+ * - 返回新的 State
  */
 export function transitionUserAgent(
   output: OutputFromUser,
   state: StateUserAgent
-): StateUserAgent {
-  // 根据 output 的类型，使用 mutative 的 create() 进行不可变更新
-  // 例如：如果 output.type === "sendMessage"，更新 latestUserMessage 和 messageHistory
-  // 返回新的 State
-  return create(state, (draft) => {
-    // ... 更新逻辑 ...
-  });
-}
+): StateUserAgent;
 
 // transition/index.ts
 export { transitionUserAgent } from "./user-agent";
@@ -411,16 +408,9 @@ export { transitionAgentToolkit } from "./agent-toolkit";
 **示例**：
 ```typescript
 // types/effects.ts
-import type { Dispatch, EffectController } from "@moora/moorex";
-import type { OutputFromUser, OutputFromAgent, OutputFromToolkit } from "./signal";
-import type {
-  StateAgentUser,
-  StateUserAgent,
-  StateToolkitAgent,
-  StateAgentAgent,
-  StateAgentToolkit,
-  StateToolkitToolkit,
-} from "./state";
+import type { Dispatch } from "@moora/moorex";
+import type { OutputFromUser } from "./signal";
+import type { StateAgentUser } from "./state";
 
 // 为每个 Participant 定义极简的 Effect 类型
 // Effect 只包含无法从状态中获取的信息
@@ -442,8 +432,6 @@ export type EffectOfToolkit = {
 // ============================================================================
 // Effect 相关的 IO 类型（依赖注入类型）
 // ============================================================================
-
-import type { Message, ToolDefinition } from "./signal";
 
 /**
  * LLM 调用函数类型
@@ -537,8 +525,7 @@ export type MakeRunEffectForToolkitOptions = {
 };
 
 // effectsAt/user.ts
-import type { StateForUser } from "../types/effects";
-import type { EffectOfUser } from "../types/effects";
+import type { StateForUser, EffectOfUser } from "../types/effects";
 
 /**
  * User 节点的 effectsAt 函数
@@ -555,8 +542,7 @@ export function effectsAtForUser(
 ): Record<string, EffectOfUser>;
 
 // effectsAt/agent.ts
-import type { StateForAgent } from "../types/effects";
-import type { EffectOfAgent } from "../types/effects";
+import type { StateForAgent, EffectOfAgent } from "../types/effects";
 
 /**
  * Agent 节点的 effectsAt 函数
@@ -573,8 +559,7 @@ export function effectsAtForAgent(
 ): Record<string, EffectOfAgent>;
 
 // effectsAt/toolkit.ts
-import type { StateForToolkit } from "../types/effects";
-import type { EffectOfToolkit } from "../types/effects";
+import type { StateForToolkit, EffectOfToolkit } from "../types/effects";
 
 /**
  * Toolkit 节点的 effectsAt 函数
@@ -591,7 +576,7 @@ export function effectsAtForToolkit(
 ): Record<string, EffectOfToolkit>;
 
 // runEffect/user.ts
-import type { Dispatch, EffectController } from "@moora/moorex";
+import type { EffectController } from "@moora/moorex";
 import type {
   EffectOfUser,
   MakeRunEffectForUserOptions,
@@ -622,7 +607,7 @@ export function makeRunEffectForUser(
 ) => EffectController<OutputFromUser>;
 
 // runEffect/agent.ts
-import type { Dispatch, EffectController } from "@moora/moorex";
+import type { EffectController } from "@moora/moorex";
 import type {
   EffectOfAgent,
   MakeRunEffectForAgentOptions,
@@ -653,7 +638,7 @@ export function makeRunEffectForAgent(
 ) => EffectController<OutputFromAgent>;
 
 // runEffect/toolkit.ts
-import type { Dispatch, EffectController } from "@moora/moorex";
+import type { EffectController } from "@moora/moorex";
 import type {
   EffectOfToolkit,
   MakeRunEffectForToolkitOptions,
@@ -857,7 +842,7 @@ export type StateToolkitAgent = z.infer<typeof stateToolkitAgentSchema>;
 // ... 其他 Channel State Schema ...
 
 // types/unified.ts
-import type { UserMessage, ToolCall, ToolResult, /* ... */ } from "./state";
+import type { UserMessage, ToolCall, ToolResult } from "./state";
 import type { OutputFromUser, OutputFromAgent, OutputFromToolkit } from "./signal";
 import type { EffectOfUser, EffectOfAgent, EffectOfToolkit } from "./effects";
 
@@ -904,15 +889,7 @@ export type Effect = EffectOfUser | EffectOfAgent | EffectOfToolkit;
 
 // unified/state-for-channel.ts
 import type { State } from "../types/unified";
-import type {
-  StateUserAgent,
-  StateAgentToolkit,
-  StateToolkitAgent,
-  StateAgentUser,
-  StateUserUser,
-  StateAgentAgent,
-  StateToolkitToolkit,
-} from "../types/state";
+import type { StateUserAgent, StateAgentToolkit } from "../types/state";
 
 /**
  * 从统合 State 推导 Channel USER -> AGENT 的 State
@@ -967,8 +944,8 @@ export function initial(): State;
 
 // unified/transition.ts
 import type { Signal, State } from "../types/unified";
-import { transitionUserAgent, transitionAgentToolkit, transitionToolkitAgent, transitionAgentUser, /* ... */ } from "../transition";
-import { stateForUserAgent, stateForAgentToolkit, /* ... */ } from "./state-for-channel";
+import { transitionUserAgent } from "../transition";
+import { stateForUserAgent } from "./state-for-channel";
 
 /**
  * 统合的 transition 函数
@@ -984,9 +961,9 @@ export function transition(signal: Signal): (state: State) => State;
 
 // unified/effectsAt.ts
 import type { State, Effect } from "../types/unified";
-import type { StateForUser, StateForAgent, StateForToolkit } from "../types/effects";
-import { effectsAtForUser, effectsAtForAgent, effectsAtForToolkit } from "../effectsAt";
-import { stateForAgentUser, stateForUserAgent, stateForToolkitAgent, stateForAgentAgent, stateForAgentToolkit, stateForToolkitToolkit } from "./state-for-channel";
+import type { StateForUser } from "../types/effects";
+import { effectsAtForUser } from "../effectsAt";
+import { stateForAgentUser, stateForUserAgent } from "./state-for-channel";
 
 /**
  * 统合的 effectsAt 函数
@@ -1007,11 +984,8 @@ import type {
   MakeRunEffectForUserOptions,
   MakeRunEffectForAgentOptions,
   MakeRunEffectForToolkitOptions,
-  StateForUser,
-  StateForAgent,
-  StateForToolkit,
 } from "../types/effects";
-import { stateForAgentUser, stateForUserUser, stateForUserAgent, stateForToolkitAgent, stateForAgentAgent, stateForAgentToolkit, stateForToolkitToolkit } from "./state-for-channel";
+import { stateForAgentUser } from "./state-for-channel";
 
 /**
  * makeRunEffect 函数选项
@@ -1076,42 +1050,30 @@ export function makeRunEffect(
 **示例**：
 ```typescript
 // create-xxx-moorex.ts
-import { createMoorex } from "@moora/moorex";
-import type { Moorex, MoorexDefinition } from "@moora/moorex";
+import type { Moorex } from "@moora/moorex";
 import type { Signal, Effect, State } from "./types/unified";
-import { initial } from "./unified/initial";
-import { transition } from "./unified/transition";
-import { effectsAt } from "./unified/effectsAt";
-import { makeRunEffect, type MakeRunEffectOptions } from "./unified/runEffect";
+import type { MakeRunEffectOptions } from "./unified/runEffect";
 
 export type CreateXxxMoorexOptions = MakeRunEffectOptions & {
   initialState?: State; // 可选的初始状态（用于恢复）
 };
 
+/**
+ * 创建 Moorex 实例的工厂函数
+ * 
+ * 实现逻辑：
+ * - 使用 makeRunEffect 创建带依赖注入的 runEffect 函数
+ * - 创建 Moorex 定义，包含 initial、transition、effectsAt、runEffect
+ * - 如果提供了 initialState，使用它作为初始状态（用于恢复）
+ * - 返回 Moorex 实例
+ * 
+ * 使用示例：
+ * - 创建 Moorex 实例，传递必要的依赖
+ * - 状态机可以序列化（moorex.current()）和恢复（通过 initialState 参数）
+ */
 export function createXxxMoorex(
   options: CreateXxxMoorexOptions
-): Moorex<Signal, Effect, State> {
-  // 使用 makeRunEffect 创建带依赖注入的 runEffect 函数
-  const runEffect = makeRunEffect({
-    renderUI: options.renderUI,
-    llmClient: options.llmClient,
-    toolExecutor: options.toolExecutor,
-  });
-  
-  // 创建 Moorex 定义
-  const definition: MoorexDefinition<Signal, Effect, State> = {
-    initial: options.initialState ? () => options.initialState! : initial,
-    transition,
-    effectsAt,
-    runEffect,
-  };
-  
-  // 返回 Moorex 实例
-  return createMoorex(definition);
-}
-
-// 使用示例：创建 Moorex 实例，传递必要的依赖
-// 状态机可以序列化（moorex.current()）和恢复（通过 initialState 参数）
+): Moorex<Signal, Effect, State>;
 ```
 
 **⚠️ 完成此步骤后，必须：**
