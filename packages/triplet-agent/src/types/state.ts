@@ -69,25 +69,6 @@ export const toolResultSchema = z.discriminatedUnion("isSuccess", [
 export type ToolResult = z.infer<typeof toolResultSchema>;
 
 
-/**
- * Agent 处理历史项 Schema（公共类型）
- * 
- * 记录 Agent 处理了哪些输入（用户消息、工具结果）以及产生的输出。
- */
-export const agentProcessingHistoryItemSchema = z.object({
-  type: z.enum(["callTool", "sendChunk", "completeMessage"]),
-  toolCallId: z.string().optional(),
-  messageId: z.string().optional(),
-  // 记录处理了哪些用户消息 ID（用于判断是否有新的未处理消息）
-  processedUserMessageIds: z.array(z.string()).optional(),
-  // 记录处理了哪些工具结果 ID（用于判断是否有新的未处理结果）
-  processedToolResultIds: z.array(z.string()).optional(),
-  timestamp: z.number(),
-});
-
-export type AgentProcessingHistoryItem = z.infer<
-  typeof agentProcessingHistoryItemSchema
->;
 
 /**
  * Toolkit 执行历史项 Schema（公共类型）
@@ -187,10 +168,11 @@ export type StateAgentUser = z.infer<typeof stateAgentUserSchema>;
  * Channel AGENT -> AGENT (Loopback) 的 State Schema
  * 
  * Agent 对自身状态的关注点：
- * - Agent 处理历史（用于状态迭代感知）
+ * - 上次 LLM call 处理信息的截止时间戳
+ *   每次 LLM call 结束时，带回这个时间戳，更新状态
  */
 export const stateAgentAgentSchema = z.object({
-  processingHistory: z.array(agentProcessingHistoryItemSchema),
+  lastProcessedTimestamp: z.number(),
 });
 
 export type StateAgentAgent = z.infer<typeof stateAgentAgentSchema>;

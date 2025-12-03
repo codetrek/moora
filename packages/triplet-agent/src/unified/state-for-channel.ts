@@ -59,7 +59,7 @@ export function stateForAgentUser(state: State): StateAgentUser {
  */
 export function stateForAgentAgent(state: State): StateAgentAgent {
   return {
-    processingHistory: state.processingHistory,
+    lastProcessedTimestamp: state.lastProcessedTimestamp,
   };
 }
 

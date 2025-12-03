@@ -33,9 +33,11 @@ export type EffectOfUser = {
  * 
  * Effect 极简化：只包含无法从状态中获取的信息。
  * messages、toolResults、prompt、tools 都可以从 state 中获取。
+ * latestTimestamp 是本次 LLM call 要处理的最新时间戳（max(latest user message time, latest tool response time)）。
  */
 export type EffectOfAgent = {
   kind: "callLLM";
+  latestTimestamp: number;
 };
 
 /**

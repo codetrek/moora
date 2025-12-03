@@ -28,7 +28,7 @@ export function initial(): State {
     streamingChunks: {},
     
     // 来自 StateAgentAgent
-    processingHistory: [],
+    lastProcessedTimestamp: 0,
     
     // 来自 StateToolkitToolkit
     executionHistory: [],

@@ -6,7 +6,6 @@ import type {
   UserMessage,
   ToolCall,
   ToolResult,
-  AgentProcessingHistoryItem,
   ToolkitExecutionHistoryItem,
   AssistantMessage,
   StateUserAgent,
@@ -57,7 +56,7 @@ import type {
  * - StateAgentToolkit: { pendingToolCalls: ToolCall[] }
  * - StateToolkitAgent: { toolResults: ToolResult[] }
  * - StateAgentUser: { messages: AssistantMessage[], streamingChunks: Record<string, string[]> }
- * - StateAgentAgent: { processingHistory: AgentProcessingHistoryItem[] }
+ * - StateAgentAgent: { lastProcessedTimestamp: number }
  * - StateToolkitToolkit: { executionHistory: ToolkitExecutionHistoryItem[] }
  * 
  * 所有字段都是唯一的，没有重复。所以去重后的 State 应该包含所有这些字段。
@@ -78,7 +77,7 @@ export type State = {
   streamingChunks: Record<string, string[]>;
   
   // 来自 StateAgentAgent
-  processingHistory: AgentProcessingHistoryItem[];
+  lastProcessedTimestamp: number;
   
   // 来自 StateToolkitToolkit
   executionHistory: ToolkitExecutionHistoryItem[];
