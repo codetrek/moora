@@ -54,7 +54,7 @@ describe('machine', () => {
 
     const outputs: Array<{ value: number }> = [];
 
-    const unsubscribe = sm.subscribe((output) => () => () => {
+    const unsubscribe = sm.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
@@ -91,7 +91,7 @@ describe('machine', () => {
       // handler 阶段：同步执行，立即处理 output
       syncCalls.push(output);
       // 返回 Effect（第一阶段同步执行，第二阶段异步执行）
-      return () => () => {
+      return () => async () => {
         asyncCalls.push(output);
       };
     });
@@ -122,7 +122,7 @@ describe('machine', () => {
     const outputs: Array<{ value: number }> = [];
     const dispatchCalls: number[] = [];
 
-    sm.subscribe((output) => () => (dispatch) => {
+    sm.subscribe((output) => () => async (dispatch) => {
       outputs.push(output);
       // Effect 的异步阶段在微任务中执行，可以异�?dispatch 新的输入
       if (output.value < 5) {
@@ -165,7 +165,7 @@ describe('machine', () => {
 
     const outputs: Array<{ from: number; to: number; input: number }> = [];
 
-    const unsubscribe = sm.subscribe((output) => () => () => {
+    const unsubscribe = sm.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
@@ -192,11 +192,11 @@ describe('machine', () => {
     const outputs1: Array<{ value: number }> = [];
     const outputs2: Array<{ value: number }> = [];
 
-    const unsubscribe1 = sm.subscribe((output) => () => () => {
+    const unsubscribe1 = sm.subscribe((output) => () => async () => {
       outputs1.push(output);
     });
 
-    const unsubscribe2 = sm.subscribe((output) => () => () => {
+    const unsubscribe2 = sm.subscribe((output) => () => async () => {
       outputs2.push(output);
     });
 
@@ -258,7 +258,7 @@ describe('mealy', () => {
 
     const outputs: string[] = [];
 
-    const unsubscribe = mealyMachine.subscribe((output) => () => () => {
+    const unsubscribe = mealyMachine.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
@@ -293,7 +293,7 @@ describe('mealy', () => {
 
     const outputs: Array<{ from: number; to: number; input: number }> = [];
 
-    const unsubscribe = mealyMachine.subscribe((output) => () => () => {
+    const unsubscribe = mealyMachine.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
@@ -343,7 +343,7 @@ describe('moore', () => {
 
     const outputs: Array<{ value: number; doubled: number }> = [];
 
-    const unsubscribe = mooreMachine.subscribe((output) => () => () => {
+    const unsubscribe = mooreMachine.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
@@ -374,7 +374,7 @@ describe('moore', () => {
 
     const outputs: number[] = [];
 
-    const unsubscribe = mooreMachine.subscribe((output) => () => () => {
+    const unsubscribe = mooreMachine.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
@@ -406,7 +406,7 @@ describe('moore', () => {
       // handler 阶段：同步执行，立即处理 output
       syncCalls.push(output);
       // 返回 Effect（第一阶段同步执行，第二阶段异步执行）
-      return () => () => {
+      return () => async () => {
         asyncCalls.push(output);
       };
     });
@@ -434,11 +434,11 @@ describe('moore', () => {
     const outputs1: number[] = [];
     const outputs2: number[] = [];
 
-    const unsubscribe1 = mooreMachine.subscribe((output) => () => () => {
+    const unsubscribe1 = mooreMachine.subscribe((output) => () => async () => {
       outputs1.push(output);
     });
 
-    const unsubscribe2 = mooreMachine.subscribe((output) => () => () => {
+    const unsubscribe2 = mooreMachine.subscribe((output) => () => async () => {
       outputs2.push(output);
     });
 
@@ -479,7 +479,7 @@ describe('moore', () => {
     const outputs: number[] = [];
     const dispatchCalls: number[] = [];
 
-    mooreMachine.subscribe((output) => () => (dispatch) => {
+    mooreMachine.subscribe((output) => () => async (dispatch) => {
       outputs.push(output);
       // Effect 的异步阶段在微任务中执行，可以异�?dispatch 新的输入
       if (output < 5) {
@@ -530,11 +530,11 @@ describe('moore', () => {
 
     const outputs: State[] = [];
 
-    const unsubscribe = mooreMachine.subscribe((output: State) => () => () => {
+    const unsubscribe = mooreMachine.subscribe((output: State) => () => async () => {
       outputs.push(output);
     });
 
-    // 订阅时 handler 立即同步执行，但 Procedure 在微任务中执行
+    // 订阅�?handler 立即同步执行，但 Procedure 在微任务中执�?
     // 需要等待微任务才能看到输出
     await nextTick();
     expect(outputs[0]).toEqual({ items: [], total: 0 });

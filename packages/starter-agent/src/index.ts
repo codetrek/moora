@@ -36,6 +36,3 @@ export {
   createOutputAgent,
   createAgent,
 } from "./impl/agent";
-
-// Re-export output functions for convenience (users can also define their own)
-export { outputUser, outputLlm } from "./impl/output";

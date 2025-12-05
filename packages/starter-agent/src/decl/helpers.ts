@@ -9,7 +9,7 @@ import type { StateOfUser, StateOfLlm } from "./states";
 import type { ContextOfUser, ContextOfLlm } from "./contexts";
 import type { InputFromUser, InputFromLlm } from "./inputs";
 import type { USER, LLM } from "./actors";
-import type { Output } from "./agent";
+import type { Output, AgentInput } from "./agent";
 
 // ============================================================================
 // Helper Generic 类型
@@ -66,7 +66,11 @@ export type TransitionFnOf<Actor extends Actors> = (
  *
  * 注意：参数应该是 ContextOf<Actor> 而不是 StateOf<Actor>，
  * 因为 Output 函数需要根据 Actor 的 Context（发出的 Observation）来决定要触发的副作用。
+ *
+ * 返回 Output<AgentInput> 而不是 Output<InputFrom<Actor>>，
+ * 这样可以让各个 Actor 的 Output 可以 dispatch 任意 Actor 的 Input，
+ * 并且可以方便地用 parallel 组合。
  */
 export type OutputFnOf<Actor extends Actors> = (
   context: ContextOf<Actor>
-) => Output<InputFrom<Actor>>;
+) => Output<AgentInput>;

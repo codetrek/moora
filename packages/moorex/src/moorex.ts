@@ -121,7 +121,7 @@ export function createMoorex<Input, Effect, State>({
     pubsub.pub({ type: "state-updated", state });
 
     // 返回 Effect 函数（两阶段副作用）
-    return () => (dispatch: Dispatch<Input>) => {
+    return () => async (dispatch: Dispatch<Input>) => {
       // 取消不再需要的 effects
       for (const [key, { cancel, effect }] of effectsToCancel) {
         cancel();

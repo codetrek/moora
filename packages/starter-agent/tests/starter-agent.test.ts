@@ -8,8 +8,8 @@ import type { OutputFns } from "../src/index";
 
 // 创建一个简单的 mock outputFns
 const mockOutputFns: OutputFns = {
-  user: () => () => () => {},
-  llm: () => () => () => {},
+  user: () => () => async () => {},
+  llm: () => () => async () => {},
 };
 
 describe("Starter Agent", () => {
@@ -35,6 +35,7 @@ describe("Starter Agent", () => {
 
     agent.dispatch({
       type: "send-user-message",
+      id: "test-id-1",
       content: "Hello",
       timestamp,
     });
@@ -51,6 +52,7 @@ describe("Starter Agent", () => {
 
     agent.dispatch({
       type: "send-assi-message",
+      id: "test-id-2",
       content: "Hi there!",
       timestamp,
     });
@@ -74,7 +76,7 @@ describe("Starter Agent", () => {
     });
 
     // Wait for microtask to execute
-    await new Promise((resolve) => queueMicrotask(resolve));
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
 
     expect(outputReceived).toBe(true);
   });

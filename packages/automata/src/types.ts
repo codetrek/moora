@@ -48,11 +48,11 @@ export type Dispatch<Input> = (input: Input) => void;
  *
  * Effect 是一个两阶段副作用函数：
  * - 第一阶段（同步）：调用 Effect 函数本身，返回一个异步副作用函数
- * - 第二阶段（异步）：异步副作用函数在微任务队列中执行，接收 dispatch 方法
+ * - 第二阶段（异步）：异步副作用函数在微任务队列中执行，接收一个值并返回 Promise
  *
- * @template T - dispatch 的输入类型
+ * @template T - 异步阶段接收的值类型
  */
-export type Effect<T> = () => (dispatch: Dispatch<T>) => void | Promise<void>;
+export type Effect<T> = () => (value: T) => Promise<void>;
 
 /**
  * 输出处理器，接收输出并返回一个 Effect 函数
@@ -66,7 +66,7 @@ export type Effect<T> = () => (dispatch: Dispatch<T>) => void | Promise<void>;
  * - 异步副作用在微任务中执行，不会阻塞当前执行栈
  * - 异步副作用可以通过 dispatch 产生新的输入，形成反馈循环
  */
-export type OutputHandler<Input, Output> = (output: Output) => Effect<Input>;
+export type OutputHandler<Input, Output> = (output: Output) => Effect<Dispatch<Input>>;
 
 /**
  * 订阅函数

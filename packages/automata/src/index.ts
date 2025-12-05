@@ -33,7 +33,14 @@ export type {
 } from './types';
 
 // Effect 相关函数
-export { runEffect, parallel } from './effect';
+export {
+  runEffect,
+  noopEffect,
+  synchronous,
+  asynchronous,
+  statefulEffect,
+  parallel,
+} from './effect';
 
 // ============================================================================
 // 导出函数
