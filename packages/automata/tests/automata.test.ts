@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { machine, mealy, moore } from '../src/automata';
+import { automata, mealy, moore } from '../src/automata';
 
 const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 
@@ -16,7 +16,7 @@ const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 
 describe('machine', () => {
   test('creates machine with initial state', () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
@@ -28,7 +28,7 @@ describe('machine', () => {
   });
 
   test('dispatches input and updates state', () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
@@ -44,7 +44,7 @@ describe('machine', () => {
   });
 
   test('subscribes to output changes', async () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
@@ -76,7 +76,7 @@ describe('machine', () => {
   });
 
   test('handler executes synchronously, procedure executes asynchronously', async () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
@@ -111,7 +111,7 @@ describe('machine', () => {
   });
 
   test('procedure can dispatch new inputs asynchronously', async () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
@@ -151,7 +151,7 @@ describe('machine', () => {
   });
 
   test('output function receives full update pack', async () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => 0,
         transition: (n: number) => (state) => state + n,
@@ -181,7 +181,7 @@ describe('machine', () => {
   });
 
   test('supports multiple subscribers', async () => {
-    const sm = machine(
+    const sm = automata(
       {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),

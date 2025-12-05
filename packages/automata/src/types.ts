@@ -112,7 +112,7 @@ export type TransitionFn<Input, State> = (input: Input) => (state: State) => Sta
 /**
  * 自动机定义
  */
-export type Automata<Input, State> = {
+export type StateMachine<Input, State> = {
   initial: InitialFn<State>;
   transition: TransitionFn<Input, State>;
 };
@@ -134,7 +134,7 @@ export type MealyOutputFn<Input, Output, State> = (update: UpdatePack<Input, Sta
 /**
  * Mealy 机定义（输出依赖于输入和状态）
  */
-export type MealyMachine<Input, Output, State> = Automata<Input, State> & {
+export type MealyMachine<Input, Output, State> = StateMachine<Input, State> & {
   output: MealyOutputFn<Input, Output, State>;
 };
 
@@ -154,7 +154,7 @@ export type MooreOutputFn<State, Output> = (state: State) => Output;
 /**
  * Moore 机定义（输出仅依赖于状态）
  */
-export type MooreMachine<Input, Output, State> = Automata<Input, State> & {
+export type MooreMachine<Input, Output, State> = StateMachine<Input, State> & {
   output: MooreOutputFn<State, Output>;
 };
 

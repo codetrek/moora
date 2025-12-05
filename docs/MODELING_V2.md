@@ -32,6 +32,11 @@
 
 在设计阶段，我们应优先关注三个类型 `State`, `Input`, `Output`；实现阶段，再关注三个函数 `initial`, `transition`, `output`。
 
+**纯函数要求**：
+- `InitialFn`、`TransitionFn`、`OutputFn` 这三个函数本身**必须是纯函数**，不能有副作用
+- 只有 `OutputFn` 的**返回值**是一个副作用函数（两阶段副作用），用于执行实际的 I/O 操作
+- 这种设计确保了状态转换的可预测性和可测试性，副作用被隔离在 output 函数的返回值中
+
 把整个 Actor 网络看作一个 Moore 自动机（使用 `@moora/automata` 的 `moore` 函数），那么：
 
 - **总 State** 就是各个 Actor State 的并集（也是各个 Actor Context 的并集，因为有向图上，所有节点出边的并集 = 所有节点入边的并集 = 所有边）
@@ -92,8 +97,8 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 - **定义各个 Actor 可以 Dispatch 的 Inputs**，例如
   - `type InputFromUser = SendUserMessage` // 未来可能 union 更多类型
   - `type InputFromLlm = SendAssiMessage`
-  - `type SendUserMessage = { type: 'send-user-message', content: string, timestamp: number }`
-  - `type SendAssiMessage = { type: 'send-assi-message', content: string, timestamp: number }`
+  - `type SendUserMessage = { type: 'send-user-message', id: string, content: string, timestamp: number }`
+  - `type SendAssiMessage = { type: 'send-assi-message', id: string, content: string, timestamp: number }`
 
 - **Helper Generic 类型**，用于类型推导
   - `type StateOf<Actor extends Actors> = Actor extends 'user' ? StateOfUser : StateOfLlm`
@@ -103,9 +108,14 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 - **关键函数的类型定义**
   - `type InitialFnOf<Actor extends Actors> = () => StateOf<Actor>`
   - `type TransitionFnOf<Actor extends Actors> = (input: InputFrom<Actor>) => (state: StateOf<Actor>) => StateOf<Actor>`
-  - `type OutputFnOf<Actor extends Actors> = (state: StateOf<Actor>) => Output<InputFrom<Actor>>`
+  - `type OutputFnOf<Actor extends Actors> = (context: ContextOf<Actor>) => Output<InputFrom<Actor>>`
   
-  注意：`OutputFnOf` 的参数应该是 `StateOf<Actor>` 而不是 `ContextOf<Actor>`，因为 Moore 机的输出只依赖于状态，不依赖于输入。虽然 Context 在概念上表示 Actor 发出的 Observation，但在实现层面，output 函数接收的是 State（所有入边的 Observation 的并集），然后根据 State 决定要发出什么 Observation（通过 dispatch Input 来更新其他 Actor 的 State）。
+  注意：`OutputFnOf` 的参数应该是 `ContextOf<Actor>` 而不是 `StateOf<Actor>`。这是因为：
+  - **Context** 是 Actor 发出的 Observation 的并集，表示该 Actor 对外呈现的信息
+  - **Output** 函数根据 Actor 的 Context（它向外发出的信息）来决定要执行什么副作用
+  - 这符合 Moore 机的语义：输出由当前状态决定，而 Context 正是 Actor 状态中向外可见的部分
+  
+  **重要**：这三个函数（`InitialFn`、`TransitionFn`、`OutputFn`）本身都必须是**纯函数**，不能有副作用。只有 `OutputFn` 的**返回值**是一个副作用函数。
 
 - **定义 Agent 总的 State 和 Input**，例如
   - `type AgentState = StateOfUser & StateOfLlm`
@@ -297,7 +307,7 @@ const asyncSideEffect = outputFn(); // 第一阶段：同步执行
 asyncSideEffect(dispatch); // 第二阶段：异步执行，可以 dispatch 新的 Input
 
 // 或者直接 dispatch Input 来触发状态转换
-dispatch({ type: 'send-user-message', content: 'Hello', timestamp: Date.now() });
+dispatch({ type: 'send-user-message', id: 'msg-001', content: 'Hello', timestamp: Date.now() });
 ```
 
 

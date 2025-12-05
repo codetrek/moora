@@ -22,11 +22,11 @@ export type {
   Subscribe,
   Transferer,
   StatefulTransferer,
-  InitialFn as Initial,
-  TransitionFn as Transition,
-  Automata,
+  InitialFn,
+  TransitionFn,
   MealyOutputFn,
   MooreOutputFn,
+  StateMachine,
   MealyMachine,
   MooreMachine,
   UpdatePack,
@@ -37,7 +37,7 @@ export type {
 // ============================================================================
 export { createPubSub } from './pub-sub';
 export {
-  machine,
+  automata,
   mealy,
   moore,
 } from './automata';

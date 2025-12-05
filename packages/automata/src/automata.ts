@@ -4,7 +4,7 @@ import type {
   OutputHandler,
   Subscribe,
   StatefulTransferer,
-  Automata,
+  StateMachine,
   MealyMachine,
   MooreMachine,
   UpdatePack,
@@ -84,7 +84,7 @@ const subscribePubSub = <Input, Output>(
  *
  * @example
  * ```typescript
- * const sm = machine(
+ * const sm = automata(
  *   { initial: () => 0, transition: (n) => (s) => s + n },
  *   ({ statePrev, input, state }) => ({ from: statePrev, to: state, input })
  * );
@@ -97,8 +97,8 @@ const subscribePubSub = <Input, Output>(
  * });
  * ```
  */
-export function machine<Input, Output, State>(
-  { initial, transition }: Automata<Input, State>,
+export function automata<Input, Output, State>(
+  { initial, transition }: StateMachine<Input, State>,
   output: (update: UpdatePack<Input, State>) => Output
 ): StatefulTransferer<Input, Output, State> {
   let state = initial();
@@ -119,7 +119,7 @@ export function machine<Input, Output, State>(
  * Mealy 机的输出依赖于输入和当前状态。
  * 输出函数接收完整的状态转换信息（前一个状态、输入、新状态）。
  *
- * **两阶段副作用设计**：订阅的 handler 采用两阶段副作用设计，详见 `machine` 函数的文档。
+ * **两阶段副作用设计**：订阅的 handler 采用两阶段副作用设计，详见 `automata` 函数的文档。
  *
  * @template Input - 输入信号类型
  * @template Output - 输出类型
@@ -129,7 +129,7 @@ export function machine<Input, Output, State>(
  *
  * @example
  * ```typescript
- * const mealy = mealy({
+ * const mealyMachine = mealy({
  *   initial: () => 'idle',
  *   transition: (input) => (state) => input === 'start' ? 'running' : state,
  *   output: ({ input, state }) => `${state}:${input}`,
@@ -141,7 +141,7 @@ export function mealy<Input, Output, State>({
   transition,
   output,
 }: MealyMachine<Input, Output, State>): StatefulTransferer<Input, Output, State> {
-  return machine({ initial, transition }, output);
+  return automata({ initial, transition }, output);
 };
 
 /**
@@ -165,14 +165,14 @@ export function mealy<Input, Output, State>({
  *
  * @example
  * ```typescript
- * const moore = moore({
+ * const mooreMachine = moore({
  *   initial: () => 0,
  *   transition: (n) => (s) => s + n,
  *   output: (state) => ({ value: state, doubled: state * 2 }),
  * });
  *
  * // 订阅时，handler 立即同步执行（第一阶段），返回的 Procedure 异步执行（第二阶段）
- * moore.subscribe((output) => (dispatch) => {
+ * mooreMachine.subscribe((output) => (dispatch) => {
  *   console.log('同步处理:', output); // 立即执行
  *   // 异步副作用在微任务中执行
  * });
@@ -187,7 +187,7 @@ export function moore<Input, Output, State>({
     dispatch,
     subscribe: sub,
     current,
-  } = machine({ initial, transition }, ({ state }) => output(state));
+  } = automata({ initial, transition }, ({ state }) => output(state));
 
   // Moore 机的订阅会立即发送当前状态的输出
   // 采用两阶段副作用设计：

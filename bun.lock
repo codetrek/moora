@@ -125,6 +125,25 @@
         "typescript": "^5",
       },
     },
+    "packages/starter-agent": {
+      "name": "@moora/starter-agent",
+      "version": "0.1.0",
+      "dependencies": {
+        "@moora/automata": "workspace:*",
+        "mutative": "^1.0.0",
+        "zod": "^4.0.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@vitest/coverage-v8": "^4.0.12",
+        "@vitest/ui": "4.0.12",
+        "typescript": "^5",
+        "vitest": "^4.0.12",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
     "packages/triplet-agent": {
       "name": "@moora/triplet-agent",
       "version": "0.1.0",
@@ -278,6 +297,8 @@
     "@moora/reflexor-state-machine": ["@moora/reflexor-state-machine@workspace:packages/reflexor-state-machine"],
 
     "@moora/reflexor-webui": ["@moora/reflexor-webui@workspace:packages/reflexor-webui"],
+
+    "@moora/starter-agent": ["@moora/starter-agent@workspace:packages/starter-agent"],
 
     "@moora/triplet-agent": ["@moora/triplet-agent@workspace:packages/triplet-agent"],
 
