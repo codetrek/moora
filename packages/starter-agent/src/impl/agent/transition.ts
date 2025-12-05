@@ -2,9 +2,9 @@
  * Agent 的状态转换函数实现
  */
 
-import type { AgentState, AgentInput } from "../../decl/agent";
-import { transitionUser } from "../transitions/user";
-import { transitionLlm } from "../transitions/llm";
+import type { AgentState, AgentInput } from "@/decl/agent";
+import { transitionUser } from "@/impl/transitions/user";
+import { transitionLlm } from "@/impl/transitions/llm";
 
 /**
  * Agent 的状态转换函数

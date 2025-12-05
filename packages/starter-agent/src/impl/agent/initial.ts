@@ -2,9 +2,9 @@
  * Agent 的初始状态实现
  */
 
-import type { AgentState } from "../../decl/agent";
-import { initialUser } from "../initials/user";
-import { initialLlm } from "../initials/llm";
+import type { AgentState } from "@/decl/agent";
+import { initialUser } from "@/impl/initials/user";
+import { initialLlm } from "@/impl/initials/llm";
 
 /**
  * Agent 的初始状态

@@ -3,7 +3,7 @@
  */
 
 import { parallel } from "@moora/automata";
-import type { AgentState, AgentInput, OutputFns } from "../../decl/agent";
+import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
 
 // ============================================================================
 // Output 相关函数

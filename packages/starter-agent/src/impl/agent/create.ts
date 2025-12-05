@@ -4,10 +4,10 @@
 
 import { moore } from "@moora/automata";
 import type { StatefulTransferer } from "@moora/automata";
-import type { AgentState, AgentInput, Output, OutputFns } from "../../decl/agent";
-import { initialAgent } from "./initial";
-import { transitionAgent } from "./transition";
-import { createOutputAgent } from "./output";
+import type { AgentState, AgentInput, Output, OutputFns } from "@/decl/agent";
+import { initialAgent } from "@/impl/agent/initial";
+import { transitionAgent } from "@/impl/agent/transition";
+import { createOutputAgent } from "@/impl/agent/output";
 
 /**
  * 创建 Agent 实例

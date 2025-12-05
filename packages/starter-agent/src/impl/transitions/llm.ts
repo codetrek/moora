@@ -2,8 +2,8 @@
  * Llm Actor 的 Transition 函数实现
  */
 
-import type { StateOfLlm } from "../../decl/states";
-import type { InputFromLlm, SendAssiMessage } from "../../decl/inputs";
+import type { StateOfLlm } from "@/decl/states";
+import type { InputFromLlm, SendAssiMessage } from "@/decl/inputs";
 
 /**
  * Llm Actor 的状态转换函数

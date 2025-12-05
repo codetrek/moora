@@ -2,8 +2,8 @@
  * User Actor 的 Transition 函数实现
  */
 
-import type { StateOfUser } from "../../decl/states";
-import type { InputFromUser, SendUserMessage } from "../../decl/inputs";
+import type { StateOfUser } from "@/decl/states";
+import type { InputFromUser, SendUserMessage } from "@/decl/inputs";
 
 /**
  * User Actor 的状态转换函数
