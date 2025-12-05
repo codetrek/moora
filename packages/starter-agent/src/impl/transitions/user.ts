@@ -2,7 +2,6 @@
  * User Actor 的 Transition 函数实现
  */
 
-import { create } from "mutative";
 import type { StateOfUser } from "../../decl/states";
 import type { InputFromUser, SendUserMessage } from "../../decl/inputs";
 
@@ -33,13 +32,17 @@ function transitionUserSendMessage(
   input: SendUserMessage
 ): (state: StateOfUser) => StateOfUser {
   return (state: StateOfUser) => {
-    return create(state, (draft) => {
-      draft.userMessages.push({
-        id: `user-${input.timestamp}`,
-        content: input.content,
-        timestamp: input.timestamp,
-        role: "user",
-      });
-    });
+    return {
+      ...state,
+      userMessages: [
+        ...state.userMessages,
+        {
+          id: input.id,
+          content: input.content,
+          timestamp: input.timestamp,
+          role: "user",
+        },
+      ],
+    };
   };
 }

@@ -15,6 +15,7 @@ import { z } from "zod";
  */
 export const sendUserMessageSchema = z.object({
   type: z.literal("send-user-message"),
+  id: z.string(),
   content: z.string(),
   timestamp: z.number(),
 });
@@ -26,6 +27,7 @@ export type SendUserMessage = z.infer<typeof sendUserMessageSchema>;
  */
 export const sendAssiMessageSchema = z.object({
   type: z.literal("send-assi-message"),
+  id: z.string(),
   content: z.string(),
   timestamp: z.number(),
 });

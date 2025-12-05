@@ -4,6 +4,9 @@
  * Output 采用两阶段副作用定义：
  * - 第一阶段（同步）：可以调整 Actor 的内部状态，但不能 Dispatch 新的 Input
  * - 第二阶段（异步）：可以异步 dispatch 新的 Input，迭代自动机状态
+ *
+ * **重要：output 函数本身是纯函数，只返回副作用函数，不执行任何副作用。**
+ * 所有副作用（如日志记录、API 调用、dispatch 等）都应该在返回的函数中执行。
  */
 
 import type { ContextOfUser } from "../../decl/contexts";
@@ -13,7 +16,9 @@ import type { Output } from "../../decl/agent";
 /**
  * User Actor 的 Output 函数
  *
- * 根据 User 的 Context 决定要触发的副作用。
+ * **纯函数**：根据 User 的 Context 决定要触发的副作用，返回副作用函数。
+ * 函数本身不执行任何副作用，所有副作用都在返回的函数中执行。
+ *
  * 当前为 Mock 实现，实际使用时需要根据需求补充逻辑。
  *
  * @param context - User 的当前上下文
@@ -22,6 +27,7 @@ import type { Output } from "../../decl/agent";
 export function outputUser(
   context: ContextOfUser
 ): Output<InputFromUser> {
+  // 纯函数：只根据 context 计算并返回副作用函数，不执行任何副作用
   // TODO: 在这里补充实际的输出逻辑
   // 例如：
   // - 根据 context 判断是否需要更新 UI

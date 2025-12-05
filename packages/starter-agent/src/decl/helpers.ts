@@ -61,6 +61,9 @@ export type TransitionFnOf<Actor extends Actors> = (
 /**
  * Output 函数类型
  *
+ * **纯函数**：根据 Actor 的 Context 决定要触发的副作用，返回副作用函数。
+ * 函数本身不执行任何副作用，所有副作用都在返回的函数中执行。
+ *
  * 注意：参数应该是 ContextOf<Actor> 而不是 StateOf<Actor>，
  * 因为 Output 函数需要根据 Actor 的 Context（发出的 Observation）来决定要触发的副作用。
  */

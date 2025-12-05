@@ -2,7 +2,6 @@
  * Llm Actor 的 Transition 函数实现
  */
 
-import { create } from "mutative";
 import type { StateOfLlm } from "../../decl/states";
 import type { InputFromLlm, SendAssiMessage } from "../../decl/inputs";
 
@@ -33,13 +32,17 @@ function transitionLlmSendMessage(
   input: SendAssiMessage
 ): (state: StateOfLlm) => StateOfLlm {
   return (state: StateOfLlm) => {
-    return create(state, (draft) => {
-      draft.assiMessages.push({
-        id: `assi-${input.timestamp}`,
-        content: input.content,
-        timestamp: input.timestamp,
-        role: "assistant",
-      });
-    });
+    return {
+      ...state,
+      assiMessages: [
+        ...state.assiMessages,
+        {
+          id: input.id,
+          content: input.content,
+          timestamp: input.timestamp,
+          role: "assistant",
+        },
+      ],
+    };
   };
 }

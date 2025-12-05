@@ -5,7 +5,6 @@
  * 创建完整的 Agent 自动机定义。
  */
 
-import { create } from "mutative";
 import type { AgentState, AgentInput } from "../decl/agent";
 import type { StateOfUser, StateOfLlm } from "../decl/states";
 import type { ContextOfUser, ContextOfLlm } from "../decl/contexts";
@@ -59,17 +58,19 @@ export function transitionAgent(
     if (input.type === "send-user-message") {
       const newUserState = transitionUser(input as InputFromUser)(userState);
       // 更新 User 的状态会影响 Llm 的状态（因为 Llm 观察 User）
-      return create(state, (draft) => {
-        draft.userMessages = newUserState.userMessages;
-        draft.assiMessages = newUserState.assiMessages;
-      });
+      return {
+        ...state,
+        userMessages: newUserState.userMessages,
+        assiMessages: newUserState.assiMessages,
+      };
     } else if (input.type === "send-assi-message") {
       const newLlmState = transitionLlm(input as InputFromLlm)(llmState);
       // 更新 Llm 的状态会影响 User 的状态（因为 User 观察 Llm）
-      return create(state, (draft) => {
-        draft.assiMessages = newLlmState.assiMessages;
-        draft.userMessages = newLlmState.userMessages;
-      });
+      return {
+        ...state,
+        assiMessages: newLlmState.assiMessages,
+        userMessages: newLlmState.userMessages,
+      };
     }
 
     return state;
@@ -79,7 +80,9 @@ export function transitionAgent(
 /**
  * Agent 的输出函数
  *
- * 根据当前状态，统合各个 Actor 的输出。
+ * **纯函数**：根据当前状态，统合各个 Actor 的输出，返回副作用函数。
+ * 函数本身不执行任何副作用，所有副作用都在返回的函数中执行。
+ *
  * 由于 Automata 的 moore 函数只接受一个 output 函数，
  * 这里我们需要统合所有 Actor 的输出。
  *
