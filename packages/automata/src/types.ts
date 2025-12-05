@@ -49,9 +49,33 @@ export type Dispatch<Input> = (input: Input) => void;
  * 这是两阶段副作用设计的第二阶段：异步副作用。
  * Procedure 函数在微任务队列中执行，接收 dispatch 方法，可以异步地产生新的输入。
  */
-export type Procedure<Input> = (
-  dispatch: Dispatch<Input>
-) => void | Promise<void>;
+export type Procedure<Input> = (dispatch: Dispatch<Input>) => void | Promise<void>;
+
+/**
+ * 两阶段副作用函数
+ *
+ * Effect 是一个两阶段副作用函数：
+ * - 第一阶段（同步）：调用 Effect 函数本身，返回一个 Procedure 函数
+ * - 第二阶段（异步）：Procedure 函数在微任务队列中执行，接收 dispatch 方法
+ */
+export type Effect<T> = () => Procedure<T>;
+
+/**
+ * 并行执行多个 Effect
+ *
+ * 将多个 Effect 合并为一个，执行时会并行执行所有 Effect。
+ *
+ * @param effects - Effect 函数数组
+ * @returns 合并后的 Effect 函数
+ */
+export function parallel<T>(effects: Effect<T>[]): Effect<T> {
+  return () => {
+    const procedures = effects.map((effect) => effect());
+    return async (dispatch: Dispatch<T>) => {
+      await Promise.all(procedures.map((p) => p(dispatch)));
+    };
+  };
+}
 
 /**
  * 输出处理器，接收输出并返回一个过程函数

@@ -21,20 +21,23 @@
 
 ## 整体架构概览
 
-我们建模的目标是从需求出发，设计出 Moore 自动机的 6 要素：
+我们建模的目标是从需求出发，设计出 Moore 自动机的核心要素：
 
 - `type State` - 状态类型
 - `type Input` - 输入类型
-- `type Output` - 输出类型
 - `function initial` - 初始化函数
 - `function transition` - 状态转换函数
-- `function output` - 输出函数
 
-在设计阶段，我们应优先关注三个类型 `State`, `Input`, `Output`；实现阶段，再关注三个函数 `initial`, `transition`, `output`。
+**注意**：`output` 函数不属于 Agent 建模的一部分，它应该在使用时通过依赖注入的方式传入。这是因为：
+- Output 函数包含副作用（如 API 调用、日志记录等），而 Agent 的核心建模应该是纯粹的
+- 不同的使用场景可能需要不同的 output 实现（如测试环境、生产环境）
+- 将副作用与状态逻辑分离，提高了代码的可测试性和可维护性
+
+在设计阶段，我们应优先关注两个类型 `State`, `Input`；实现阶段，再关注两个函数 `initial`, `transition`。
 
 **纯函数要求**：
-- `InitialFn`、`TransitionFn`、`OutputFn` 这三个函数本身**必须是纯函数**，不能有副作用
-- 只有 `OutputFn` 的**返回值**是一个副作用函数（两阶段副作用），用于执行实际的 I/O 操作
+- `InitialFn`、`TransitionFn` 这两个函数**必须是纯函数**，不能有副作用
+- `OutputFn` 虽然不属于建模的一部分，但其本身也应该是纯函数，只有其**返回值**是一个副作用函数（两阶段副作用）
 - 这种设计确保了状态转换的可预测性和可测试性，副作用被隔离在 output 函数的返回值中
 
 把整个 Actor 网络看作一个 Moore 自动机（使用 `@moora/automata` 的 `moore` 函数），那么：
@@ -115,7 +118,10 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
   - **Output** 函数根据 Actor 的 Context（它向外发出的信息）来决定要执行什么副作用
   - 这符合 Moore 机的语义：输出由当前状态决定，而 Context 正是 Actor 状态中向外可见的部分
   
-  **重要**：这三个函数（`InitialFn`、`TransitionFn`、`OutputFn`）本身都必须是**纯函数**，不能有副作用。只有 `OutputFn` 的**返回值**是一个副作用函数。
+  **重要**：
+  - `InitialFn` 和 `TransitionFn` 是 Agent 建模的核心部分，必须是**纯函数**
+  - `OutputFn` **不属于 Agent 建模**，应该在创建 Agent 实例时通过依赖注入传入
+  - `OutputFn` 本身也应该是纯函数，只有其返回值是副作用函数
 
 - **定义 Agent 总的 State 和 Input**，例如
   - `type AgentState = StateOfUser & StateOfLlm`
@@ -135,10 +141,10 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 │   ├── inputs.ts                  # 所有 Actor 可以 dispatch 的 Input 的 schema 和类型定义
 │   ├── helpers.ts                 # 关键 Helper Generic 类型定义
 │   │                              #   StateOf, ContextOf, InputFrom, InitialFnOf, TransitionFnOf, OutputFnOf
-│   ├── agent.ts                   # AgentState, AgentInput 的定义
+│   ├── agent.ts                   # AgentState, AgentInput, OutputFns 的定义
 │   └── index.ts                   # 综合 export
 │
-├── impl/                          # 实现目录（严格按照文件结构，不能增减）
+├── impl/                          # 实现目录
 │   ├── initials/                 # 每个 actor 对应一个文件，另外含一个 index.ts
 │   │   ├── user.ts               # 实现 user initial function
 │   │   ├── llm.ts                # 实现 llm initial function
@@ -151,16 +157,19 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 │   │   ├── llm.ts                # 实现 llm transition function
 │   │   └── index.ts              # 综合 export
 │   │
-│   ├── output/                   # 每个 actor 对应一个文件
-│   │   ├── user.ts               # 实现 user output function
-│   │   ├── llm.ts                # 实现 llm output function
+│   ├── agent/                    # Agent 综合实现目录
+│   │   ├── initial.ts            # initialAgent 函数实现
+│   │   ├── transition.ts         # transitionAgent 函数实现
+│   │   ├── output.ts             # createOutputAgent 函数实现
+│   │   ├── create.ts             # createAgent 工厂函数（接收 outputFns 参数）
 │   │   └── index.ts              # 综合 export
 │   │
-│   ├── agent.ts                  # 综合实现 Agent 的 initial, transition, output 函数
 │   └── index.ts                  # 综合 export
 │
 └── index.ts                       # 综合 export（项目入口）
 ```
+
+**注意**：`impl/output/` 目录不属于 Agent 建模的一部分。如果需要提供默认的 output 实现作为参考，可以将其放在单独的目录中（如 `examples/` 或 `defaults/`）。
 
 每个文件夹都必须严格的按照规定的结构组织，唯一的 exception 是，如果某个 .ts 文件过大，可以改成对应的文件夹进行代码拆分。例如 decl/observations.ts 如果太大，可以转成 decl/observations/，分成多个文件，通过 decl/observation/index.ts 综合 export
 
@@ -242,14 +251,15 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 
 ### Step 4 - 补充实现代码逻辑
 
-针对新增的 Actor、Context、State、Input，对应地调整 `initial`、`transition`、`output` 函数的实现。
+针对新增的 Actor、Context、State、Input，对应地调整 `initial`、`transition` 函数的实现。
 
 **操作**：
 - 更新 `impl/initials/` 中的初始化函数
 - 更新 `impl/transitions/` 中的状态转换函数
-- 更新 `impl/output/` 中的输出函数
 - 更新 `impl/agent.ts` 中的统合函数
 - 确保代码能够编译通过，类型检查无误
+
+**注意**：不需要在建模阶段实现 output 函数。Output 函数应该在使用 Agent 时通过 `createAgent(outputFns)` 注入。
 
 ### 迭代完成检查
 
@@ -264,17 +274,43 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 
 ## 使用 Automata
 
-完成建模后，使用 `@moora/automata` 的 `moore` 函数创建 Moore 自动机：
+完成建模后，使用 `createAgent` 函数创建 Moore 自动机，需要注入各个 Actor 的 output 函数：
 
 ```typescript
-import { moore } from '@moora/automata';
+import { createAgent } from '@moora/starter-agent';
+import type { OutputFns } from '@moora/starter-agent';
 
-const agentMachine = moore({
-  initial: () => initialAgentState(),
-  transition: (input: AgentInput) => (state: AgentState) => 
-    transitionAgent(input)(state),
-  output: (state: AgentState) => outputAgent(state),
-});
+// 定义各个 Actor 的 output 函数
+const outputFns: OutputFns = {
+  user: (context) => () => {
+    // 第一阶段：同步执行
+    console.log('User context:', context);
+    
+    return async (dispatch) => {
+      // 第二阶段：异步执行
+      // 可以通过 dispatch 发送新的 Input
+    };
+  },
+  llm: (context) => () => {
+    // 第一阶段：同步执行
+    console.log('LLM context:', context);
+    
+    return async (dispatch) => {
+      // 第二阶段：异步执行
+      // 例如：调用 LLM API，然后 dispatch 回复消息
+      const response = await callLlmApi(context.userMessages);
+      dispatch({
+        type: 'send-assi-message',
+        id: 'msg-001',
+        content: response,
+        timestamp: Date.now(),
+      });
+    };
+  },
+};
+
+// 创建 Agent 实例
+const agent = createAgent(outputFns);
 ```
 
 注意：`output` 函数返回的是 `Output<Input>` 类型，它是一个两阶段副作用函数。在实际使用中，需要将 `output` 函数返回的副作用函数执行，并通过 `dispatch` 回调来驱动自动机的状态变化。
@@ -282,27 +318,48 @@ const agentMachine = moore({
 ### 实际使用示例
 
 ```typescript
-import { moore } from '@moora/automata';
-import type { Dispatch } from '@moora/automata';
+import { createAgent } from '@moora/starter-agent';
+import type { OutputFns } from '@moora/starter-agent';
+
+// 定义 output 函数（实际项目中可能来自不同的模块）
+const outputFns: OutputFns = {
+  user: (context) => () => {
+    console.log('[User] Messages:', context.userMessages);
+    return async (dispatch) => {
+      // User actor 的异步副作用
+    };
+  },
+  llm: (context) => () => {
+    console.log('[LLM] Processing...');
+    return async (dispatch) => {
+      // 调用 LLM API 并 dispatch 回复
+      if (context.userMessages.length > 0) {
+        const lastMessage = context.userMessages[context.userMessages.length - 1];
+        // const response = await callLlmApi(lastMessage.content);
+        dispatch({
+          type: 'send-assi-message',
+          id: `assi-${Date.now()}`,
+          content: `Echo: ${lastMessage.content}`,
+          timestamp: Date.now(),
+        });
+      }
+    };
+  },
+};
 
 // 创建自动机
-const agentMachine = moore({
-  initial: () => initialAgentState(),
-  transition: (input: AgentInput) => (state: AgentState) => 
-    transitionAgent(input)(state),
-  output: (state: AgentState) => outputAgent(state),
-});
+const agent = createAgent(outputFns);
 
 // 订阅状态变化
-agentMachine.subscribe((event) => {
+agent.subscribe((event) => {
   console.log('Event:', event);
 });
 
 // 获取 dispatch 函数
-const dispatch = agentMachine.dispatch;
+const dispatch = agent.dispatch;
 
 // 执行 output 函数返回的副作用
-const outputFn = agentMachine.output(agentMachine.current());
+const outputFn = agent.output(agent.current());
 const asyncSideEffect = outputFn(); // 第一阶段：同步执行
 asyncSideEffect(dispatch); // 第二阶段：异步执行，可以 dispatch 新的 Input
 

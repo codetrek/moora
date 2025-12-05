@@ -18,6 +18,7 @@ export type {
   // 自动机相关
   Dispatch,
   Procedure,
+  Effect,
   OutputHandler,
   Subscribe,
   Transferer,
@@ -41,3 +42,4 @@ export {
   mealy,
   moore,
 } from './automata';
+export { parallel } from './types';

@@ -5,6 +5,8 @@
 import type { Procedure } from "@moora/automata";
 import type { StateOfUser, StateOfLlm } from "./states";
 import type { InputFromUser, InputFromLlm } from "./inputs";
+import type { Actors } from "./actors";
+import type { OutputFnOf } from "./helpers";
 
 // ============================================================================
 // Output 类型定义
@@ -35,3 +37,16 @@ export type AgentState = StateOfUser & StateOfLlm;
  * Agent 的总 Input = 各个 Actor Input 的并集
  */
 export type AgentInput = InputFromUser | InputFromLlm;
+
+// ============================================================================
+// OutputFns 类型定义
+// ============================================================================
+
+/**
+ * 各个 Actor 的 Output 函数映射类型
+ *
+ * 用于 createAgent 函数的参数类型
+ */
+export type OutputFns = {
+  [A in Actors]: OutputFnOf<A>;
+};
