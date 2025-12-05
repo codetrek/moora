@@ -234,7 +234,8 @@ export type {
 // ============================================================================
 export { createPubSub } from "./pub-sub";
 export { createMoorex } from "./moorex";
-export { machine, mealy, moore } from "./state-machines";
+// 自动机相关函数从 @moora/automata 重新导出
+export { machine, mealy, moore } from "@moora/automata";
 
 // src/moorex.ts - 实现文件，如果超过 200 行考虑拆分
 // 如果 createMoorex 函数超过 30 行，提取辅助函数

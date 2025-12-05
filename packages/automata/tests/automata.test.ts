@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { machine, mealy, moore } from '../src/state-machines';
+import { machine, mealy, moore } from '../src/automata';
 
 const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 
@@ -554,4 +554,3 @@ describe('moore', () => {
     unsubscribe();
   });
 });
-

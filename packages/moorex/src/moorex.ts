@@ -4,9 +4,10 @@ import type {
   MoorexDefinition,
   MoorexEvent,
   Moorex,
+  OutputHandler,
   Unsubscribe,
 } from "./types";
-import { moore } from "./state-machines";
+import { moore } from "@moora/automata";
 import { createPubSub } from "./pub-sub";
 
 /**
@@ -106,7 +107,7 @@ export function createMoorex<Input, Effect, State>({
    * @param effects - 新的 effects Record
    * @returns 返回一个函数，该函数接收 dispatch 并执行实际的取消/启动操作
    */
-  const reconcileEffects = (effects: Record<string, Effect>) => {
+  const reconcileEffects: OutputHandler<Input, Record<string, Effect>> = (effects) => {
     // 找出需要取消的 effects（在新 effects 中不存在的）
     const effectsToCancel = filterRecord(
       Array.from(effectControllers.entries()),

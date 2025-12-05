@@ -1,8 +1,7 @@
 /**
- * @moora/moorex
+ * @moora/automata
  *
- * Moorex 是一个异步 Moore 状态机运行时，用于管理状态和协调副作用（effects）。
- * 它特别适合需要持久化的 AI 代理，能够在崩溃、重启或迁移后安全地恢复未完成的 LLM 交互和工具执行。
+ * Automata 是一个通用的自动机库，用于构建状态机（Mealy 机和 Moore 机）。
  *
  * @packageDocumentation
  */
@@ -16,7 +15,7 @@ export type {
   Unsubscribe,
   // PubSub 相关
   PubSub,
-  // 自动机相关（从 @moora/automata 重新导出）
+  // 自动机相关
   Dispatch,
   Procedure,
   OutputHandler,
@@ -29,16 +28,14 @@ export type {
   MealyMachine,
   MooreMachine,
   UpdatePack,
-  // Moorex 相关
-  EffectsAt,
-  EffectController,
-  MoorexDefinition,
-  MoorexEvent,
-  Moorex,
 } from './types';
 
 // ============================================================================
 // 导出函数
 // ============================================================================
 export { createPubSub } from './pub-sub';
-export { createMoorex } from './moorex';
+export {
+  machine,
+  mealy,
+  moore,
+} from './automata';

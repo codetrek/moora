@@ -4,7 +4,7 @@ import type {
   OutputHandler,
   Subscribe,
   StatefulTransferer,
-  StateMachine,
+  Automata,
   MealyMachine,
   MooreMachine,
   UpdatePack,
@@ -62,9 +62,9 @@ const subscribePubSub = <Input, Output>(
 };
 
 /**
- * 创建通用状态机
+ * 创建通用自动机
  *
- * 这是一个通用的状态机实现，支持自定义输出函数。
+ * 这是一个通用的自动机实现，支持自定义输出函数。
  * 输出函数接收状态转换的完整信息（前一个状态、输入、新状态）。
  *
  * **两阶段副作用设计**：
@@ -78,9 +78,9 @@ const subscribePubSub = <Input, Output>(
  * @template Input - 输入信号类型
  * @template Output - 输出类型
  * @template State - 状态类型
- * @param stateMachine - 状态机定义（初始状态和转换函数）
+ * @param automata - 自动机定义（初始状态和转换函数）
  * @param output - 输出函数，根据状态转换信息计算输出
- * @returns 有状态的状态机实例，提供 dispatch、subscribe 和 current 方法
+ * @returns 有状态的自动机实例，提供 dispatch、subscribe 和 current 方法
  *
  * @example
  * ```typescript
@@ -98,7 +98,7 @@ const subscribePubSub = <Input, Output>(
  * ```
  */
 export function machine<Input, Output, State>(
-  { initial, transition }: StateMachine<Input, State>,
+  { initial, transition }: Automata<Input, State>,
   output: (update: UpdatePack<Input, State>) => Output
 ): StatefulTransferer<Input, Output, State> {
   let state = initial();

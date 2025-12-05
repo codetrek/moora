@@ -1,18 +1,13 @@
 {
-  "name": "@moora/moorex",
+  "name": "@moora/automata",
   "version": "0.1.0",
-  "description": "A generic asynchronous Moore machine for building persistent AI agents that survive crashes, restarts, or migrations",
+  "description": "A generic automata library for building state machines (Mealy and Moore machines)",
   "keywords": [
-    "moore-machine",
+    "automata",
     "state-machine",
-    "agent",
-    "persistent",
-    "effects",
-    "async",
-    "reconciliation",
-    "ai-agent",
-    "state-management",
-    "automata"
+    "mealy-machine",
+    "moore-machine",
+    "state-management"
   ],
   "main": "src/index.ts",
   "module": "src/index.ts",
@@ -22,15 +17,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/shazhou-ww/moora.git",
-    "directory": "packages/moorex"
+    "directory": "packages/automata"
   },
-  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/moorex#readme",
+  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/automata#readme",
   "bugs": {
     "url": "https://github.com/shazhou-ww/moora/issues"
-  },
-  "dependencies": {
-    "@moora/automata": "workspace:*",
-    "mutative": "^1.3.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -43,10 +34,7 @@
   },
   "files": [
     "README.md",
-    "README.zh.md",
-    "llm.md",
-    "src",
-    "moorex.svg"
+    "src"
   ],
   "scripts": {
     "test": "vitest --run --no-ui",
