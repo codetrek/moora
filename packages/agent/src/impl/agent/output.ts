@@ -2,8 +2,10 @@
  * Agent 的输出函数实现
  */
 
-import { parallel } from "@moora/automata";
 import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
+import type { ContextOfUser, ContextOfLlm } from "@/decl/contexts";
+import type { Dispatch } from "@moora/automata";
+import type { Eff } from "@moora/effects";
 
 // ============================================================================
 // Output 相关函数
@@ -23,9 +25,18 @@ import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
  */
 export const createOutput =
   (outputFns: OutputFns) =>
-  ({ userMessages, assiMessages }: AgentState) =>
-    // 使用 parallel 并行执行所有 Actor 的输出
-    parallel<AgentInput>([
-      outputFns.user({ userMessages, assiMessages }),
-      outputFns.llm({ userMessages, assiMessages }),
-    ]);
+  (state: AgentState): Eff<Dispatch<AgentInput>, void> => {
+    // 确保 state 存在并提取所需的字段，使用默认值防止 undefined
+    if (!state) {
+      console.error("[createOutput] State is undefined!");
+      throw new Error("State is undefined in createOutput");
+    }
+    const userMessages = state.userMessages ?? [];
+    const assiMessages = state.assiMessages ?? [];
+    return (dispatch: Dispatch<AgentInput>) => {
+      const contextUser: ContextOfUser = { userMessages, assiMessages };
+      const contextLlm: ContextOfLlm = { userMessages, assiMessages };
+      outputFns.user(dispatch)(contextUser);
+      outputFns.llm(dispatch)(contextLlm);
+    };
+  };

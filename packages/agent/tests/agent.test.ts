@@ -8,8 +8,8 @@ import type { OutputFns } from "../src/index";
 
 // 创建一个简单的 mock outputFns
 const mockOutputFns: OutputFns = {
-  user: () => () => async () => {},
-  llm: () => () => async () => {},
+  user: () => () => {},
+  llm: () => () => {},
 };
 
 describe("Agent", () => {
@@ -29,7 +29,7 @@ describe("Agent", () => {
     expect(state.assiMessages).toEqual([]);
   });
 
-  test("should dispatch user message and update state", () => {
+  test("should dispatch user message and update state", async () => {
     const agent = createAgent(mockOutputFns);
     const timestamp = Date.now();
 
@@ -40,13 +40,16 @@ describe("Agent", () => {
       timestamp,
     });
 
+    // dispatch 是异步的，需要等待
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
     const state = agent.current();
     expect(state.userMessages).toHaveLength(1);
     expect(state.userMessages[0]?.content).toBe("Hello");
     expect(state.userMessages[0]?.role).toBe("user");
   });
 
-  test("should dispatch start stream and update state", () => {
+  test("should dispatch start stream and update state", async () => {
     const agent = createAgent(mockOutputFns);
     const timestamp = Date.now();
 
@@ -56,6 +59,9 @@ describe("Agent", () => {
       timestamp,
     });
 
+    // dispatch 是异步的，需要等待
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
     const state = agent.current();
     expect(state.assiMessages).toHaveLength(1);
     expect(state.assiMessages[0]?.id).toBe("test-id-2");
@@ -63,7 +69,7 @@ describe("Agent", () => {
     expect(state.assiMessages[0]?.streaming).toBe(true);
   });
 
-  test("should dispatch end stream and update state", () => {
+  test("should dispatch end stream and update state", async () => {
     const agent = createAgent(mockOutputFns);
     const timestamp = Date.now();
     const messageId = "test-id-3";
@@ -75,6 +81,9 @@ describe("Agent", () => {
       timestamp,
     });
 
+    // dispatch 是异步的，需要等待
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
     // 然后结束流式生成
     agent.dispatch({
       type: "end-assi-message-stream",
@@ -82,6 +91,9 @@ describe("Agent", () => {
       content: "Hi there!",
       timestamp: timestamp + 100,
     });
+
+    // dispatch 是异步的，需要等待
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
 
     const state = agent.current();
     expect(state.assiMessages).toHaveLength(1);
@@ -97,15 +109,12 @@ describe("Agent", () => {
     const agent = createAgent(mockOutputFns);
     let outputReceived = false;
 
-    agent.subscribe((output) => {
+    agent.subscribe((dispatch) => (output) => {
       outputReceived = true;
-      return () => async () => {
-        // Mock async effect
-        await Promise.resolve();
-      };
+      // Mock effect
     });
 
-    // Wait for microtask to execute
+    // Wait for microtask to execute (dispatch is async)
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 
     expect(outputReceived).toBe(true);

@@ -30,7 +30,6 @@ export function createAgentSSEHandler(
   subscribePatch: Subscribe<string>
 ) {
   return function* () {
-    console.log("[createAgentSSEHandler] New SSE connection established");
 
     const state: SSEConnectionState = {
       queue: [],
@@ -79,11 +78,9 @@ export function createAgentSSEHandler(
         }
       }
     } catch (error) {
-      console.log("[createAgentSSEHandler] Connection error:", error);
       state.closed = true;
       throw error;
     } finally {
-      console.log("[createAgentSSEHandler] Connection closing");
       state.closed = true;
       unsubscribe();
     }

@@ -16,7 +16,6 @@ import type { StreamManager, SSEConnection } from "@/types";
 export function createStreamSSEHandler(streamManager: StreamManager) {
   return function* ({ params }: { params: { messageId: string } }) {
     const { messageId } = params;
-    console.log("[createStreamSSEHandler] Stream connection requested for messageId:", messageId);
 
     const connection: SSEConnection = {
       queue: [],
@@ -28,10 +27,8 @@ export function createStreamSSEHandler(streamManager: StreamManager) {
 
     try {
       unsubscribe = streamManager.subscribe(messageId, connection);
-      console.log("[createStreamSSEHandler] Subscribe result:", unsubscribe !== null);
 
       if (!unsubscribe) {
-        console.log("[createStreamSSEHandler] Stream not found, returning error");
         yield sse(JSON.stringify({ type: "error", message: "Stream not found" }));
         return;
       }
@@ -39,7 +36,6 @@ export function createStreamSSEHandler(streamManager: StreamManager) {
       // 先 yield 一个 SSE 消息来确保 Content-Type 正确设置
       // Elysia 根据第一个 yield 的值来决定 Content-Type
       yield sse(JSON.stringify({ type: "connected", messageId }));
-      console.log("[createStreamSSEHandler] Initial SSE sent, waiting for chunks");
 
       while (!connection.closed) {
         yield new Promise<void>((resolve) => {

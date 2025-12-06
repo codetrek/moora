@@ -37,7 +37,7 @@
 
 **纯函数要求**：
 - `InitialFn`、`TransitionFn` 这两个函数**必须是纯函数**，不能有副作用
-- `OutputFn` 虽然不属于建模的一部分，但其本身也应该是纯函数，只有其**返回值**是一个副作用函数（两阶段副作用）
+- `OutputFn` 虽然不属于建模的一部分，但其本身也应该是纯函数，只有其**返回值**是一个副作用函数
 - 这种设计确保了状态转换的可预测性和可测试性，副作用被隔离在 output 函数的返回值中
 
 把整个 Actor 网络看作一个 Moore 自动机（使用 `@moora/automata` 的 `moore` 函数），那么：
@@ -48,26 +48,23 @@
 
 ### Output 的定义
 
-Output 采用两阶段副作用定义，type 为
+Output 是一个同步副作用函数，type 为
 
 ```typescript
-type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
+type Output<Input> = Eff<Dispatch<Input>, void>
+// 即: (dispatch: Dispatch<Input>) => void
 ```
 
-**两阶段设计的原因**：
+**设计说明**：
 
-1. **第一阶段（同步）**：会先执行一个同步函数，这一步会被同步调用，可以调整 Actor 的内部状态，但不能 Dispatch 新的 Input，防止递归迭代自动机状态。同步副作用会返回一个异步函数，作为第二阶段。
-
-2. **第二阶段（异步）**：是一个异步副作用函数，输入一个对应 Input 类型的 Dispatch 回调，可以异步 dispatch 新的 Input，迭代自动机状态。
-
-这种设计确保了：
-- 同步部分可以立即处理输出（如日志记录、UI 更新）
-- 异步副作用在微任务队列中执行，不会阻塞当前执行栈
+- Output 是一个同步函数，接收 `dispatch` 作为上下文参数
+- 如果需要异步操作（如 API 调用），应该在函数内部自行使用 `queueMicrotask` 来处理
+- 这种设计允许同步部分立即处理输出（如日志记录、UI 更新），同时异步副作用在微任务队列中执行
 - 异步副作用可以通过 `dispatch` 产生新的 Input，形成反馈循环
 
 **与 Automata 的关系**：
 
-`@moora/automata` 的 `moore` 函数的 `output` 参数接收一个函数 `(state: State) => Output`，这个函数根据当前状态返回一个两阶段副作用函数。这个副作用函数在执行时会通过 `dispatch` 回调来驱动自动机的状态变化。
+`@moora/automata` 的 `moore` 函数的 `output` 参数接收一个函数 `(state: State) => Output`，这个函数根据当前状态返回一个同步副作用函数。这个副作用函数在执行时会通过 `dispatch` 回调来驱动自动机的状态变化。
 
 
 ### 代码层面的类型定义
@@ -111,12 +108,13 @@ type Output<Input> = () => async (dispatch: Dispatch<Input>) => Promise<void>
 - **关键函数的类型定义**
   - `type InitialFnOf<Actor extends Actors> = () => StateOf<Actor>`
   - `type TransitionFnOf<Actor extends Actors> = (input: InputFrom<Actor>) => (state: StateOf<Actor>) => StateOf<Actor>`
-  - `type OutputFnOf<Actor extends Actors> = (context: ContextOf<Actor>) => Output<InputFrom<Actor>>`
+  - `type OutputFnOf<Actor extends Actors> = (dispatch: Dispatch<AgentInput>) => Eff<ContextOf<Actor>, void>`
   
-  注意：`OutputFnOf` 的参数应该是 `ContextOf<Actor>` 而不是 `StateOf<Actor>`。这是因为：
+  注意：`OutputFnOf` 接收 `dispatch` 作为参数，返回 `Eff<ContextOf<Actor>, void>`。这是因为：
   - **Context** 是 Actor 发出的 Observation 的并集，表示该 Actor 对外呈现的信息
   - **Output** 函数根据 Actor 的 Context（它向外发出的信息）来决定要执行什么副作用
   - 这符合 Moore 机的语义：输出由当前状态决定，而 Context 正是 Actor 状态中向外可见的部分
+  - Output 函数接收 `dispatch` 作为参数，允许在副作用中 dispatch 新的 Input
   
   **重要**：
   - `InitialFn` 和 `TransitionFn` 是 Agent 建模的核心部分，必须是**纯函数**
@@ -282,21 +280,16 @@ import type { OutputFns } from '@moora/starter-agent';
 
 // 定义各个 Actor 的 output 函数
 const outputFns: OutputFns = {
-  user: (context) => () => {
-    // 第一阶段：同步执行
+  user: (dispatch) => (context) => {
+    // 同步执行，可以立即处理输出
     console.log('User context:', context);
-    
-    return async (dispatch) => {
-      // 第二阶段：异步执行
-      // 可以通过 dispatch 发送新的 Input
-    };
+    // 如果需要异步操作，使用 queueMicrotask
   },
-  llm: (context) => () => {
-    // 第一阶段：同步执行
+  llm: (dispatch) => (context) => {
+    // 同步执行
     console.log('LLM context:', context);
-    
-    return async (dispatch) => {
-      // 第二阶段：异步执行
+    // 如果需要异步操作，使用 queueMicrotask
+    queueMicrotask(async () => {
       // 例如：调用 LLM API，然后 dispatch 回复消息
       const response = await callLlmApi(context.userMessages);
       dispatch({
@@ -305,7 +298,7 @@ const outputFns: OutputFns = {
         content: response,
         timestamp: Date.now(),
       });
-    };
+    });
   },
 };
 
@@ -313,7 +306,7 @@ const outputFns: OutputFns = {
 const agent = createAgent(outputFns);
 ```
 
-注意：`output` 函数返回的是 `Output<Input>` 类型，它是一个两阶段副作用函数。在实际使用中，需要将 `output` 函数返回的副作用函数执行，并通过 `dispatch` 回调来驱动自动机的状态变化。
+注意：`output` 函数返回的是 `Output<Input>` 类型，它是一个同步副作用函数。如果需要异步操作，应该在函数内部自行使用 `queueMicrotask` 来处理。
 
 ### 实际使用示例
 
@@ -323,15 +316,14 @@ import type { OutputFns } from '@moora/starter-agent';
 
 // 定义 output 函数（实际项目中可能来自不同的模块）
 const outputFns: OutputFns = {
-  user: (context) => () => {
+  user: (dispatch) => (context) => {
     console.log('[User] Messages:', context.userMessages);
-    return async (dispatch) => {
-      // User actor 的异步副作用
-    };
+    // User actor 的副作用，如果需要异步操作，使用 queueMicrotask
   },
-  llm: (context) => () => {
+  llm: (dispatch) => (context) => {
     console.log('[LLM] Processing...');
-    return async (dispatch) => {
+    // 如果需要异步操作，使用 queueMicrotask
+    queueMicrotask(async () => {
       // 调用 LLM API 并 dispatch 回复
       if (context.userMessages.length > 0) {
         const lastMessage = context.userMessages[context.userMessages.length - 1];
@@ -343,7 +335,7 @@ const outputFns: OutputFns = {
           timestamp: Date.now(),
         });
       }
-    };
+    });
   },
 };
 
@@ -351,20 +343,14 @@ const outputFns: OutputFns = {
 const agent = createAgent(outputFns);
 
 // 订阅状态变化
-agent.subscribe((event) => {
-  console.log('Event:', event);
+agent.subscribe((dispatch) => (output) => {
+  // output 是 Eff<Dispatch<AgentInput>, void>
+  // 直接执行即可，如果需要异步操作，output 内部会使用 queueMicrotask
+  output(dispatch);
 });
 
-// 获取 dispatch 函数
-const dispatch = agent.dispatch;
-
-// 执行 output 函数返回的副作用
-const outputFn = agent.output(agent.current());
-const asyncSideEffect = outputFn(); // 第一阶段：同步执行
-asyncSideEffect(dispatch); // 第二阶段：异步执行，可以 dispatch 新的 Input
-
-// 或者直接 dispatch Input 来触发状态转换
-dispatch({ type: 'send-user-message', id: 'msg-001', content: 'Hello', timestamp: Date.now() });
+// 直接 dispatch Input 来触发状态转换
+agent.dispatch({ type: 'send-user-message', id: 'msg-001', content: 'Hello', timestamp: Date.now() });
 ```
 
 

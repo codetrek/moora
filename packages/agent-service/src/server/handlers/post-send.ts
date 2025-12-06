@@ -39,9 +39,7 @@ export function createPostSendHandler(agent: ReturnType<typeof createAgent>) {
       timestamp,
     };
 
-    console.log("[createPostSendHandler] Dispatching input:", { id, content, timestamp });
     agent.dispatch(input);
-    console.log("[createPostSendHandler] Input dispatched");
 
     set.headers = {
       "Content-Type": "application/json",

@@ -1,10 +1,10 @@
 /**
- * 两阶段副作用函数
+ * 同步副作用函数
  *
- * Effect 是一个两阶段副作用函数：
- * - 第一阶段（同步）：调用 Effect 函数本身，返回一个异步副作用函数
- * - 第二阶段（异步）：异步副作用函数在微任务队列中执行，接收一个值并返回 Promise
+ * Eff 是一个同步副作用函数，接收上下文并返回结果。
+ * 如果需要异步操作，应该在函数内部自行使用 queueMicrotask 来处理。
  *
- * @template T - 异步阶段接收的值类型
+ * @template Context - 上下文类型
+ * @template Result - 结果类型
  */
-export type Effect<T> = () => (value: T) => Promise<void>;
+export type Eff<Context, Result> = (context: Context) => Result;

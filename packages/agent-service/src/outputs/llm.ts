@@ -10,11 +10,11 @@ import type {
   ContextOfLlm,
   InputFromLlm,
   AgentInput,
-  Output,
 } from "@moora/agent";
 import type { Dispatch } from "@moora/automata";
 import type { CreateLlmOutputOptions } from "@/types";
 import { streamLlmCall } from "./openai";
+import type { Eff } from "@moora/effects";
 
 // ============================================================================
 // 类型定义
@@ -70,14 +70,14 @@ function hasStreamingMessage(
 /**
  * 创建 LLM Output 函数
  *
- * 使用 stateful effect 模式管理 cutOff 状态，当有比 cutOff 更新的用户消息时调用 LLM
+ * 使用闭包管理 cutOff 状态，当有比 cutOff 更新的用户消息时调用 LLM
  *
  * @param options - 创建选项
  * @returns LLM Output 函数
  */
 export function createLlmOutput(
   options: CreateLlmOutputOptions
-): (context: ContextOfLlm) => Output<AgentInput> {
+): (dispatch: Dispatch<AgentInput>) => Eff<ContextOfLlm, void> {
   const { openai: openaiConfig, prompt, streamManager } = options;
 
   // 创建 OpenAI 客户端
@@ -86,13 +86,11 @@ export function createLlmOutput(
     baseURL: openaiConfig.endpoint.url,
   });
 
-  // Stateful effect 状态
+  // 使用闭包管理状态
   let state: LlmOutputState = { cutOff: 0 };
 
-  return (context: ContextOfLlm) => {
-    // 返回 Effect：() => (dispatch) => Promise<void>
-    return () => {
-      // 第一阶段（同步）：检查是否需要执行，更新状态
+  return (dispatch: Dispatch<AgentInput>) => {
+    return (context: ContextOfLlm) => {
       const { userMessages, assiMessages } = context;
 
       const hasNewer = hasNewerUserMessages(userMessages, state.cutOff);
@@ -100,24 +98,26 @@ export function createLlmOutput(
 
       // 如果没有新消息，或者正在流式中，不做任何操作
       if (!hasNewer || isStreaming) {
-        return async () => {};
+        return;
       }
 
       // 更新 cutOff 为最新的用户消息时间戳
       const latestTimestamp = getLatestUserMessageTimestamp(userMessages);
       state = { cutOff: latestTimestamp };
 
-      // 第二阶段（异步）：执行 LLM 调用
-      return async (dispatch: Dispatch<AgentInput>) => {
-        await executeLlmCall({
+      // 使用 queueMicrotask 执行异步 LLM 调用
+      queueMicrotask(() => {
+        executeLlmCall({
           openai,
           openaiConfig,
           prompt,
           streamManager,
           context,
           dispatch,
+        }).catch((error) => {
+          console.error("[createLlmOutput] Error executing LLM call:", error);
         });
-      };
+      });
     };
   };
 }
@@ -153,7 +153,6 @@ async function executeLlmCall(params: ExecuteLlmCallParams): Promise<void> {
 
   // 先在 StreamManager 中创建流（确保前端连接时流已存在）
   streamManager.startStream(messageId);
-  console.log("[createLlmOutput] Stream started for messageId:", messageId);
 
   // 然后通知 Agent State 开始流式生成
   const startInput: InputFromLlm = {
@@ -162,7 +161,6 @@ async function executeLlmCall(params: ExecuteLlmCallParams): Promise<void> {
     timestamp,
   };
   dispatch(startInput);
-  console.log("[createLlmOutput] Start input dispatched for messageId:", messageId);
 
   try {
     // 执行 Streaming LLM Call（内部会处理消息格式转换）

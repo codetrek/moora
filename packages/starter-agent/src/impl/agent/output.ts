@@ -2,8 +2,8 @@
  * Agent 的输出函数实现
  */
 
-import { parallel } from "@moora/automata";
 import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
+import type { Dispatch } from "@moora/automata";
 
 // ============================================================================
 // Output 相关函数
@@ -23,9 +23,7 @@ import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
  */
 export const createOutput =
   (outputFns: OutputFns) =>
-  ({ userMessages, assiMessages }: AgentState) =>
-    // 使用 parallel 并行执行所有 Actor 的输出
-    parallel<AgentInput>([
-      outputFns.user({ userMessages, assiMessages }),
-      outputFns.llm({ userMessages, assiMessages }),
-    ]);
+  ({ userMessages, assiMessages }: AgentState) => (dispatch: Dispatch<AgentInput>) => {
+    outputFns.user(dispatch)({ userMessages, assiMessages });
+    outputFns.llm(dispatch)({ userMessages, assiMessages });
+  }

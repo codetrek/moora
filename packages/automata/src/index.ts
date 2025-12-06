@@ -17,7 +17,6 @@ export type {
   PubSub,
   // 自动机相关
   Dispatch,
-  Effect,
   OutputHandler,
   Subscribe,
   Publish,
@@ -35,17 +34,6 @@ export type {
   StateTransition,
   UpdatePack,
 } from './types';
-
-// Effect 相关类型和函数（从 @moora/effects 重新导出）
-export {
-  runEffect,
-  noopEffect,
-  synchronous,
-  asynchronous,
-  stateful,
-  parallel,
-  sequential,
-} from '@moora/effects';
 
 // ============================================================================
 // 导出函数

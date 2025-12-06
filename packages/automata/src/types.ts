@@ -1,4 +1,4 @@
-import type { Effect } from '@moora/effects';
+import type { Eff } from '@moora/effects';
 
 // ============================================================================
 // 基础类型
@@ -47,29 +47,26 @@ export type PubSub<T> = {
 /**
  * 分发函数，用于发送输入信号
  */
-export type Dispatch<Input> = (input: Input) => void;
-
-// 重新导出 Effect 类型
-export type { Effect } from '@moora/effects';
+export type Dispatch<Input> = Eff<Input, void>;
 
 /**
- * 输出处理器，接收输出并返回一个 Effect 函数
+ * 输出处理器，接收输出并返回一个 Eff 函数
  *
- * 这是两阶段副作用设计：
- * - 第一阶段（同步）：handler 接收 output，返回一个 Effect 函数
- * - 第二阶段（异步）：Effect 函数执行时返回的异步副作用在微任务队列中执行
+ * Eff 是一个同步副作用函数，接收 dispatch 作为上下文。
+ * 如果需要异步操作，应该在 Eff 内部自行使用 queueMicrotask 来处理。
  *
  * 这种设计允许：
  * - 同步部分可以立即处理 output（例如记录日志、更新 UI）
  * - 异步副作用在微任务中执行，不会阻塞当前执行栈
  * - 异步副作用可以通过 dispatch 产生新的输入，形成反馈循环
  */
-export type OutputHandler<Input, Output> = (output: Output) => Effect<Dispatch<Input>>;
+export type OutputHandler<Input, Output> = (dispatch: Dispatch<Input>) => Eff<Output, void>;
 
 /**
  * 订阅函数
+ * 直接接收 OutputHandler，当有 output 时会调用 handler(output) 返回的 Eff
  */
-export type SubscribeOutput<Input, Output> = Subscribe<OutputHandler<Input, Output>>;
+export type SubscribeOutput<Input, Output> = (handler: OutputHandler<Input, Output>) => Unsubscribe;
 
 /**
  * 传输器，用于在输入和输出之间建立连接

@@ -9,7 +9,9 @@ import type { StateOfUser, StateOfLlm } from "./states";
 import type { ContextOfUser, ContextOfLlm } from "./contexts";
 import type { InputFromUser, InputFromLlm } from "./inputs";
 import type { USER, LLM } from "./actors";
-import type { Output, AgentInput } from "./agent";
+import type { AgentInput } from "./agent";
+import type { Dispatch } from "@moora/automata";
+import type { Eff } from "@moora/effects";
 
 // ============================================================================
 // Helper Generic 类型
@@ -72,5 +74,5 @@ export type TransitionFnOf<Actor extends Actors> = (
  * 并且可以方便地用 parallel 组合。
  */
 export type OutputFnOf<Actor extends Actors> = (
-  context: ContextOf<Actor>
-) => Output<AgentInput>;
+  dispatch: Dispatch<AgentInput>
+) => Eff<ContextOf<Actor>, void>;

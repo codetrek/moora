@@ -5,8 +5,9 @@
  */
 
 import { createPatch } from "rfc6902";
-import type { ContextOfUser, AgentInput, Output } from "@moora/agent";
+import type { ContextOfUser, AgentInput } from "@moora/agent";
 import type { Dispatch, PubSub } from "@moora/automata";
+import type { Eff } from "@moora/effects";
 
 /**
  * 创建 User Output 函数的选项
@@ -28,24 +29,20 @@ export type CreateUserOutputOptions = {
  */
 export function createUserOutput(
   options: CreateUserOutputOptions
-): (context: ContextOfUser) => Output<AgentInput> {
+): (dispatch: Dispatch<AgentInput>) => Eff<ContextOfUser, void> {
   const { publishPatch } = options;
   let previousContext: ContextOfUser | null = null;
 
-  return (context: ContextOfUser) => {
-    console.log("[createUserOutput] Context changed, userMessages:", context.userMessages.length, "assiMessages:", context.assiMessages.length);
-
-    return () => async (_dispatch: Dispatch<AgentInput>) => {
+  return (dispatch: Dispatch<AgentInput>) => {
+    return (context: ContextOfUser) => {
       // 如果是第一次，记录 context，不发送（全量数据在连接时发送）
       if (previousContext === null) {
-        console.log("[createUserOutput] First context, skipping patch");
         previousContext = context;
         return;
       }
 
       // 计算 diff
       const patches = createPatch(previousContext, context);
-      console.log("[createUserOutput] Generated patches:", patches.length, "patches");
 
       // 如果有变化，发布 patch
       if (patches.length > 0) {
@@ -56,8 +53,6 @@ export function createUserOutput(
 
         publishPatch(patchData);
         previousContext = context;
-      } else {
-        console.log("[createUserOutput] No patches generated, skipping");
       }
     };
   };
