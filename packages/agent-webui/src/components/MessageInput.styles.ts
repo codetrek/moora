@@ -8,8 +8,9 @@ export const paperStyles: SxProps<Theme> = {
   p: 2,
   borderRadius: 0,
   borderTop: 1,
-  borderColor: "divider",
-  bgcolor: "background.paper",
+  borderColor: "#D4B5B5", // 莫兰迪灰粉色边框
+  bgcolor: "#E8DCC0", // 莫兰迪浅黄色
+  boxShadow: "0 -2px 8px rgba(0,0,0,0.03)",
 };
 
 export const containerStyles: SxProps<Theme> = {
@@ -23,7 +24,17 @@ export const containerStyles: SxProps<Theme> = {
 export const textFieldStyles: SxProps<Theme> = {
   "& .MuiOutlinedInput-root": {
     borderRadius: 2,
-    bgcolor: "background.default",
+    bgcolor: "#FFFFFF",
+    "& fieldset": {
+      borderColor: "#D4B5B5", // 莫兰迪灰粉色
+    },
+    "&:hover fieldset": {
+      borderColor: "#C9A8A8", // 莫兰迪灰红色
+    },
+    "&.Mui-focused fieldset": {
+      borderColor: "#C9A8A8", // 莫兰迪灰红色聚焦
+      borderWidth: 2,
+    },
   },
 };
 
@@ -33,5 +44,14 @@ export const buttonStyles: SxProps<Theme> = {
   borderRadius: 2,
   textTransform: "none",
   fontSize: "1rem",
+  bgcolor: "#C9A8A8", // 莫兰迪灰红色
+  color: "#FFFFFF",
+  "&:hover": {
+    bgcolor: "#B08A8A",
+  },
+  "&:disabled": {
+    bgcolor: "#E0DDD8",
+    color: "#8B8B8B",
+  },
 };
 

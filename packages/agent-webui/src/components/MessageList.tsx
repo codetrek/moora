@@ -3,7 +3,7 @@
  */
 
 import { Box, Avatar, Paper, Typography, Fade } from "@mui/material";
-import { Person, SmartToy } from "@mui/icons-material";
+import { Person } from "@mui/icons-material";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -57,7 +57,16 @@ export function MessageList({ messages }: MessageListProps) {
     <Box sx={containerStyles}>
       {messages.length === 0 ? (
         <Box sx={emptyStateStyles}>
-          <SmartToy sx={emptyStateIconStyles} />
+          <Box
+            component="img"
+            src="/moorex.svg"
+            alt="Moorex Logo"
+            sx={{
+              ...emptyStateIconStyles,
+              width: 64,
+              height: 64,
+            }}
+          />
           <Typography variant="h6" color="text.secondary">
             开始对话
           </Typography>
@@ -70,9 +79,11 @@ export function MessageList({ messages }: MessageListProps) {
           <Fade in={true} key={message.id} timeout={300}>
             <Box sx={messageRowStyles(message.role)}>
               {message.role === "assistant" && (
-                <Avatar sx={avatarStyles("assistant")}>
-                  <SmartToy sx={avatarIconStyles} />
-                </Avatar>
+                <Avatar
+                  sx={avatarStyles("assistant")}
+                  src="/moorex.svg"
+                  alt="Agent"
+                />
               )}
 
               <Paper elevation={2} sx={messagePaperStyles(message.role)}>

@@ -35,9 +35,10 @@ export const messageRowStyles = (role: "user" | "assistant"): SxProps<Theme> => 
 });
 
 export const avatarStyles = (role: "user" | "assistant"): SxProps<Theme> => ({
-  bgcolor: role === "user" ? "primary.main" : "secondary.main",
+  bgcolor: role === "user" ? "primary.main" : "#D4C5A9", // 莫兰迪黄色
   width: 32,
   height: 32,
+  border: role === "user" ? "2px solid #C9A8A8" : "none", // 用户头像添加红色边框点缀
 });
 
 export const avatarIconStyles: SxProps<Theme> = {
@@ -47,13 +48,16 @@ export const avatarIconStyles: SxProps<Theme> = {
 export const messagePaperStyles = (role: "user" | "assistant"): SxProps<Theme> => ({
   p: 2,
   maxWidth: "75%",
-  bgcolor: role === "user" ? "primary.main" : "background.paper",
+  bgcolor: role === "user" ? "primary.main" : "#F5F0E8", // Agent消息用浅米色
   color: role === "user" ? "primary.contrastText" : "text.primary",
   borderRadius: 2,
   border: role === "assistant" ? "1px solid" : "none",
-  borderColor: role === "assistant" ? "divider" : "transparent",
+  borderColor: role === "assistant" ? "#E8DCC0" : "transparent", // 浅黄色边框
+  boxShadow: role === "user" 
+    ? "0 2px 4px rgba(143,163,181,0.2)" 
+    : "0 2px 4px rgba(212,197,169,0.15)",
   "& pre": {
-    bgcolor: role === "user" ? "rgba(0,0,0,0.2)" : "grey.100",
+    bgcolor: role === "user" ? "rgba(255,255,255,0.2)" : "#E8DCC0", // Agent代码块用浅黄色
     borderRadius: 1,
     p: 1,
     overflow: "auto",
@@ -63,7 +67,7 @@ export const messagePaperStyles = (role: "user" | "assistant"): SxProps<Theme> =
     },
   },
   "& code": {
-    bgcolor: role === "user" ? "rgba(0,0,0,0.2)" : "grey.200",
+    bgcolor: role === "user" ? "rgba(255,255,255,0.25)" : "#D4C5A9", // Agent行内代码用黄色
     px: 0.5,
     py: 0.25,
     borderRadius: 0.5,
@@ -84,7 +88,7 @@ export const messagePaperStyles = (role: "user" | "assistant"): SxProps<Theme> =
   },
   "& blockquote": {
     borderLeft: 3,
-    borderColor: "divider",
+    borderColor: role === "user" ? "rgba(255,255,255,0.4)" : "#D4C5A9",
     pl: 2,
     ml: 0,
     mr: 0,
@@ -95,12 +99,12 @@ export const messagePaperStyles = (role: "user" | "assistant"): SxProps<Theme> =
     width: "100%",
     "& th, & td": {
       border: 1,
-      borderColor: "divider",
+      borderColor: role === "user" ? "rgba(255,255,255,0.3)" : "#E8DCC0",
       px: 1,
       py: 0.5,
     },
     "& th": {
-      bgcolor: role === "user" ? "rgba(0,0,0,0.2)" : "grey.100",
+      bgcolor: role === "user" ? "rgba(255,255,255,0.2)" : "#E8DCC0",
     },
   },
 });
@@ -123,7 +127,7 @@ export const paragraphStyles: SxProps<Theme> = {
 };
 
 export const codeBlockStyles = (role: "user" | "assistant"): SxProps<Theme> => ({
-  bgcolor: role === "user" ? "rgba(0,0,0,0.2)" : "grey.100",
+  bgcolor: role === "user" ? "rgba(255,255,255,0.2)" : "#E8DCC0", // Agent代码块用浅黄色
   borderRadius: 1,
   p: 1.5,
   overflow: "auto",
@@ -136,7 +140,7 @@ export const codeBlockStyles = (role: "user" | "assistant"): SxProps<Theme> => (
 });
 
 export const inlineCodeStyles = (role: "user" | "assistant"): SxProps<Theme> => ({
-  bgcolor: role === "user" ? "rgba(0,0,0,0.2)" : "grey.200",
+  bgcolor: role === "user" ? "rgba(255,255,255,0.25)" : "#D4C5A9", // Agent行内代码用黄色
   px: 0.5,
   py: 0.25,
   borderRadius: 0.5,

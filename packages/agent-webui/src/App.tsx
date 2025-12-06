@@ -12,7 +12,6 @@ import {
   Toolbar,
   Chip,
 } from "@mui/material";
-import { SmartToy } from "@mui/icons-material";
 import { MessageList } from "@/components/MessageList";
 import { MessageInput } from "@/components/MessageInput";
 import { createSSEConnection, applyPatchesToContext } from "@/utils/sse";
@@ -26,6 +25,7 @@ import {
   errorAlertStyles,
   contentBoxStyles,
   loadingBoxStyles,
+  messageCountChipStyles,
 } from "@/styles/app";
 
 function App() {
@@ -108,7 +108,16 @@ function App() {
     <Box sx={rootStyles}>
       <AppBar position="static" elevation={1} sx={appBarStyles}>
         <Toolbar>
-          <SmartToy sx={appBarIconStyles} />
+          <Box
+            component="img"
+            src="/moorex.svg"
+            alt="Moorex Logo"
+            sx={{
+              ...appBarIconStyles,
+              width: 32,
+              height: 32,
+            }}
+          />
           <Typography variant="h6" component="h1" sx={appBarTitleStyles}>
             Agent WebUI
           </Typography>
@@ -116,8 +125,7 @@ function App() {
             <Chip
               label={`${messages.length} 条消息`}
               size="small"
-              color="primary"
-              variant="outlined"
+              sx={messageCountChipStyles}
             />
           )}
         </Toolbar>

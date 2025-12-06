@@ -54,7 +54,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           onClick={handleSend}
           disabled={disabled || !content.trim()}
           sx={buttonStyles}
-          startIcon={<Send />}
+          startIcon={<Send sx={{ color: "inherit" }} />}
         >
           发送
         </Button>
