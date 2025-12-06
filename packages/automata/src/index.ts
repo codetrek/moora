@@ -24,11 +24,13 @@ export type {
   StatefulTransferer,
   InitialFn,
   TransitionFn,
+  AutomataOutputFn,
   MealyOutputFn,
   MooreOutputFn,
   StateMachine,
   MealyMachine,
   MooreMachine,
+  StateTransition,
   UpdatePack,
 } from './types';
 

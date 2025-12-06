@@ -115,16 +115,18 @@ export type StateMachine<Input, State> = {
 /**
  * Mealy 机输出函数
  *
- * Mealy 机的输出依赖于输入和状态转换信息。
- * 函数接收完整的状态转换信息（前一个状态、输入、新状态），计算并返回输出。
+ * Mealy 机的输出依赖于新状态和输入。
+ * 函数接收包含新状态和输入的对象（类型结构与 `UpdatePack` 的 `prev` 字段相同），计算并返回输出。
  *
  * @template Input - 输入信号类型
  * @template Output - 输出类型
  * @template State - 状态类型
- * @param update - 状态转换信息包，包含前一个状态、输入和新状态
+ * @param update - 包含新状态和输入的对象（类型结构与 `UpdatePack` 的 `prev` 字段相同）
  * @returns 计算得到的输出
  */
-export type MealyOutputFn<Input, Output, State> = (update: UpdatePack<Input, State>) => Output;
+export type MealyOutputFn<Input, Output, State> = (
+  update: StateTransition<Input, State>
+) => Output;
 
 /**
  * Mealy 机定义（输出依赖于输入和状态）
@@ -154,10 +156,42 @@ export type MooreMachine<Input, Output, State> = StateMachine<Input, State> & {
 };
 
 /**
- * 更新包，包含状态转换前后的状态和输入
+ * 状态转换信息，包含前一个状态和输入
+ *
+ * 这是 `UpdatePack` 的 `prev` 字段（当它不为 `null` 时）。
+ * 用于 Mealy 机的输出函数。
+ *
+ * @template Input - 输入信号类型
+ * @template State - 状态类型
  */
-export type UpdatePack<Input, State> = {
-  statePrev: State;
+export type StateTransition<Input, State> = {
   state: State;
   input: Input;
 };
+
+/**
+ * 更新包，包含状态转换前后的状态和输入
+ *
+ * - `prev`: 前一个状态和输入，如果为 `null` 表示这是初始状态（没有前一个状态）
+ * - `state`: 当前状态
+ */
+export type UpdatePack<Input, State> = {
+  prev: StateTransition<Input, State> | null;
+  state: State;
+};
+
+/**
+ * Automata 输出函数
+ *
+ * Automata 的输出函数接收状态转换的完整信息（前一个状态、输入、新状态）。
+ * 如果返回 `null`，则忽略此次输出。
+ *
+ * @template Input - 输入信号类型
+ * @template Output - 输出类型
+ * @template State - 状态类型
+ * @param update - 状态转换信息包，包含前一个状态、输入和新状态
+ * @returns 计算得到的输出，如果为 `null` 则忽略此次输出
+ */
+export type AutomataOutputFn<Input, Output, State> = (
+  update: UpdatePack<Input, State>
+) => { output: Output } | null;

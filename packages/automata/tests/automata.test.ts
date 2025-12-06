@@ -21,7 +21,7 @@ describe('machine', () => {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
       },
-      ({ state }) => ({ value: state.count })
+      ({ state }) => ({ output: { value: state.count } })
     );
 
     expect(sm.current()).toEqual({ count: 0 });
@@ -33,7 +33,7 @@ describe('machine', () => {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
       },
-      ({ state }) => ({ value: state.count })
+      ({ state }) => ({ output: { value: state.count } })
     );
 
     sm.dispatch(5);
@@ -49,7 +49,7 @@ describe('machine', () => {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
       },
-      ({ state }) => ({ value: state.count })
+      ({ state }) => ({ output: { value: state.count } })
     );
 
     const outputs: Array<{ value: number }> = [];
@@ -58,21 +58,26 @@ describe('machine', () => {
       outputs.push(output);
     });
 
+    // 初始状态输出
+    await nextTick();
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toEqual({ value: 0 });
+
     sm.dispatch(1);
     // Procedure 在微任务中执行，需要等�?
     await nextTick();
-    expect(outputs).toHaveLength(1);
-    expect(outputs[0]).toEqual({ value: 1 });
+    expect(outputs).toHaveLength(2);
+    expect(outputs[1]).toEqual({ value: 1 });
 
     sm.dispatch(2);
     await nextTick();
-    expect(outputs).toHaveLength(2);
-    expect(outputs[1]).toEqual({ value: 3 });
+    expect(outputs).toHaveLength(3);
+    expect(outputs[2]).toEqual({ value: 3 });
 
     unsubscribe();
     sm.dispatch(3);
     await nextTick();
-    expect(outputs).toHaveLength(2); // 取消订阅后不应收到更�?
+    expect(outputs).toHaveLength(3); // 取消订阅后不应收到更�?
   });
 
   test('handler executes synchronously, procedure executes asynchronously', async () => {
@@ -81,7 +86,7 @@ describe('machine', () => {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
       },
-      ({ state }) => ({ value: state.count })
+      ({ state }) => ({ output: { value: state.count } })
     );
 
     const syncCalls: Array<{ value: number }> = [];
@@ -96,18 +101,23 @@ describe('machine', () => {
       };
     });
 
+    // 初始状态输出
+    expect(syncCalls).toHaveLength(1);
+    expect(syncCalls[0]).toEqual({ value: 0 });
+
     sm.dispatch(1);
     // 同步部分应该立即执行
-    expect(syncCalls).toHaveLength(1);
-    expect(syncCalls[0]).toEqual({ value: 1 });
+    expect(syncCalls).toHaveLength(2);
+    expect(syncCalls[1]).toEqual({ value: 1 });
     // 异步部分还未执行
     expect(asyncCalls).toHaveLength(0);
 
     // 等待微任务执�?
     await nextTick();
     // 异步部分现在应该执行�?
-    expect(asyncCalls).toHaveLength(1);
-    expect(asyncCalls[0]).toEqual({ value: 1 });
+    expect(asyncCalls).toHaveLength(2);
+    expect(asyncCalls[0]).toEqual({ value: 0 });
+    expect(asyncCalls[1]).toEqual({ value: 1 });
   });
 
   test('procedure can dispatch new inputs asynchronously', async () => {
@@ -116,7 +126,7 @@ describe('machine', () => {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
       },
-      ({ state }) => ({ value: state.count })
+      ({ state }) => ({ output: { value: state.count } })
     );
 
     const outputs: Array<{ value: number }> = [];
@@ -131,6 +141,8 @@ describe('machine', () => {
       }
     });
 
+    // 等待初始状态输出
+    await nextTick();
     sm.dispatch(1);
     await nextTick();
     // 第一�?dispatch 后，Procedure 执行并触发新�?dispatch
@@ -156,26 +168,37 @@ describe('machine', () => {
         initial: () => 0,
         transition: (n: number) => (state) => state + n,
       },
-      ({ statePrev, input, state }) => ({
-        from: statePrev,
-        to: state,
-        input,
-      })
+      ({ prev, state }) => {
+        if (prev === null) {
+          return { output: { from: null, to: state, input: null } };
+        }
+        return {
+          output: {
+            from: prev.state,
+            to: state,
+            input: prev.input,
+          },
+        };
+      }
     );
 
-    const outputs: Array<{ from: number; to: number; input: number }> = [];
+    const outputs: Array<{ from: number | null; to: number; input: number | null }> = [];
 
     const unsubscribe = sm.subscribe((output) => () => async () => {
       outputs.push(output);
     });
 
+    // 初始状态输出
+    await nextTick();
+    expect(outputs[0]).toEqual({ from: null, to: 0, input: null });
+
     sm.dispatch(5);
     await nextTick();
-    expect(outputs[0]).toEqual({ from: 0, to: 5, input: 5 });
+    expect(outputs[1]).toEqual({ from: 0, to: 5, input: 5 });
 
     sm.dispatch(3);
     await nextTick();
-    expect(outputs[1]).toEqual({ from: 5, to: 8, input: 3 });
+    expect(outputs[2]).toEqual({ from: 5, to: 8, input: 3 });
 
     unsubscribe();
   });
@@ -186,7 +209,7 @@ describe('machine', () => {
         initial: () => ({ count: 0 }),
         transition: (n: number) => (state) => ({ count: state.count + n }),
       },
-      ({ state }) => ({ value: state.count })
+      ({ state }) => ({ output: { value: state.count } })
     );
 
     const outputs1: Array<{ value: number }> = [];
@@ -200,21 +223,28 @@ describe('machine', () => {
       outputs2.push(output);
     });
 
+    // 等待初始状态输出
+    await nextTick();
+    expect(outputs1).toHaveLength(1);
+    expect(outputs1[0]).toEqual({ value: 0 });
+    expect(outputs2).toHaveLength(1);
+    expect(outputs2[0]).toEqual({ value: 0 });
+
     sm.dispatch(1);
     await nextTick();
 
-    expect(outputs1).toHaveLength(1);
-    expect(outputs1[0]).toEqual({ value: 1 });
-    expect(outputs2).toHaveLength(1);
-    expect(outputs2[0]).toEqual({ value: 1 });
+    expect(outputs1).toHaveLength(2);
+    expect(outputs1[1]).toEqual({ value: 1 });
+    expect(outputs2).toHaveLength(2);
+    expect(outputs2[1]).toEqual({ value: 1 });
 
     unsubscribe1();
     sm.dispatch(2);
     await nextTick();
 
-    expect(outputs1).toHaveLength(1); // 取消订阅后不应收到更�?
-    expect(outputs2).toHaveLength(2);
-    expect(outputs2[1]).toEqual({ value: 3 });
+    expect(outputs1).toHaveLength(2); // 取消订阅后不应收到更�?
+    expect(outputs2).toHaveLength(3);
+    expect(outputs2[2]).toEqual({ value: 3 });
 
     unsubscribe2();
   });
@@ -227,7 +257,7 @@ describe('mealy', () => {
       initial: () => 'idle',
       transition: (input: string) => (state) =>
         input === 'start' ? 'running' : state,
-      output: ({ input, state }) => `${state}:${input}`,
+      output: ({ state, input }) => `${state}:${input}`,
     });
 
     expect(mealyMachine.current()).toBe('idle');
@@ -238,7 +268,7 @@ describe('mealy', () => {
       initial: () => 'idle',
       transition: (input: string) => (state) =>
         input === 'start' ? 'running' : input === 'stop' ? 'idle' : state,
-      output: ({ input, state }) => `${state}:${input}`,
+      output: ({ state, input }) => `${state}:${input}`,
     });
 
     mealyMachine.dispatch('start');
@@ -253,7 +283,7 @@ describe('mealy', () => {
       initial: () => 'idle',
       transition: (input: string) => (state) =>
         input === 'start' ? 'running' : input === 'stop' ? 'idle' : state,
-      output: ({ input, state }) => `${state}:${input}`,
+      output: ({ state, input }) => `${state}:${input}`,
     });
 
     const outputs: string[] = [];
@@ -280,18 +310,17 @@ describe('mealy', () => {
     unsubscribe();
   });
 
-  test('output receives full update pack', async () => {
+  test('output receives state and input', async () => {
     const mealyMachine = mealy({
       initial: () => 0,
       transition: (n: number) => (state) => state + n,
-      output: ({ statePrev, input, state }) => ({
-        from: statePrev,
+      output: ({ state, input }) => ({
         to: state,
         input,
       }),
     });
 
-    const outputs: Array<{ from: number; to: number; input: number }> = [];
+    const outputs: Array<{ to: number; input: number }> = [];
 
     const unsubscribe = mealyMachine.subscribe((output) => () => async () => {
       outputs.push(output);
@@ -299,11 +328,11 @@ describe('mealy', () => {
 
     mealyMachine.dispatch(5);
     await nextTick();
-    expect(outputs[0]).toEqual({ from: 0, to: 5, input: 5 });
+    expect(outputs[0]).toEqual({ to: 5, input: 5 });
 
     mealyMachine.dispatch(3);
     await nextTick();
-    expect(outputs[1]).toEqual({ from: 5, to: 8, input: 3 });
+    expect(outputs[1]).toEqual({ to: 8, input: 3 });
 
     unsubscribe();
   });
