@@ -11,7 +11,7 @@ import { initialLlm } from "@/impl/initials/llm";
  *
  * @returns Agent 的初始状态
  */
-export function initialAgent(): AgentState {
+export function initial(): AgentState {
   const userState = initialUser();
   const llmState = initialLlm();
 

@@ -14,7 +14,7 @@ import { transitionLlm } from "@/impl/transitions/llm";
  * @param input - Agent 的输入
  * @returns 状态转换函数
  */
-export function transitionAgent(
+export function transition(
   input: AgentInput
 ): (state: AgentState) => AgentState {
   return (state: AgentState) => {

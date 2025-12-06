@@ -2,7 +2,7 @@
  * Agent 综合导出
  */
 
-export { initialAgent } from "./initial";
-export { transitionAgent } from "./transition";
-export { createOutputAgent } from "./output";
+export { initial } from "./initial";
+export { transition } from "./transition";
+export { createOutput } from "./output";
 export { createAgent } from "./create";

@@ -3,9 +3,9 @@
  */
 
 export {
-  initialAgent,
-  transitionAgent,
-  createOutputAgent,
+  initial,
+  transition,
+  createOutput,
   createAgent,
 } from "./agent";
 export { initialUser } from "./initials/user";

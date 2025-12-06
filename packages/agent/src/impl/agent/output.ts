@@ -21,7 +21,7 @@ import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
  * @param outputFns - 各个 Actor 的 Output 函数映射
  * @returns 统合后的 output 函数
  */
-export const createOutputAgent =
+export const createOutput =
   (outputFns: OutputFns) =>
   ({ userMessages, assiMessages }: AgentState) =>
     // 使用 parallel 并行执行所有 Actor 的输出

@@ -30,9 +30,4 @@ export type {
 // ============================================================================
 // 导出函数
 // ============================================================================
-export {
-  initialAgent,
-  transitionAgent,
-  createOutputAgent,
-  createAgent,
-} from "./impl/agent";
+export { createAgent } from "./impl/agent";
