@@ -58,9 +58,15 @@ export function applyPatchesToContext(
     // 深拷贝以避免直接修改原对象
     const newContext = JSON.parse(JSON.stringify(context)) as ContextOfUser;
     const result = applyPatch(newContext, patches as Operation[]);
-    if (result.length > 0) {
-      console.error("Patch application errors:", result);
+    
+    // 检查是否有错误（result 中非 null 的元素表示错误）
+    const errors = result.filter((r) => r !== null);
+    if (errors.length > 0) {
+      console.error("Patch application errors:", errors);
+      // 如果有错误，返回原始上下文
+      return context;
     }
+    
     return newContext;
   } catch (error) {
     console.error("Failed to apply patches:", error);

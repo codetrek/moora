@@ -165,7 +165,12 @@ function createStreamSSEHandler(streamManager: StreamManager) {
 
     try {
       // 订阅流式更新
-      streamManager.subscribe(messageId, connection);
+      const subscribed = streamManager.subscribe(messageId, connection);
+
+      // 如果订阅失败（流不存在），直接退出
+      if (!subscribed) {
+        return;
+      }
 
       // 保持连接打开，等待后续更新
       while (!connection.closed) {

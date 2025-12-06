@@ -69,7 +69,8 @@ export class StreamManager {
     const stream = this.streams.get(messageId);
 
     if (!stream) {
-      console.warn(`Stream not found for messageId: ${messageId}`);
+      // 流可能已被清理（超时或错误），静默忽略
+      console.debug(`Stream not found for messageId: ${messageId}, chunk will be ignored`);
       return;
     }
 
@@ -96,7 +97,8 @@ export class StreamManager {
     const stream = this.streams.get(messageId);
 
     if (!stream) {
-      console.warn(`Stream not found for messageId: ${messageId}`);
+      // 流可能已被清理（超时或错误），静默忽略
+      console.debug(`Stream not found for messageId: ${messageId}, endStream will be ignored`);
       return;
     }
 
@@ -129,13 +131,20 @@ export class StreamManager {
    *
    * @param messageId - 消息 ID
    * @param connection - SSE 连接
+   * @returns 是否成功订阅
    */
-  subscribe(messageId: string, connection: SSEConnection): void {
+  subscribe(messageId: string, connection: SSEConnection): boolean {
     const stream = this.streams.get(messageId);
 
     if (!stream) {
-      console.warn(`Stream not found for messageId: ${messageId}`);
-      return;
+      // 流不存在，可能是客户端在流创建之前就尝试订阅
+      // 或者流已被清理，标记连接为关闭
+      console.warn(`Stream not found for messageId: ${messageId}, connection will be closed`);
+      connection.closed = true;
+      if (connection.resolve) {
+        connection.resolve();
+      }
+      return false;
     }
 
     stream.connections.add(connection);
@@ -151,6 +160,8 @@ export class StreamManager {
 
       this.sendToConnection(connection, initialData);
     }
+
+    return true;
   }
 
   /**

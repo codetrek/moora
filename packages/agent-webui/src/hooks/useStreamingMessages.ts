@@ -72,10 +72,12 @@ export function useStreamingMessages(
 
         // 如果还没有连接，建立新的流式连接
         if (!streamConnectionsRef.current.has(msg.id)) {
+          console.debug(`[useStreamingMessages] Creating stream connection for messageId: ${msg.id}`);
           const closeConnection = createStreamConnection(
             msg.id,
             (content) => {
               // 初始内容
+              console.debug(`[useStreamingMessages] Received initial content for ${msg.id}, length: ${content.length}`);
               streamContentsRef.current.set(msg.id, content);
               setStreamingMessageIds((prev) => new Set(prev).add(msg.id));
               setStreamContentVersion((prev) => prev + 1);
@@ -86,12 +88,14 @@ export function useStreamingMessages(
                 streamContentsRef.current.get(msg.id) || "";
               const newContent = currentContent + chunk;
               streamContentsRef.current.set(msg.id, newContent);
+              console.debug(`[useStreamingMessages] Received chunk for ${msg.id}, total length: ${newContent.length}`);
 
               // 触发重新渲染
               setStreamContentVersion((prev) => prev + 1);
             },
             (finalContent) => {
               // 流式结束，更新最终内容
+              console.debug(`[useStreamingMessages] Stream ended for ${msg.id}, final length: ${finalContent.length}`);
               streamContentsRef.current.set(msg.id, finalContent);
 
               // 清理连接和流式状态
@@ -150,7 +154,7 @@ export function useStreamingMessages(
         streamConnectionsRef.current.delete(messageId);
       }
     });
-  }, [context, streamContentVersion]);
+  }, [context]);
 
   // 清理函数：组件卸载时清理所有连接
   useEffect(() => {

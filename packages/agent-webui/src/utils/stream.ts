@@ -19,17 +19,27 @@ export function createStreamConnection(
   onChunk: (chunk: string) => void,
   onEnd: (content: string) => void
 ): () => void {
-  const eventSource = new EventSource(`/api/streams/${messageId}`);
+  const url = `/api/streams/${messageId}`;
+  console.debug(`[Stream] Connecting to ${url}`);
+  const eventSource = new EventSource(url);
+
+  eventSource.onopen = () => {
+    console.debug(`[Stream] Connection opened for messageId: ${messageId}`);
+  };
 
   eventSource.onmessage = (event) => {
     try {
       const message: StreamMessageEvent = JSON.parse(event.data);
+      console.debug(`[Stream] Received message for ${messageId}:`, message.type);
 
       if (message.type === "initial") {
+        console.debug(`[Stream] Initial content length: ${message.content.length}`);
         onInitial(message.content);
       } else if (message.type === "chunk") {
+        console.debug(`[Stream] Chunk length: ${message.chunk.length}`);
         onChunk(message.chunk);
       } else if (message.type === "end") {
+        console.debug(`[Stream] End content length: ${message.content.length}`);
         onEnd(message.content);
         // 收到结束事件后关闭连接
         eventSource.close();
@@ -40,11 +50,12 @@ export function createStreamConnection(
   };
 
   eventSource.onerror = (error) => {
-    console.error("Stream connection error:", error);
+    console.error(`[Stream] Connection error for ${messageId}:`, error);
     eventSource.close();
   };
 
   return () => {
+    console.debug(`[Stream] Closing connection for messageId: ${messageId}`);
     eventSource.close();
   };
 }

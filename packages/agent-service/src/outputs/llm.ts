@@ -161,7 +161,8 @@ export function createLlmOutput(
           };
           dispatch(endInput);
 
-          // 在 StreamManager 中结束流式生成
+          // 在 StreamManager 中结束流式生成（如果流还存在）
+          // 流可能已被清理（超时），所以这里静默处理
           streamManager.endStream(messageId, "");
         }
       }
