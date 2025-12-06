@@ -42,15 +42,18 @@ export function createUserOutput(
   let previousContext: ContextOfUser | null = null;
 
   return (context: ContextOfUser) => {
+    console.log("[createUserOutput] Context changed, userMessages:", context.userMessages.length, "assiMessages:", context.assiMessages.length);
     return () => async (dispatch: Dispatch<AgentInput>) => {
       // 如果是第一次，记录 context，不发送（全量数据在连接时发送）
       if (previousContext === null) {
+        console.log("[createUserOutput] First context, skipping patch");
         previousContext = context;
         return;
       }
 
       // 计算 diff
       const patches = createPatch(previousContext, context);
+      console.log("[createUserOutput] Generated patches:", patches.length, "patches");
 
       // 如果有变化，发送 patch
       if (patches.length > 0) {
@@ -58,10 +61,12 @@ export function createUserOutput(
           type: "patch",
           patches,
         });
+        console.log("[createUserOutput] Sending patch to", connections.size, "connections");
 
         connections.forEach((conn) => {
           // 如果连接已关闭，跳过
           if (conn.closed) {
+            console.log("[createUserOutput] Connection closed, removing");
             connections.delete(conn);
             return;
           }
@@ -69,19 +74,24 @@ export function createUserOutput(
           try {
             // 将数据添加到队列
             conn.queue.push(patchData);
+            console.log("[createUserOutput] Added patch to queue, queue length:", conn.queue.length);
             // 触发生成器继续执行
             if (conn.resolve) {
               conn.resolve();
               conn.resolve = null;
+              console.log("[createUserOutput] Resolved connection promise");
             }
           } catch (error) {
             // 连接异常，标记为关闭并移除
+            console.error("[createUserOutput] Error sending patch:", error);
             conn.closed = true;
             connections.delete(conn);
           }
         });
 
         previousContext = context;
+      } else {
+        console.log("[createUserOutput] No patches generated, skipping");
       }
     };
   };

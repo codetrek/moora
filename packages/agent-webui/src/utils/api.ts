@@ -15,6 +15,7 @@ const API_BASE_URL = "/api";
 export async function sendMessage(
   content: string
 ): Promise<SendMessageResponse> {
+  console.log("[sendMessage] Sending message:", content);
   const response = await fetch(`${API_BASE_URL}/send`, {
     method: "POST",
     headers: {
@@ -23,13 +24,18 @@ export async function sendMessage(
     body: JSON.stringify({ content }),
   });
 
+  console.log("[sendMessage] Response status:", response.status);
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({
       error: "Failed to send message",
     }));
+    console.error("[sendMessage] Error:", error);
     throw new Error(error.error || "Failed to send message");
   }
 
-  return response.json();
+  const result = await response.json();
+  console.log("[sendMessage] Response:", result);
+  return result;
 }
 

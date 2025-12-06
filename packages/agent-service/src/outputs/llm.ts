@@ -91,16 +91,18 @@ export function createLlmOutput(
         const messageId = uuidv4();
         const timestamp = Date.now();
 
-        // 通知 Agent State 开始流式生成
+        // 先在 StreamManager 中创建流（确保前端连接时流已存在）
+        streamManager.startStream(messageId);
+        console.log("[createLlmOutput] Stream started for messageId:", messageId);
+
+        // 然后通知 Agent State 开始流式生成
         const startInput: InputFromLlm = {
           type: "start-assi-message-stream",
           id: messageId,
           timestamp,
         };
         dispatch(startInput);
-
-        // 在 StreamManager 中开始流式生成
-        streamManager.startStream(messageId);
+        console.log("[createLlmOutput] Start input dispatched for messageId:", messageId);
 
         try {
           // 构建消息列表

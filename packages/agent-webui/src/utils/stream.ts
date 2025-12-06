@@ -29,10 +29,13 @@ export function createStreamConnection(
 
   eventSource.onmessage = (event) => {
     try {
-      const message: StreamMessageEvent = JSON.parse(event.data);
+      const message = JSON.parse(event.data);
       console.debug(`[Stream] Received message for ${messageId}:`, message.type);
 
-      if (message.type === "initial") {
+      if (message.type === "connected") {
+        // 连接确认消息，忽略
+        console.debug(`[Stream] Connection confirmed for ${messageId}`);
+      } else if (message.type === "initial") {
         console.debug(`[Stream] Initial content length: ${message.content.length}`);
         onInitial(message.content);
       } else if (message.type === "chunk") {
@@ -42,6 +45,9 @@ export function createStreamConnection(
         console.debug(`[Stream] End content length: ${message.content.length}`);
         onEnd(message.content);
         // 收到结束事件后关闭连接
+        eventSource.close();
+      } else if (message.type === "error") {
+        console.error(`[Stream] Server error: ${message.message}`);
         eventSource.close();
       }
     } catch (error) {

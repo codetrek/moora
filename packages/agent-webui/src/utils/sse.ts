@@ -22,15 +22,18 @@ export function createSSEConnection(
 
   eventSource.onmessage = (event) => {
     try {
+      console.log("[createSSEConnection] Received SSE message:", event.data.substring(0, 100));
       const message: SSEMessage = JSON.parse(event.data);
 
       if (message.type === "full") {
+        console.log("[createSSEConnection] Full message received");
         onFull(message.data);
       } else if (message.type === "patch") {
+        console.log("[createSSEConnection] Patch message received, patches:", (message.patches as PatchOperation[]).length);
         onPatch(message.patches as PatchOperation[]);
       }
     } catch (error) {
-      console.error("Failed to parse SSE message:", error);
+      console.error("[createSSEConnection] Failed to parse SSE message:", error);
     }
   };
 

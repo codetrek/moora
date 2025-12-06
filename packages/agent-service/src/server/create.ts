@@ -52,6 +52,7 @@ function createSSEHandler(
   connections: Set<AgentSSEConnection>
 ) {
   return function* () {
+    console.log("[createSSEHandler] New SSE connection established");
     // 创建 SSE 连接
     const connection: AgentSSEConnection = {
       queue: [],
@@ -61,6 +62,7 @@ function createSSEHandler(
 
     // 添加到连接集合
     connections.add(connection);
+    console.log("[createSSEHandler] Connection added, total connections:", connections.size);
 
     try {
       // 发送初始全量数据
@@ -96,12 +98,15 @@ function createSSEHandler(
       }
     } catch (error) {
       // 连接异常时标记为关闭
+      console.log("[createSSEHandler] Connection error:", error);
       connection.closed = true;
       throw error;
     } finally {
       // 确保连接被标记为关闭并从集合中移除
+      console.log("[createSSEHandler] Connection closing, removing from set");
       connection.closed = true;
       connections.delete(connection);
+      console.log("[createSSEHandler] Connection removed, total connections:", connections.size);
     }
   };
 }
@@ -140,7 +145,9 @@ function createPostHandler(agent: ReturnType<typeof createAgent>) {
     };
 
     // Dispatch 到 agent
+    console.log("[createPostHandler] Dispatching input:", { id, content, timestamp });
     agent.dispatch(input);
+    console.log("[createPostHandler] Input dispatched");
 
     // 设置响应头并返回 JSON
     set.headers = {
@@ -162,6 +169,7 @@ function createPostHandler(agent: ReturnType<typeof createAgent>) {
 function createStreamSSEHandler(streamManager: StreamManager) {
   return function* ({ params }: { params: { messageId: string } }) {
     const { messageId } = params;
+    console.log("[createStreamSSEHandler] Stream connection requested for messageId:", messageId);
 
     // 创建 SSE 连接
     const connection: SSEConnection = {
@@ -173,11 +181,19 @@ function createStreamSSEHandler(streamManager: StreamManager) {
     try {
       // 订阅流式更新
       const subscribed = streamManager.subscribe(messageId, connection);
+      console.log("[createStreamSSEHandler] Subscribe result:", subscribed);
 
-      // 如果订阅失败（流不存在），直接退出
+      // 如果订阅失败（流不存在），返回一个错误 SSE 消息后退出
       if (!subscribed) {
+        console.log("[createStreamSSEHandler] Stream not found, returning error");
+        yield sse(JSON.stringify({ type: "error", message: "Stream not found" }));
         return;
       }
+
+      // 先 yield 一个 SSE 消息来确保 Content-Type 正确设置
+      // Elysia 根据第一个 yield 的值来决定 Content-Type
+      yield sse(JSON.stringify({ type: "connected", messageId }));
+      console.log("[createStreamSSEHandler] Initial SSE sent, waiting for chunks");
 
       // 保持连接打开，等待后续更新
       while (!connection.closed) {
@@ -256,7 +272,11 @@ export function createService(options: CreateServiceOptions) {
   });
 
   // 订阅 agent 状态变化，触发 output
-  agent.subscribe((output) => output);
+  // output 是 () => async (dispatch) => {...} 格式，直接返回让 runEffect 处理
+  agent.subscribe((output) => {
+    console.log("[createService] Agent state changed, output received");
+    return output;
+  });
 
   const app = new Elysia()
     .get("/agent", createSSEHandler(agent, connections))
