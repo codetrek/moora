@@ -2,7 +2,7 @@ import type {
   PubSub,
   Dispatch,
   OutputHandler,
-  Subscribe,
+  SubscribeOutput,
   StatefulTransferer,
   StateMachine,
   AutomataOutputFn,
@@ -109,7 +109,7 @@ export function automata<Input, Output, State>(
     publishOutput({ prev, state });
   };
   
-  const subscribe: Subscribe<Input, Output> = (handler: OutputHandler<Input, Output>) => {
+  const subscribe: SubscribeOutput<Input, Output> = (handler: OutputHandler<Input, Output>) => {
     const unsub = pubsub.sub(runHandler(handler, dispatch));
     // 订阅时立即发送初始输出给当前订阅者（如果存在）
     const initialResult = outputFn({ prev: null, state });

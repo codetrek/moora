@@ -20,6 +20,8 @@ export type {
   Effect,
   OutputHandler,
   Subscribe,
+  Publish,
+  SubscribeOutput,
   Transferer,
   StatefulTransferer,
   InitialFn,

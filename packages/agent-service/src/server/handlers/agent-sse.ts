@@ -7,37 +7,54 @@
 import { sse } from "elysia";
 import { createAgent } from "@moora/agent";
 import type { ContextOfUser } from "@moora/agent";
-import type { AgentSSEConnection } from "../types";
+import type { Subscribe } from "@moora/automata";
+
+/**
+ * SSE 连接状态
+ */
+type SSEConnectionState = {
+  queue: string[];
+  resolve: (() => void) | null;
+  closed: boolean;
+};
 
 /**
  * 创建 GET /agent SSE handler
  *
  * @param agent - Agent 实例
- * @param connections - SSE 连接集合
+ * @param subscribePatch - 订阅 patch 的回调函数
  * @returns SSE 生成器函数
  */
 export function createAgentSSEHandler(
   agent: ReturnType<typeof createAgent>,
-  connections: Set<AgentSSEConnection>
+  subscribePatch: Subscribe<string>
 ) {
   return function* () {
     console.log("[createAgentSSEHandler] New SSE connection established");
 
-    const connection: AgentSSEConnection = {
+    const state: SSEConnectionState = {
       queue: [],
       resolve: null,
       closed: false,
     };
 
-    connections.add(connection);
-    console.log("[createAgentSSEHandler] Connection added, total connections:", connections.size);
+    // 订阅 patch
+    const unsubscribe = subscribePatch((patch) => {
+      if (state.closed) return;
+
+      state.queue.push(patch);
+      if (state.resolve) {
+        state.resolve();
+        state.resolve = null;
+      }
+    });
 
     try {
       // 发送初始全量数据
-      const state = agent.current();
+      const agentState = agent.current();
       const context: ContextOfUser = {
-        userMessages: state.userMessages,
-        assiMessages: state.assiMessages,
+        userMessages: agentState.userMessages,
+        assiMessages: agentState.assiMessages,
       };
       const fullData = JSON.stringify({
         type: "full",
@@ -46,16 +63,16 @@ export function createAgentSSEHandler(
       yield sse(fullData);
 
       // 保持连接打开，等待后续更新
-      while (!connection.closed) {
+      while (!state.closed) {
         yield new Promise<void>((resolve) => {
-          connection.resolve = resolve;
-          if (connection.queue.length > 0) {
+          state.resolve = resolve;
+          if (state.queue.length > 0) {
             resolve();
           }
         });
 
-        while (connection.queue.length > 0 && !connection.closed) {
-          const data = connection.queue.shift();
+        while (state.queue.length > 0 && !state.closed) {
+          const data = state.queue.shift();
           if (data) {
             yield sse(data);
           }
@@ -63,13 +80,12 @@ export function createAgentSSEHandler(
       }
     } catch (error) {
       console.log("[createAgentSSEHandler] Connection error:", error);
-      connection.closed = true;
+      state.closed = true;
       throw error;
     } finally {
-      console.log("[createAgentSSEHandler] Connection closing, removing from set");
-      connection.closed = true;
-      connections.delete(connection);
-      console.log("[createAgentSSEHandler] Connection removed, total connections:", connections.size);
+      console.log("[createAgentSSEHandler] Connection closing");
+      state.closed = true;
+      unsubscribe();
     }
   };
 }

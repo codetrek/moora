@@ -4,10 +4,11 @@
 
 import { Elysia } from "elysia";
 import { createAgent } from "@moora/agent";
+import { createPubSub } from "@moora/automata";
 import { createUserOutput } from "@/outputs/user";
 import { createLlmOutput } from "@/outputs/llm";
 import { StreamManager } from "@/streams";
-import type { CreateServiceOptions, AgentSSEConnection } from "./types";
+import type { CreateServiceOptions } from "./types";
 import {
   createAgentSSEHandler,
   createPostSendHandler,
@@ -41,8 +42,8 @@ import {
 export function createService(options: CreateServiceOptions) {
   const { openai, prompt } = options;
 
-  // SSE 连接集合（用于 /agent 路由）
-  const connections = new Set<AgentSSEConnection>();
+  // 创建 Patch PubSub（用于 /agent 路由的 SSE 推送）
+  const patchPubSub = createPubSub<string>();
 
   // 创建 StreamManager 实例
   const streamManager = new StreamManager();
@@ -50,7 +51,7 @@ export function createService(options: CreateServiceOptions) {
   // 创建 agent 实例
   const agent = createAgent({
     user: createUserOutput({
-      connections,
+      publishPatch: patchPubSub.pub,
     }),
     llm: createLlmOutput({
       openai,
@@ -67,7 +68,7 @@ export function createService(options: CreateServiceOptions) {
   });
 
   const app = new Elysia()
-    .get("/agent", createAgentSSEHandler(agent, connections))
+    .get("/agent", createAgentSSEHandler(agent, patchPubSub.sub))
     .post("/send", createPostSendHandler(agent))
     .get("/streams/:messageId", createStreamSSEHandler(streamManager));
 

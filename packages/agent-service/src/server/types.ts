@@ -3,15 +3,6 @@
  */
 
 /**
- * SSE 连接（用于 /agent 路由）
- */
-export type AgentSSEConnection = {
-  queue: string[];
-  resolve: (() => void) | null;
-  closed: boolean;
-};
-
-/**
  * 创建服务的选项
  */
 export type CreateServiceOptions = {

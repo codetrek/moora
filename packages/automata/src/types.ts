@@ -18,6 +18,10 @@ export type Unsubscribe = CancelFn;
 // PubSub 相关类型
 // ============================================================================
 
+export type Subscribe<T> = (handler: (value: T) => void) => Unsubscribe;
+
+export type Publish<T> = (value: T) => void;
+
 /**
  * 发布订阅组件
  *
@@ -27,13 +31,13 @@ export type PubSub<T> = {
   /**
    * 发布数据给所有订阅者
    */
-  pub: (value: T) => void;
+  pub: Publish<T>;
   /**
    * 订阅数据
    * @param handler - 处理函数
    * @returns 取消订阅的函数
    */
-  sub: (handler: (value: T) => void) => CancelFn;
+  sub: Subscribe<T>;
 };
 
 // ============================================================================
@@ -65,14 +69,14 @@ export type OutputHandler<Input, Output> = (output: Output) => Effect<Dispatch<I
 /**
  * 订阅函数
  */
-export type Subscribe<Input, Output> = (handler: OutputHandler<Input, Output>) => Unsubscribe;
+export type SubscribeOutput<Input, Output> = Subscribe<OutputHandler<Input, Output>>;
 
 /**
  * 传输器，用于在输入和输出之间建立连接
  */
 export type Transferer<Input, Output> = {
   dispatch: Dispatch<Input>;
-  subscribe: Subscribe<Input, Output>;
+  subscribe: SubscribeOutput<Input, Output>;
 };
 
 /**
