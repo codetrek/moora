@@ -74,7 +74,7 @@ export type SSEMessage =
     };
 
 /**
- * POST /agent 响应类型
+ * POST /send 响应类型
  */
 export type SendMessageResponse = {
   id: string;

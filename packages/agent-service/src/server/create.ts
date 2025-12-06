@@ -107,7 +107,7 @@ function createSSEHandler(
 }
 
 /**
- * 创建 POST /agent handler
+ * 创建 POST /send handler
  *
  * @param agent - Agent 实例
  * @returns POST handler 函数
@@ -260,7 +260,7 @@ export function createService(options: CreateServiceOptions) {
 
   const app = new Elysia()
     .get("/agent", createSSEHandler(agent, connections))
-    .post("/agent", createPostHandler(agent))
+    .post("/send", createPostHandler(agent))
     .get("/streams/:messageId", createStreamSSEHandler(streamManager));
 
   return app;

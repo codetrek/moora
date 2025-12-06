@@ -4,10 +4,11 @@
 
 ## 概述
 
-这个包提供了一个基于 ElysiaJS 的 Agent Service，包含两个主要路由：
+这个包提供了一个基于 ElysiaJS 的 Agent Service，包含三个主要路由：
 
 - `GET /agent` - SSE 接口，推送 `ContextOfUser` 的变化
-- `POST /agent` - 接收用户输入并驱动 Agent 状态机
+- `POST /send` - 接收用户输入并驱动 Agent 状态机
+- `GET /streams/:messageId` - SSE 接口，推送流式消息的 chunk
 
 ## 功能特性
 
@@ -60,7 +61,7 @@ SSE 接口，连接时发送当前全量的 `ContextOfUser`，之后通过 RFC69
 }
 ```
 
-### POST /agent
+### POST /send
 
 接收用户消息并驱动 Agent 状态机。
 

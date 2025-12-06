@@ -15,7 +15,7 @@ const API_BASE_URL = "/api";
 export async function sendMessage(
   content: string
 ): Promise<SendMessageResponse> {
-  const response = await fetch(`${API_BASE_URL}/agent`, {
+  const response = await fetch(`${API_BASE_URL}/send`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
