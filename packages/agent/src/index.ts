@@ -12,6 +12,7 @@ import type { AgentState, AgentInput } from "./decl/agent";
 export type {
   AgentState,
   AgentInput,
+  Output,
   OutputFns,
   Actors,
   StateOfUser,

@@ -2,7 +2,7 @@
  * Agent 总的 State 和 Input 定义
  */
 
-import type { Effect } from "@moora/automata";
+import type { Effect, Dispatch } from "@moora/automata";
 import type { StateOfUser, StateOfLlm } from "./states";
 import type { InputFromUser, InputFromLlm } from "./inputs";
 import type { Actors } from "./actors";
@@ -21,8 +21,10 @@ import type { OutputFnOf } from "./helpers";
  *
  * **重要：Output 函数本身是纯函数，只返回副作用函数，不执行任何副作用。**
  * 所有副作用（如日志记录、API 调用、dispatch 等）都应该在返回的函数中执行。
+ *
+ * Output 接收 Dispatch<Input> 作为参数，允许在副作用中 dispatch 新的 Input。
  */
-export type Output<Input> = Effect<Input>;
+export type Output<Input> = Effect<Dispatch<Input>>;
 
 // ============================================================================
 // Agent 统合类型

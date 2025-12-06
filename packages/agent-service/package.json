@@ -1,0 +1,58 @@
+{
+  "name": "@moora/agent-service",
+  "version": "0.1.0",
+  "description": "Agent service implementation based on ElysiaJS",
+  "keywords": [
+    "agent",
+    "service",
+    "elysia",
+    "sse",
+    "openai"
+  ],
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shazhou-ww/moora.git",
+    "directory": "packages/agent-service"
+  },
+  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/agent-service#readme",
+  "bugs": {
+    "url": "https://github.com/shazhou-ww/moora/issues"
+  },
+  "dependencies": {
+    "@elysiajs/stream": "^1.1.0",
+    "@moora/agent": "workspace:*",
+    "dotenv": "^17.2.3",
+    "elysia": "^1.4.18",
+    "openai": "^6.10.0",
+    "rfc6902": "^5.1.2",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/uuid": "^10.0.0",
+    "@vitest/coverage-v8": "^4.0.12",
+    "@vitest/ui": "4.0.12",
+    "typescript": "^5",
+    "vitest": "^4.0.12"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts",
+    "test": "vitest --run --no-ui",
+    "test:coverage": "vitest --run --coverage --no-ui",
+    "test:ui": "vitest --ui",
+    "test:ci": "vitest --run --coverage --no-ui"
+  }
+}
