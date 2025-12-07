@@ -4,11 +4,10 @@ import { automata, mealy, moore } from '../src/automata';
 const nextTick = () => new Promise<void>((resolve) => queueMicrotask(resolve));
 
 /**
- * 状态机的 handler 返回一个 Eff 函数：
- * - handler 接收 dispatch，返回 Eff<Output, void>
- * - Eff 是同步执行的，接收 output 作为参数
- * - dispatch 本身是异步的（使用 queueMicrotask）
- * - 如果需要异步操作，应该在 Eff 内部自行使用 queueMicrotask
+ * 状态机的 subscribe 接收一个简单的回调函数 (output) => void：
+ * - handler 接收 output 作为参数，同步执行
+ * - dispatch 是异步的（使用 queueMicrotask），通过状态机实例访问
+ * - 如果需要在 handler 中 dispatch 新输入，使用状态机实例的 dispatch 方法
  */
 
 describe('machine', () => {
@@ -53,17 +52,16 @@ describe('machine', () => {
 
     const outputs: Array<{ value: number }> = [];
 
-    const unsubscribe = sm.subscribe((dispatch) => (output) => {
+    const unsubscribe = sm.subscribe((output) => {
       outputs.push(output);
     });
 
-    // 初始状态输出
-    await nextTick();
+    // 初始状态输出（订阅时同步执行）
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ value: 0 });
 
     sm.dispatch(1);
-    // Procedure 在微任务中执行，需要等待
+    // dispatch 在微任务中执行，需要等待
     await nextTick();
     expect(outputs).toHaveLength(2);
     expect(outputs[1]).toEqual({ value: 1 });
@@ -90,8 +88,8 @@ describe('machine', () => {
 
     const effCalls: Array<{ value: number }> = [];
 
-    sm.subscribe((dispatch) => (output) => {
-      // Eff 阶段：同步执行，立即处理 output
+    sm.subscribe((output) => {
+      // handler 同步执行，立即处理 output
       effCalls.push(output);
     });
 
@@ -102,12 +100,12 @@ describe('machine', () => {
     sm.dispatch(1);
     // dispatch 是异步的，需要等待
     await nextTick();
-    // Eff 应该已经执行
+    // handler 应该已经执行
     expect(effCalls).toHaveLength(2);
     expect(effCalls[1]).toEqual({ value: 1 });
   });
 
-  test('procedure can dispatch new inputs asynchronously', async () => {
+  test('handler can dispatch new inputs via machine instance', async () => {
     const sm = automata(
       {
         initial: () => ({ count: 0 }),
@@ -119,22 +117,24 @@ describe('machine', () => {
     const outputs: Array<{ value: number }> = [];
     const dispatchCalls: number[] = [];
 
-    sm.subscribe((dispatch) => (output) => {
+    sm.subscribe((output) => {
       outputs.push(output);
-      // Eff 是同步执行的，dispatch 本身是异步的
+      // 使用 sm.dispatch 而不是接收 dispatch 参数
       if (output.value < 5) {
         dispatchCalls.push(output.value);
-        dispatch(1);
+        sm.dispatch(1);
       }
     });
 
-    // 等待初始状态输出
-    await nextTick();
-    sm.dispatch(1);
-    await nextTick();
-    // 第一个 dispatch 后，Procedure 执行并触发新的 dispatch
+    // 初始状态输出（订阅时同步执行）
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toEqual({ value: 0 });
+
+    // 等待初始状态触发的 dispatch
     await nextTick();
     // 继续等待新的 dispatch 产生的输出
+    await nextTick();
+    await nextTick();
     await nextTick();
     await nextTick();
     await nextTick();
@@ -171,12 +171,11 @@ describe('machine', () => {
 
     const outputs: Array<{ from: number | null; to: number; input: number | null }> = [];
 
-    const unsubscribe = sm.subscribe((dispatch) => (output) => {
+    const unsubscribe = sm.subscribe((output) => {
       outputs.push(output);
     });
 
-    // 初始状态输出
-    await nextTick();
+    // 初始状态输出（订阅时同步执行）
     expect(outputs[0]).toEqual({ from: null, to: 0, input: null });
 
     sm.dispatch(5);
@@ -202,16 +201,15 @@ describe('machine', () => {
     const outputs1: Array<{ value: number }> = [];
     const outputs2: Array<{ value: number }> = [];
 
-    const unsubscribe1 = sm.subscribe((dispatch) => (output) => {
+    const unsubscribe1 = sm.subscribe((output) => {
       outputs1.push(output);
     });
 
-    const unsubscribe2 = sm.subscribe((dispatch) => (output) => {
+    const unsubscribe2 = sm.subscribe((output) => {
       outputs2.push(output);
     });
 
-    // 等待初始状态输出
-    await nextTick();
+    // 初始状态输出（订阅时同步执行）
     expect(outputs1).toHaveLength(1);
     expect(outputs1[0]).toEqual({ value: 0 });
     expect(outputs2).toHaveLength(1);
@@ -277,7 +275,7 @@ describe('mealy', () => {
 
     const outputs: string[] = [];
 
-    const unsubscribe = mealyMachine.subscribe((dispatch) => (output) => {
+    const unsubscribe = mealyMachine.subscribe((output) => {
       outputs.push(output);
     });
 
@@ -311,7 +309,7 @@ describe('mealy', () => {
 
     const outputs: Array<{ to: number; input: number }> = [];
 
-    const unsubscribe = mealyMachine.subscribe((dispatch) => (output) => {
+    const unsubscribe = mealyMachine.subscribe((output) => {
       outputs.push(output);
     });
 
@@ -363,12 +361,11 @@ describe('moore', () => {
 
     const outputs: Array<{ value: number; doubled: number }> = [];
 
-    const unsubscribe = mooreMachine.subscribe((dispatch) => (output) => {
+    const unsubscribe = mooreMachine.subscribe((output) => {
       outputs.push(output);
     });
 
-    // 订阅时应该立即收到当前状态的输出
-    await nextTick();
+    // 订阅时应该立即收到当前状态的输出（同步执行）
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toEqual({ value: 0, doubled: 0 });
 
@@ -394,13 +391,11 @@ describe('moore', () => {
 
     const outputs: number[] = [];
 
-    const unsubscribe = mooreMachine.subscribe((dispatch) => (output) => {
+    const unsubscribe = mooreMachine.subscribe((output) => {
       outputs.push(output);
     });
 
-    // 订阅时 handler 立即同步执行，但 Procedure 在微任务中执行
-    // 需要等待微任务才能看到输出
-    await nextTick();
+    // 订阅时 handler 立即同步执行
     expect(outputs).toHaveLength(1);
     expect(outputs[0]).toBe(10);
 
@@ -412,7 +407,7 @@ describe('moore', () => {
     unsubscribe();
   });
 
-  test('moore handler executes synchronously on subscribe', async () => {
+  test('moore handler executes synchronously on subscribe', () => {
     const mooreMachine = moore({
       initial: () => ({ count: 10 }),
       transition: (n: number) => (state) => ({ count: state.count + n }),
@@ -421,12 +416,12 @@ describe('moore', () => {
 
     const effCalls: number[] = [];
 
-    mooreMachine.subscribe((dispatch) => (output) => {
-      // Eff 阶段：同步执行，立即处理 output
+    mooreMachine.subscribe((output) => {
+      // handler 同步执行，立即处理 output
       effCalls.push(output);
     });
 
-    // Eff 应该立即执行（订阅时）
+    // handler 应该立即执行（订阅时）
     expect(effCalls).toHaveLength(1);
     expect(effCalls[0]).toBe(10);
   });
@@ -441,17 +436,15 @@ describe('moore', () => {
     const outputs1: number[] = [];
     const outputs2: number[] = [];
 
-    const unsubscribe1 = mooreMachine.subscribe((dispatch) => (output) => {
+    const unsubscribe1 = mooreMachine.subscribe((output) => {
       outputs1.push(output);
     });
 
-    const unsubscribe2 = mooreMachine.subscribe((dispatch) => (output) => {
+    const unsubscribe2 = mooreMachine.subscribe((output) => {
       outputs2.push(output);
     });
 
-    // 等待初始订阅的 Procedure 执行
-    await nextTick();
-    // 两个订阅者都应该收到当前状态的输出（通过异步 Procedure）
+    // 两个订阅者都应该立即收到当前状态的输出（同步执行）
     expect(outputs1).toHaveLength(1);
     expect(outputs1[0]).toBe(100);
     expect(outputs2).toHaveLength(1);
@@ -476,7 +469,7 @@ describe('moore', () => {
     unsubscribe2();
   });
 
-  test('moore procedure can dispatch new inputs asynchronously', async () => {
+  test('moore handler can dispatch via machine instance', async () => {
     const mooreMachine = moore({
       initial: () => 0,
       transition: (n: number) => (state) => state + n,
@@ -486,22 +479,24 @@ describe('moore', () => {
     const outputs: number[] = [];
     const dispatchCalls: number[] = [];
 
-    mooreMachine.subscribe((dispatch) => (output) => {
+    mooreMachine.subscribe((output) => {
       outputs.push(output);
-      // Eff 是同步执行的，dispatch 本身是异步的
+      // 使用 mooreMachine.dispatch 而不是接收 dispatch 参数
       if (output < 5) {
         dispatchCalls.push(output);
-        dispatch(1);
+        mooreMachine.dispatch(1);
       }
     });
 
-    // 等待初始订阅的 Procedure 执行
-    await nextTick();
-    mooreMachine.dispatch(1);
-    await nextTick();
-    // Procedure 执行并触发新的 dispatch
+    // 初始状态输出（订阅时同步执行）
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toBe(0);
+
+    // 等待初始状态触发的 dispatch
     await nextTick();
     // 继续等待新的 dispatch 产生的输出
+    await nextTick();
+    await nextTick();
     await nextTick();
     await nextTick();
     await nextTick();
@@ -537,13 +532,11 @@ describe('moore', () => {
 
     const outputs: State[] = [];
 
-    const unsubscribe = mooreMachine.subscribe((dispatch) => (output: State) => {
+    const unsubscribe = mooreMachine.subscribe((output: State) => {
       outputs.push(output);
     });
 
-    // 订阅时 handler 立即同步执行，但 Procedure 在微任务中执行
-    // 需要等待微任务才能看到输出
-    await nextTick();
+    // 订阅时 handler 立即同步执行
     expect(outputs[0]).toEqual({ items: [], total: 0 });
 
     mooreMachine.dispatch({ type: 'add', item: 'a' });

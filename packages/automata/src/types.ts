@@ -50,30 +50,25 @@ export type PubSub<T> = {
 export type Dispatch<Input> = Eff<Input>;
 
 /**
- * 输出处理器，接收输出并返回一个 Eff 函数
+ * 输出处理器，接收输出并处理
  *
- * Eff 是一个同步副作用函数，接收 dispatch 作为上下文。
- * 如果需要异步操作，应该在 Eff 内部自行使用 queueMicrotask 来处理。
- *
- * 这种设计允许：
- * - 同步部分可以立即处理 output（例如记录日志、更新 UI）
- * - 异步副作用在微任务中执行，不会阻塞当前执行栈
- * - 异步副作用可以通过 dispatch 产生新的输入，形成反馈循环
+ * 简单的回调函数，接收 output 并执行处理逻辑。
+ * 如果需要 dispatch 新的输入，应该使用 automata 对象的 dispatch 方法。
  */
-export type OutputHandler<Input, Output> = (dispatch: Dispatch<Input>) => Eff<Output>;
+export type OutputHandler<Output> = Eff<Output>;
 
 /**
  * 订阅函数
- * 直接接收 OutputHandler，当有 output 时会调用 handler(output) 返回的 Eff
+ * 接收 OutputHandler，当有 output 时会调用 handler(output)
  */
-export type SubscribeOutput<Input, Output> = (handler: OutputHandler<Input, Output>) => Unsubscribe;
+export type SubscribeOutput<Output> = (handler: OutputHandler<Output>) => Unsubscribe;
 
 /**
  * 传输器，用于在输入和输出之间建立连接
  */
 export type Transferer<Input, Output> = {
   dispatch: Dispatch<Input>;
-  subscribe: SubscribeOutput<Input, Output>;
+  subscribe: SubscribeOutput<Output>;
 };
 
 /**

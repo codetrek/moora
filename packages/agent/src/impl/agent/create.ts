@@ -2,15 +2,31 @@
  * createAgent 工厂函数
  */
 
-import { moore } from "@moora/automata";
-import type { Dispatch, StatefulTransferer } from "@moora/automata";
+import { automata } from "@moora/automata";
+import type { StatefulTransferer, UpdatePack } from "@moora/automata";
 import type { AgentState, AgentInput, OutputFns, PartialOutputFns } from "@/decl/agent";
 import { initial } from "@/impl/agent/initial";
 import { transition } from "@/impl/agent/transition";
 import { createOutput } from "@/impl/agent/output";
-import type { Eff } from "@moora/effects";
 import { USER, LLM, TOOLKIT } from "@/decl/actors";
 import type { OutputFnOf } from "@/decl/helpers";
+
+// ============================================================================
+// 类型定义
+// ============================================================================
+
+/**
+ * Agent 的更新包类型（状态机的输出）
+ *
+ * 包含状态转换的完整信息：
+ * - prev: 前一个状态和触发转换的输入（初始状态时为 null）
+ * - state: 当前状态
+ */
+export type AgentUpdatePack = UpdatePack<AgentInput, AgentState>;
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
 
 /**
  * 创建 noop Output 函数
@@ -34,14 +50,20 @@ function fillOutputFns(partialOutputFns: PartialOutputFns): OutputFns {
   };
 }
 
+// ============================================================================
+// 主要函数
+// ============================================================================
+
 /**
  * 创建 Agent 实例
  *
- * 接收外部注入的 outputFns（可以是 partial），构造一个完整的 Moore 自动机并返回。
- * 这种设计将 output 函数（副作用）从 Agent 建模中解耦出来，
- * 使得 Agent 的核心逻辑（状态和转换）保持纯粹。
+ * 使用 automata 实现，副作用在 output 函数中直接执行，
+ * 输出为 UpdatePack，包含完整的状态更新信息用于日志和调试。
  *
- * 对于未提供的 Actor output 函数，会自动填充为 noop（空操作）。
+ * 这种设计：
+ * 1. 副作用在 automata 内部自动执行，subscribe 只需处理日志
+ * 2. 暴露完整的状态更新信息（prev state, input, current state）
+ * 3. 对于未提供的 Actor output 函数，会自动填充为 noop（空操作）
  *
  * @param partialOutputFns - 各个 Actor 的 Output 函数映射（可以是部分提供）
  * @returns Agent 自动机实例
@@ -50,12 +72,18 @@ function fillOutputFns(partialOutputFns: PartialOutputFns): OutputFns {
  * ```typescript
  * import { createAgent } from '@moora/agent';
  *
- * // 提供部分 output 函数
  * const agent = createAgent({
- *   user: (context) => () => async (dispatch) => {
- *     // User Actor 的副作用逻辑
+ *   user: (context) => {
+ *     // User Actor 的副作用逻辑，直接执行
  *   },
- *   // llm 和 toolkit 会自动填充为 noop
+ *   llm: (context) => {
+ *     // LLM Actor 的副作用逻辑
+ *   },
+ * });
+ *
+ * // subscribe 只需要处理日志，副作用已自动执行
+ * agent.subscribe((update) => {
+ *   console.log('State update:', update);
  * });
  *
  * agent.dispatch({ type: 'send-user-message', id: 'msg-1', content: 'Hello', timestamp: Date.now() });
@@ -63,11 +91,19 @@ function fillOutputFns(partialOutputFns: PartialOutputFns): OutputFns {
  */
 export function createAgent(
   partialOutputFns: PartialOutputFns
-): StatefulTransferer<AgentInput, Eff<Dispatch<AgentInput>>, AgentState> {
+): StatefulTransferer<AgentInput, AgentUpdatePack, AgentState> {
   const outputFns = fillOutputFns(partialOutputFns);
-  return moore({
-    initial: initial,
-    transition: transition,
-    output: createOutput(outputFns),
+  const executeOutput = createOutput(outputFns);
+
+  const machine = automata(
+    { initial, transition },
+    (update: AgentUpdatePack) => ({ output: update })
+  );
+
+  // 内部订阅，自动执行副作用
+  machine.subscribe((update) => {
+    executeOutput(update.state)(machine.dispatch);
   });
+
+  return machine;
 }

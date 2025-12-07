@@ -2,20 +2,39 @@
  * createAgent 工厂函数
  */
 
-import { moore } from "@moora/automata";
-import type { Dispatch, StatefulTransferer } from "@moora/automata";
-import type { Eff } from "@moora/effects";
+import { automata } from "@moora/automata";
+import type { StatefulTransferer, UpdatePack } from "@moora/automata";
 import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
 import { initial } from "@/impl/agent/initial";
 import { transition } from "@/impl/agent/transition";
 import { createOutput } from "@/impl/agent/output";
 
+// ============================================================================
+// 类型定义
+// ============================================================================
+
+/**
+ * Agent 的更新包类型（状态机的输出）
+ *
+ * 包含状态转换的完整信息：
+ * - prev: 前一个状态和触发转换的输入（初始状态时为 null）
+ * - state: 当前状态
+ */
+export type AgentUpdatePack = UpdatePack<AgentInput, AgentState>;
+
+// ============================================================================
+// 主要函数
+// ============================================================================
+
 /**
  * 创建 Agent 实例
  *
- * 接收外部注入的 outputFns，构造一个完整的 Moore 自动机并返回。
- * 这种设计将 output 函数（副作用）从 Agent 建模中解耦出来，
- * 使得 Agent 的核心逻辑（状态和转换）保持纯粹。
+ * 使用 automata 实现，副作用在 subscribe 时自动执行，
+ * 输出为 UpdatePack，包含完整的状态更新信息用于日志和调试。
+ *
+ * 这种设计：
+ * 1. 副作用在 subscribe 时自动执行，用户 handler 只需处理日志
+ * 2. 暴露完整的状态更新信息（prev state, input, current state）
  *
  * @param outputFns - 各个 Actor 的 Output 函数映射
  * @returns Agent 自动机实例
@@ -25,12 +44,17 @@ import { createOutput } from "@/impl/agent/output";
  * import { createAgent } from '@moora/starter-agent';
  *
  * const agent = createAgent({
- *   user: (context) => () => async (dispatch) => {
- *     // User Actor 的副作用逻辑
+ *   user: (context) => {
+ *     // User Actor 的副作用逻辑，直接执行
  *   },
- *   llm: (context) => () => async (dispatch) => {
+ *   llm: (context) => {
  *     // Llm Actor 的副作用逻辑
  *   },
+ * });
+ *
+ * // subscribe 只需要处理日志，副作用已自动执行
+ * agent.subscribe((update) => {
+ *   console.log('State update:', update);
  * });
  *
  * agent.dispatch({ type: 'send-user-message', id: 'msg-1', content: 'Hello', timestamp: Date.now() });
@@ -38,10 +62,18 @@ import { createOutput } from "@/impl/agent/output";
  */
 export function createAgent(
   outputFns: OutputFns
-): StatefulTransferer<AgentInput, Eff<Dispatch<AgentInput>>, AgentState> {
-  return moore({
-    initial: initial,
-    transition: transition,
-    output: createOutput(outputFns),
+): StatefulTransferer<AgentInput, AgentUpdatePack, AgentState> {
+  const executeOutput = createOutput(outputFns);
+
+  const machine = automata(
+    { initial, transition },
+    (update: AgentUpdatePack) => ({ output: update })
+  );
+
+  // 内部订阅，自动执行副作用
+  machine.subscribe((update) => {
+    executeOutput(update.state)(machine.dispatch);
   });
+
+  return machine;
 }

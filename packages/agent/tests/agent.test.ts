@@ -119,14 +119,12 @@ describe("Agent", () => {
     const agent = createAgent(mockOutputFns);
     let outputReceived = false;
 
-    agent.subscribe((dispatch) => (output) => {
+    agent.subscribe((output) => {
       outputReceived = true;
       // Mock effect
     });
 
-    // Wait for microtask to execute (dispatch is async)
-    await new Promise<void>((resolve) => queueMicrotask(resolve));
-
+    // subscribe 时同步执行，应该立即收到初始状态输出
     expect(outputReceived).toBe(true);
   });
 

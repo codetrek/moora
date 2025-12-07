@@ -2,6 +2,49 @@
 
 本文档为 Coding Agent 提供开发 `@moora/agent-service` 时的指导规范。
 
+## 架构
+
+Agent Service 使用 `@moora/agent` 的 `automata` 实现。
+
+### 输出类型
+
+每次状态更新会输出 `AgentUpdatePack`：
+
+```typescript
+type AgentUpdatePack = {
+  prev: { state: AgentState; input: AgentInput } | null; // null 表示初始状态
+  state: AgentState; // 当前状态
+};
+```
+
+### 副作用执行
+
+副作用（output functions）在 `createAgent` 内部自动执行，subscribe 只需处理日志：
+
+```typescript
+// subscribe 只需记录日志，副作用已自动执行
+agent.subscribe((_dispatch) => (update) => {
+  logger.debug("State update", formatUpdateLog(update));
+});
+```
+
+日志格式：
+- **初始状态**: `{ type: "initial", userMessagesCount, assiMessagesCount, cutOff }`
+- **状态变化**: `{ inputType, inputId, prevUserMessagesCount, currUserMessagesCount, ... }`
+
+### 分析状态变化
+
+```bash
+# 查看所有 agent 状态更新
+cat logs/agent-service.log | jq 'select(.category == "agent")' | pino-pretty
+
+# 按 input 类型过滤
+cat logs/agent-service.log | jq 'select(.inputType == "send-user-message")' | pino-pretty
+
+# 查看 cutOff 变化
+cat logs/agent-service.log | jq 'select(.category == "agent" and .prevCutOff != .currCutOff)' | pino-pretty
+```
+
 ## 日志系统
 
 本项目使用 **Pino** 作为日志库。所有日志应通过统一的 Logger 模块输出。

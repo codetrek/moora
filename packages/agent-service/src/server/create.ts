@@ -4,16 +4,57 @@
 
 import { Elysia } from "elysia";
 import { createAgent } from "@moora/agent";
+import type { AgentUpdatePack } from "@moora/agent";
 import { createPubSub } from "@moora/automata";
 import { createUserOutput } from "@/outputs/user";
 import { createLlmOutput } from "@/outputs/llm";
 import { createStreamManager } from "@/streams";
+import { getLogger } from "@/logger";
 import type { CreateServiceOptions } from "@/types";
 import {
   createAgentSSEHandler,
   createPostSendHandler,
   createStreamSSEHandler,
 } from "./handlers";
+
+const logger = getLogger().agent;
+
+/**
+ * 截断过长的字符串
+ */
+function ellipsis(str: string, maxLen = 20): string {
+  if (str.length <= maxLen) return str;
+  return str.slice(0, maxLen - 3) + "...";
+}
+
+/**
+ * 格式化输入日志（只记录 input，不记录 state）
+ * 对可能过长的 content 字段进行截断
+ */
+function formatInputLog(update: AgentUpdatePack) {
+  const { prev } = update;
+
+  if (prev === null) {
+    // 初始状态，没有 input
+    return { type: "initial" };
+  }
+
+  const input = prev.input;
+
+  // 根据 input 类型，对可能过长的字段进行截断
+  switch (input.type) {
+    case "send-user-message":
+      return { ...input, content: ellipsis(input.content) };
+    case "end-assi-message-stream":
+      return { ...input, content: ellipsis(input.content) };
+    case "tool-call-request":
+      return { ...input, arguments: ellipsis(input.arguments) };
+    case "tool-result":
+      return { ...input, result: ellipsis(input.result) };
+    default:
+      return input;
+  }
+}
 
 /**
  * 创建 Agent Service
@@ -60,11 +101,10 @@ export function createService(options: CreateServiceOptions) {
     }),
   });
 
-  // 订阅 agent 状态变化，触发 output
-  // OutputHandler 签名: (dispatch) => (output) => void
-  // output 是 Eff<Dispatch<AgentInput>>，需要执行它
-  agent.subscribe((dispatch) => (output) => {
-    output(dispatch);
+  // 订阅 agent 状态变化，记录日志
+  // 副作用已在 createAgent 内部自动执行，这里只需处理日志
+  agent.subscribe((update) => {
+    logger.debug("Agent input", formatInputLog(update));
   });
 
   const app = new Elysia()

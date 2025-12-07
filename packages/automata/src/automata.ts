@@ -19,16 +19,12 @@ import { createPubSub } from './pub-sub';
  * 输出函数接收状态转换的完整信息（前一个状态、输入、新状态）。
  * 如果输出函数返回 `null`，则忽略此次输出。
  *
- * **副作用设计**：
- * 订阅的 handler 返回一个 Eff 函数：
- * - Eff 是一个同步副作用函数，接收 dispatch 作为上下文
- * - 如果需要异步操作，应该在 Eff 内部自行使用 queueMicrotask 来处理
- *
- * 这种设计允许 handler 的同步部分立即处理 output，而异步副作用可以在微任务中执行，
- * 并通过 dispatch 产生新的输入，形成反馈循环。
+ * **订阅设计**：
+ * subscribe 的 handler 是一个简单的回调函数 `(output) => void`。
+ * 如果需要 dispatch 新的输入，应该使用 automata 对象的 dispatch 方法。
  *
  * **初始状态输出**：
- * 在创建自动机时，会立即使用初始状态调用输出函数。
+ * 在订阅时，会立即使用初始状态调用输出函数。
  * 如果输出函数返回非 `null` 值，则会发布初始输出。
  * 这允许在订阅时立即收到当前状态的输出（类似 Moore 机的行为）。
  *
@@ -45,18 +41,17 @@ import { createPubSub } from './pub-sub';
  *   { initial: () => 0, transition: (n) => (s) => s + n },
  *   ({ prev, state }) => {
  *     if (prev === null) {
- *       // 初始状态输出
  *       return { output: { initial: true, value: state } };
  *     }
  *     return { output: { from: prev.state, to: state, input: prev.input } };
  *   }
  * );
  *
- * // 订阅时，handler 立即同步执行，返回的 Eff 立即执行
- * sm.subscribe((output) => (dispatch) => {
- *   console.log('同步处理:', output); // 立即执行
- *   // 异步副作用在微任务中执行
- *   queueMicrotask(() => dispatch(1));
+ * // 订阅时，handler 接收 output
+ * sm.subscribe((output) => {
+ *   console.log('收到输出:', output);
+ *   // 如果需要 dispatch，使用 sm.dispatch
+ *   sm.dispatch(1);
  * });
  * ```
  */
@@ -82,12 +77,11 @@ export function automata<Input, Output, State>(
       publishOutput({ prev, state });
     });
   
-  const subscribe: SubscribeOutput<Input, Output> = (handler: OutputHandler<Input, Output>) => {
-    const hdl = handler(dispatch);
-    const unsub = pubsub.sub(hdl);
+  const subscribe: SubscribeOutput<Output> = (handler: OutputHandler<Output>) => {
+    const unsub = pubsub.sub(handler);
     // 订阅时立即发送初始输出给当前订阅者（如果存在）
     const initialResult = outputFn({ prev: null, state });
-    if (initialResult !== null) hdl(initialResult.output);
+    if (initialResult !== null) handler(initialResult.output);
     return unsub;
   };
   
@@ -102,8 +96,6 @@ export function automata<Input, Output, State>(
  * 输出函数接收新状态和输入，计算并返回输出。
  * 初始状态时不会产生输出（因为此时没有输入）。
  *
- * **两阶段副作用设计**：订阅的 handler 采用两阶段副作用设计，详见 `automata` 函数的文档。
- *
  * @template Input - 输入信号类型
  * @template Output - 输出类型
  * @template State - 状态类型
@@ -116,6 +108,10 @@ export function automata<Input, Output, State>(
  *   initial: () => 'idle',
  *   transition: (input) => (state) => input === 'start' ? 'running' : state,
  *   output: ({ state, input }) => `${state}:${input}`,
+ * });
+ *
+ * mealyMachine.subscribe((output) => {
+ *   console.log('Output:', output);
  * });
  * ```
  */
@@ -137,8 +133,6 @@ export function mealy<Input, Output, State>({
  * Moore 机的输出仅依赖于当前状态，不依赖于输入。
  * 由于 `automata` 函数已经支持初始状态输出，Moore 机可以直接使用该功能。
  *
- * **副作用设计**：订阅的 handler 返回 Eff 函数，详见 `automata` 函数的文档。
- *
  * @template Input - 输入信号类型
  * @template Output - 输出类型
  * @template State - 状态类型
@@ -153,13 +147,9 @@ export function mealy<Input, Output, State>({
  *   output: (state) => ({ value: state, doubled: state * 2 }),
  * });
  *
- * // 订阅时，handler 立即同步执行，返回的 Eff 立即执行
- * mooreMachine.subscribe((output) => (dispatch) => {
- *   console.log('同步处理:', output); // 立即执行
- *   // 异步副作用在微任务中执行
- *   queueMicrotask(() => {
- *     // 异步操作
- *   });
+ * mooreMachine.subscribe((output) => {
+ *   console.log('Output:', output);
+ *   // 如果需要 dispatch，使用 mooreMachine.dispatch
  * });
  * ```
  */
