@@ -3,7 +3,9 @@
  */
 
 import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
+import type { ContextOfUser, ContextOfLlm } from "@/decl/contexts";
 import type { Dispatch } from "@moora/automata";
+import type { Eff } from "@moora/effects";
 
 // ============================================================================
 // Output 相关函数
@@ -23,7 +25,24 @@ import type { Dispatch } from "@moora/automata";
  */
 export const createOutput =
   (outputFns: OutputFns) =>
-  ({ userMessages, assiMessages }: AgentState) => (dispatch: Dispatch<AgentInput>) => {
-    outputFns.user({ context: { userMessages, assiMessages }, dispatch });
-    outputFns.llm({ context: { userMessages, assiMessages }, dispatch });
-  }
+  (state: AgentState): Eff<Dispatch<AgentInput>> => {
+    // 确保 state 存在并提取所需的字段，使用默认值防止 undefined
+    if (!state) {
+      console.error("[createOutput] State is undefined!");
+      throw new Error("State is undefined in createOutput");
+    }
+    const userMessages = state.userMessages ?? [];
+    const assiMessages = state.assiMessages ?? [];
+    return (dispatch: Dispatch<AgentInput>) => {
+      const contextUser: ContextOfUser = {
+        userMessages,
+        assiMessages,
+      };
+      const contextLlm: ContextOfLlm = {
+        userMessages,
+        assiMessages,
+      };
+      outputFns.user({ context: contextUser, dispatch });
+      outputFns.llm({ context: contextLlm, dispatch });
+    };
+  };

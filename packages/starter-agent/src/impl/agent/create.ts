@@ -3,8 +3,9 @@
  */
 
 import { moore } from "@moora/automata";
-import type { StatefulTransferer } from "@moora/automata";
-import type { AgentState, AgentInput, Output, OutputFns } from "@/decl/agent";
+import type { Dispatch, StatefulTransferer } from "@moora/automata";
+import type { Eff } from "@moora/effects";
+import type { AgentState, AgentInput, OutputFns } from "@/decl/agent";
 import { initial } from "@/impl/agent/initial";
 import { transition } from "@/impl/agent/transition";
 import { createOutput } from "@/impl/agent/output";
@@ -37,7 +38,7 @@ import { createOutput } from "@/impl/agent/output";
  */
 export function createAgent(
   outputFns: OutputFns
-): StatefulTransferer<AgentInput, Output<AgentInput>, AgentState> {
+): StatefulTransferer<AgentInput, Eff<Dispatch<AgentInput>>, AgentState> {
   return moore({
     initial: initial,
     transition: transition,

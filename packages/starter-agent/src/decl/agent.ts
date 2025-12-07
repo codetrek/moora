@@ -2,8 +2,6 @@
  * Agent 总的 State 和 Input 定义
  */
 
-import type { Dispatch } from "@moora/automata";
-import type { Eff } from "@moora/effects";
 import type { StateOfUser, StateOfLlm } from "./states";
 import type { InputFromUser, InputFromLlm } from "./inputs";
 import type { Actors } from "./actors";
