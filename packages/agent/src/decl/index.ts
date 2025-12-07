@@ -74,4 +74,4 @@ export type {
 // ============================================================================
 // Agent
 // ============================================================================
-export type { AgentState, AgentInput, OutputFns } from "./agent";
+export type { AgentState, AgentInput, OutputFns, PartialOutputFns } from "./agent";

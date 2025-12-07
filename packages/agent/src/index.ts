@@ -13,6 +13,7 @@ export type {
   AgentState,
   AgentInput,
   OutputFns,
+  PartialOutputFns,
   Actors,
   StateOfUser,
   StateOfLlm,

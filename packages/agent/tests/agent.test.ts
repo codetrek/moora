@@ -127,4 +127,29 @@ describe("Agent", () => {
 
     expect(outputReceived).toBe(true);
   });
+
+  test("should support partial outputFns with noop for missing actors", async () => {
+    // 只提供 user output，其他应该自动填充为 noop
+    const partialOutputFns = {
+      user: () => () => {},
+    };
+
+    const agent = createAgent(partialOutputFns);
+    expect(agent).toBeDefined();
+
+    // 应该能正常工作，即使没有提供 llm 和 toolkit
+    const timestamp = Date.now();
+    agent.dispatch({
+      type: "send-user-message",
+      id: "test-id-partial",
+      content: "Test partial",
+      timestamp,
+    });
+
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+    const state = agent.current();
+    expect(state.userMessages).toHaveLength(1);
+    expect(state.userMessages[0]?.content).toBe("Test partial");
+  });
 });

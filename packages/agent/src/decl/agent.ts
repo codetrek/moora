@@ -35,3 +35,10 @@ export type AgentInput = InputFromUser | InputFromLlm | InputFromToolkit;
 export type OutputFns = {
   [A in Actors]: OutputFnOf<A>;
 };
+
+/**
+ * 部分 Output 函数映射类型
+ *
+ * 用于 createAgent 函数的参数类型，允许只提供部分 Actor 的 Output 函数
+ */
+export type PartialOutputFns = Partial<OutputFns>;
