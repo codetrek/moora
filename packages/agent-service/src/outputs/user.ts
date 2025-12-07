@@ -8,6 +8,9 @@ import { createPatch } from "rfc6902";
 import type { ContextOfUser, AgentInput } from "@moora/agent";
 import type { Dispatch, PubSub } from "@moora/automata";
 import type { Eff } from "@moora/effects";
+import { getLogger } from "@/logger";
+
+const logger = getLogger();
 
 /**
  * 创建 User Output 函数的选项
@@ -36,6 +39,7 @@ export function createUserOutput(
   return ({ context, dispatch }) => {
       // 如果是第一次，记录 context，不发送（全量数据在连接时发送）
       if (previousContext === null) {
+        logger.server.debug("UserOutput: First context, storing for diff");
         previousContext = context;
         return;
       }
@@ -45,6 +49,7 @@ export function createUserOutput(
 
       // 如果有变化，发布 patch
       if (patches.length > 0) {
+        logger.server.debug(`UserOutput: Publishing ${patches.length} patches`);
         const patchData = JSON.stringify({
           type: "patch",
           patches,
@@ -52,6 +57,8 @@ export function createUserOutput(
 
         publishPatch(patchData);
         previousContext = context;
+      } else {
+        logger.server.debug("UserOutput: No changes detected");
       }
   };
 }

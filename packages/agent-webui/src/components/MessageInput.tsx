@@ -4,7 +4,7 @@
 
 import { Box, Button, TextField, Paper } from "@mui/material";
 import { Send } from "@mui/icons-material";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   paperStyles,
   containerStyles,
@@ -19,11 +19,23 @@ type MessageInputProps = {
 
 export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
   const [content, setContent] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const shouldFocusRef = useRef(false);
+
+  // 当 disabled 从 true 变回 false 时，恢复焦点
+  useEffect(() => {
+    if (!disabled && shouldFocusRef.current) {
+      shouldFocusRef.current = false;
+      inputRef.current?.focus();
+    }
+  }, [disabled]);
 
   const handleSend = () => {
     if (content.trim() && !disabled) {
       onSend(content.trim());
       setContent("");
+      // 标记需要恢复焦点
+      shouldFocusRef.current = true;
     }
   };
 
@@ -48,6 +60,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           disabled={disabled}
           variant="outlined"
           sx={textFieldStyles}
+          inputRef={inputRef}
         />
         <Button
           variant="contained"

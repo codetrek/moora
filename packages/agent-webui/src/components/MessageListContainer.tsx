@@ -53,6 +53,7 @@ export function MessageListContainer({
   const [isNearBottom, setIsNearBottom] = useState(true);
   const wheelDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const streamingMessageIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
   
   // 容错距离阈值（像素）
   const threshold = 150;
@@ -139,6 +140,14 @@ export function MessageListContainer({
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    // 初始加载时强制滚动到底部
+    if (isInitialLoadRef.current && messages.length > 0) {
+      isInitialLoadRef.current = false;
+      scrollToBottom(container, messagesEndRef.current);
+      setIsNearBottom(true);
+      return;
+    }
 
     const nearBottom = checkNearBottom();
     setIsNearBottom(nearBottom);

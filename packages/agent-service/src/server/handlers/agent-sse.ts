@@ -8,6 +8,9 @@ import { sse } from "elysia";
 import { createAgent } from "@moora/agent";
 import type { ContextOfUser } from "@moora/agent";
 import type { Subscribe } from "@moora/automata";
+import { getLogger } from "@/logger";
+
+const logger = getLogger();
 
 /**
  * SSE 连接状态
@@ -30,6 +33,7 @@ export function createAgentSSEHandler(
   subscribePatch: Subscribe<string>
 ) {
   return function* () {
+    logger.server.debug("Agent SSE: New connection");
 
     const state: SSEConnectionState = {
       queue: [],
@@ -37,12 +41,29 @@ export function createAgentSSEHandler(
       closed: false,
     };
 
+    // 心跳定时器，每 30 秒发送一次心跳保持连接
+    const heartbeatInterval = setInterval(() => {
+      if (!state.closed) {
+        state.queue.push(JSON.stringify({ type: "heartbeat" }));
+        if (state.resolve) {
+          state.resolve();
+          state.resolve = null;
+        }
+      }
+    }, 30000);
+
     // 订阅 patch
     const unsubscribe = subscribePatch((patch) => {
-      if (state.closed) return;
+      logger.server.debug("Agent SSE: Received patch from pubsub");
+      if (state.closed) {
+        logger.server.debug("Agent SSE: Connection closed, ignoring patch");
+        return;
+      }
 
       state.queue.push(patch);
+      logger.server.debug(`Agent SSE: Queue length: ${state.queue.length}`);
       if (state.resolve) {
+        logger.server.debug("Agent SSE: Resolving pending promise");
         state.resolve();
         state.resolve = null;
       }
@@ -59,13 +80,16 @@ export function createAgentSSEHandler(
         type: "full",
         data: context,
       });
+      logger.server.debug("Agent SSE: Sending full data");
       yield sse(fullData);
 
       // 保持连接打开，等待后续更新
       while (!state.closed) {
+        logger.server.debug("Agent SSE: Waiting for updates...");
         yield new Promise<void>((resolve) => {
           state.resolve = resolve;
           if (state.queue.length > 0) {
+            logger.server.debug("Agent SSE: Queue not empty, resolving immediately");
             resolve();
           }
         });
@@ -73,15 +97,19 @@ export function createAgentSSEHandler(
         while (state.queue.length > 0 && !state.closed) {
           const data = state.queue.shift();
           if (data) {
+            logger.server.debug("Agent SSE: Sending patch data");
             yield sse(data);
           }
         }
       }
     } catch (error) {
+      logger.server.error("Agent SSE: Error", error);
       state.closed = true;
       throw error;
     } finally {
+      logger.server.debug("Agent SSE: Connection closed");
       state.closed = true;
+      clearInterval(heartbeatInterval);
       unsubscribe();
     }
   };
