@@ -149,6 +149,10 @@ export type CreateServiceOptions = {
    * System prompt
    */
   prompt: string;
+  /**
+   * Toolkit 实例（可选，默认使用空 toolkit）
+   */
+  toolkit?: import("@moora/toolkit").Toolkit;
 };
 
 /**

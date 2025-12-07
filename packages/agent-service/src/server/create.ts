@@ -8,7 +8,9 @@ import type { AgentUpdatePack } from "@moora/agent";
 import { createPubSub } from "@moora/automata";
 import { createUserOutput } from "@/outputs/user";
 import { createLlmOutput } from "@/outputs/llm";
+import { createToolkitOutput, createDefaultToolkit } from "@/outputs/toolkit";
 import { createStreamManager } from "@/streams";
+import type { Toolkit } from "@moora/toolkit";
 import { getLogger } from "@/logger";
 import type { CreateServiceOptions } from "@/types";
 import {
@@ -81,7 +83,10 @@ function formatInputLog(update: AgentUpdatePack) {
  * ```
  */
 export function createService(options: CreateServiceOptions) {
-  const { openai, prompt } = options;
+  const { openai, prompt, toolkit: providedToolkit } = options;
+
+  // 使用提供的 toolkit 或创建默认空 toolkit
+  const toolkit: Toolkit = providedToolkit ?? createDefaultToolkit();
 
   // 创建 Patch PubSub（用于 /agent 路由的 SSE 推送）
   const patchPubSub = createPubSub<string>();
@@ -98,6 +103,9 @@ export function createService(options: CreateServiceOptions) {
       openai,
       prompt,
       streamManager,
+    }),
+    toolkit: createToolkitOutput({
+      toolkit,
     }),
   });
 

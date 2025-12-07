@@ -40,8 +40,8 @@ export { stateOfUserSchema, stateOfLlmSchema } from "./states";
 // ============================================================================
 // Contexts
 // ============================================================================
-export type { ContextOfUser, ContextOfLlm } from "./contexts";
-export { contextOfUserSchema, contextOfLlmSchema } from "./contexts";
+export type { ContextOfUser, ContextOfLlm, ContextOfToolkit } from "./contexts";
+export { contextOfUserSchema, contextOfLlmSchema, contextOfToolkitSchema } from "./contexts";
 
 // ============================================================================
 // Inputs
@@ -50,13 +50,18 @@ export type {
   SendUserMessage,
   StartAssiMessageStream,
   EndAssiMessageStream,
+  ToolCallRequest,
+  ToolResult,
   InputFromUser,
   InputFromLlm,
+  InputFromToolkit,
 } from "./inputs";
 export {
   sendUserMessageSchema,
   startAssiMessageStreamSchema,
   endAssiMessageStreamSchema,
+  toolCallRequestSchema,
+  toolResultSchema,
 } from "./inputs";
 
 // ============================================================================

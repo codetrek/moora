@@ -8,6 +8,7 @@
 export type LogCategory =
   | "agent" // Agent 核心逻辑
   | "llm" // LLM 调用
+  | "toolkit" // Toolkit 工具调用
   | "stream" // 流处理
   | "server" // HTTP 服务器
   | "output" // 输出处理
@@ -66,6 +67,8 @@ export interface Logger {
   server: CategoryLogger;
   /** Output 日志 */
   output: CategoryLogger;
+  /** Toolkit 日志 */
+  toolkit: CategoryLogger;
   /** 通用日志 */
   general: CategoryLogger;
 }

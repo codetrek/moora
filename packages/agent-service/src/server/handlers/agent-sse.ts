@@ -75,6 +75,8 @@ export function createAgentSSEHandler(
       const context: ContextOfUser = {
         userMessages: agentState.userMessages,
         assiMessages: agentState.assiMessages,
+        toolCallRequests: agentState.toolCallRequests,
+        toolResults: agentState.toolResults,
       };
       const fullData = JSON.stringify({
         type: "full",
@@ -103,7 +105,7 @@ export function createAgentSSEHandler(
         }
       }
     } catch (error) {
-      logger.server.error("Agent SSE: Error", error);
+      logger.server.error("Agent SSE: Error", error as Record<string, unknown>);
       state.closed = true;
       throw error;
     } finally {

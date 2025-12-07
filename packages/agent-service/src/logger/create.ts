@@ -50,6 +50,7 @@ export function createLogger(options: LoggerOptions = {}): Logger {
     raw: baseLogger,
     agent: getOrCreateCategoryLogger("agent"),
     llm: getOrCreateCategoryLogger("llm"),
+    toolkit: getOrCreateCategoryLogger("toolkit"),
     stream: getOrCreateCategoryLogger("stream"),
     server: getOrCreateCategoryLogger("server"),
     output: getOrCreateCategoryLogger("output"),
