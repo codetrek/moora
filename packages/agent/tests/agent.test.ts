@@ -91,12 +91,12 @@ describe("Agent", () => {
     // dispatch 是异步的，需要等待
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 
-    // 然后结束流式生成
+    // 然后结束流式生成（timestamp 不会被使用，会保留 start stream 的时间戳）
     agent.dispatch({
       type: "end-assi-message-stream",
       id: messageId,
       content: "Hi there!",
-      timestamp: timestamp + 100,
+      timestamp: timestamp + 100, // 这个值不会被使用
     });
 
     // dispatch 是异步的，需要等待
@@ -109,6 +109,8 @@ describe("Agent", () => {
     expect(state.assiMessages[0]?.streaming).toBe(false);
     if (state.assiMessages[0]?.streaming === false) {
       expect(state.assiMessages[0].content).toBe("Hi there!");
+      // 验证时间戳是 start stream 的时间戳，而不是 end stream 的时间戳
+      expect(state.assiMessages[0].timestamp).toBe(timestamp);
     }
     expect(state.cutOff).toBe(cutOff);
   });

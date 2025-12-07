@@ -90,13 +90,32 @@ export function createLlmOutput(
       // 判断是否有正在进行的调用
       const hasActiveCalls = state.llmCalls.length > 0;
 
-      console.log("[createLlmOutput] Effect triggered", {
+      // 检查是否有尚未发给过 llm 的 user message
+      const hasNewer = hasNewerUserMessages(userMessages, cutOff);
+
+      // 检查是否有正在流式生成的消息
+      const isStreaming = hasStreamingMessage(assiMessages);
+
+      // 详细打印判定上下文
+      console.log("[createLlmOutput] ===== Decision Context =====", {
         activeCallsCount: state.llmCalls.length,
         activeCallIds: state.llmCalls,
-        userMessagesCount: userMessages.length,
-        assiMessagesCount: assiMessages.length,
         cutOff,
         latestUserMessageTimestamp: getLatestUserMessageTimestamp(userMessages),
+        hasNewer,
+        isStreaming,
+        userMessages: userMessages.map((msg) => ({
+          id: msg.id,
+          timestamp: msg.timestamp,
+          contentPreview: msg.content.substring(0, 50),
+          isNewerThanCutOff: msg.timestamp > cutOff,
+        })),
+        assiMessages: assiMessages.map((msg) => ({
+          id: msg.id,
+          timestamp: msg.timestamp,
+          streaming: msg.streaming,
+          contentPreview: msg.streaming === false ? msg.content.substring(0, 50) : "[streaming]",
+        })),
       });
 
       // 如果正在调用中，忽略这次 effect
@@ -104,17 +123,6 @@ export function createLlmOutput(
         console.log("[createLlmOutput] Already calling, skipping this effect");
         return;
       }
-
-      // 检查是否有尚未发给过 llm 的 user message
-      const hasNewer = hasNewerUserMessages(userMessages, cutOff);
-
-      // 检查是否有正在流式生成的消息（从持久化状态中获取）
-      const isStreaming = hasStreamingMessage(assiMessages);
-
-      console.log("[createLlmOutput] Condition check", {
-        hasNewer,
-        isStreaming,
-      });
 
       // 如果没有新消息，或者已经有 streaming 消息，不做任何操作
       if (!hasNewer || isStreaming) {

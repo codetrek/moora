@@ -77,7 +77,13 @@ export function stateful<Context, State>(
 
   return (context: Context) => {
     const setState = (updater: (prevState: State) => State) => {
+      const prevState = state;
       state = updater(state);
+      if (state !== prevState) {
+        queueMicrotask(() => {
+          fn({ context, state, setState });
+        });
+      }
     };
     fn({ context, state, setState });
   };

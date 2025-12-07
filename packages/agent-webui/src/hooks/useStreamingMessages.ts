@@ -32,6 +32,7 @@ export function useStreamingMessages(
   const [streamContentVersion, setStreamContentVersion] = useState(0);
 
   // 从 context 更新 messages，并合并流式内容
+  // 所有消息（包括流式进行中的）都按时间戳排序，不强制 user/assistant 消息穿插
   const messages: Message[] = useMemo(() => {
     if (!context) return [];
 
@@ -56,6 +57,8 @@ export function useStreamingMessages(
       }
     );
 
+    // 合并所有消息（包括流式进行中的）并按时间戳排序
+    // 不强制 user/assistant 消息穿插，完全按时间顺序排列
     return [...context.userMessages, ...processedAssiMessages].sort(
       (a, b) => a.timestamp - b.timestamp
     );

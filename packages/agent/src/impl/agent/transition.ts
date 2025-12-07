@@ -44,7 +44,8 @@ export function transition(
       return {
         ...state,
         assiMessages: newLlmState.assiMessages,
-        cutOff: newLlmState.cutOff,
+        // 确保 cutOff 只增不减，防止异步 dispatch 导致的时序问题
+        cutOff: Math.max(cutOff, newLlmState.cutOff),
         toolCallRequests: newLlmState.toolCallRequests,
       };
     } else if (input.type === "tool-result") {
