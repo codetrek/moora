@@ -1,4 +1,4 @@
-﻿# Agent 建模迭代 Prompt
+# Agent 建模迭代 Prompt
 
 > 从 [AGENT_MODELING_METHODOLOGY.md](../../docs/AGENT_MODELING_METHODOLOGY.md) 提取，聚焦架构、文件结构、迭代方法
 
@@ -60,6 +60,28 @@ type ReactionFnOf<Actor extends Actors> = Eff<{ perspective: PerspectiveOf<Actor
 // Agent 总类型
 type Worldscape = AppearanceOfUser & AppearanceOfLlm
 type Actuation = ActionFromUser | ActionFromLlm
+type ReactionFns = { [A in Actors]: ReactionFnOf<A> }
+type AgentReaction = (worldscape: Worldscape) => Eff<Dispatch<Actuation>>
+```
+
+## 使用方式
+
+创建 Agent 分为两步：
+
+1. **创建 Reaction**：使用 `createReaction` 和各个 Actor 的 reaction 工厂函数
+2. **创建 Agent**：将 `AgentReaction` 传给 `createAgent`
+
+```typescript
+import { createAgent, createReaction, createUserReaction, createLlmReaction } from '@moora/agent';
+
+// 第一步：创建 reaction
+const reaction = createReaction({
+  user: createUserReaction({ notifyUser: ... }),
+  llm: createLlmReaction({ callLlm: ... }),
+});
+
+// 第二步：创建 agent
+const agent = createAgent(reaction);
 ```
 
 ## 文件结构（严格遵循）
@@ -74,7 +96,8 @@ type Actuation = ActionFromUser | ActionFromLlm
 │   ├── perspectives.ts            # PerspectiveOfFoo 类型 schema
 │   ├── actions.ts                 # Action 类型 schema
 │   ├── helpers.ts                 # Helper Generic 类型
-│   ├── agent.ts                   # Worldscape, Actuation, ReactionFns
+│   ├── agent.ts                   # Worldscape, Actuation, ReactionFns, AgentReaction
+│   ├── reactions.ts               # Reaction 回调类型（CallLlm, CallTool, NotifyUser 等）
 │   └── index.ts                   # 综合 export
 │
 ├── impl/                          # 实现目录
@@ -91,8 +114,14 @@ type Actuation = ActionFromUser | ActionFromLlm
 │   ├── agent/                     # Agent 综合实现
 │   │   ├── initial.ts             # initialAgent
 │   │   ├── transition.ts          # transitionAgent
-│   │   ├── reaction.ts            # createReactionAgent
-│   │   ├── create.ts              # createAgent 工厂函数
+│   │   ├── reaction.ts            # createReaction（将 ReactionFns 组合为 AgentReaction）
+│   │   ├── create.ts              # createAgent 工厂函数（接受 AgentReaction）
+│   │   └── index.ts
+│   │
+│   ├── reactions/                 # Reaction 工厂函数
+│   │   ├── user.ts                # createUserReaction
+│   │   ├── llm.ts                 # createLlmReaction
+│   │   ├── toolkit.ts             # createToolkitReaction（如果支持 tools）
 │   │   └── index.ts
 │   │
 │   └── index.ts

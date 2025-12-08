@@ -1,4 +1,4 @@
-﻿# Agent 建模方法论 V2
+# Agent 建模方法论 V2
 
 ## 概述
 
@@ -122,9 +122,11 @@ type Output<Action> = Eff<Dispatch<Action>, void>
   - `ReactionFn` **不属于 Agent 建模**，应该在创建 Agent 实例时通过依赖注入传入
   - `ReactionFn` 本身也应该是纯函数，只有其返回值是副作用函数
 
-- **定义 Agent 总的 Worldscape 和 Actuation**，例如
+- **定义 Agent 总的 Worldscape、Actuation 和 Reaction 类型**，例如
   - `type Worldscape = AppearanceOfUser & AppearanceOfLlm`
   - `type Actuation = ActionFromUser | ActionFromLlm`
+  - `type ReactionFns = { [A in Actors]: ReactionFnOf<A> }` - 各个 Actor 的 Reaction 函数映射
+  - `type AgentReaction = (worldscape: Worldscape) => Eff<Dispatch<Actuation>>` - 统一的 Reaction 函数（由 `createReaction` 创建）
 
 ### 文件结构
 
@@ -140,7 +142,8 @@ type Output<Action> = Eff<Dispatch<Action>, void>
 │   ├── actions.ts                 # 所有 Actor 可以 dispatch 的 Action 的 schema 和类型定义
 │   ├── helpers.ts                 # 关键 Helper Generic 类型定义
 │   │                              #   AppearanceOf, PerspectiveOf, ActionFrom, InitialFnOf, TransitionFnOf, ReactionFnOf
-│   ├── agent.ts                   # Worldscape, Actuation, ReactionFns 的定义
+│   ├── agent.ts                   # Worldscape, Actuation, ReactionFns, AgentReaction 的定义
+│   ├── reactions.ts               # Reaction 回调类型定义（CallLlm, CallTool, NotifyUser 等）
 │   └── index.ts                   # 综合 export
 │
 ├── impl/                          # 实现目录
@@ -159,8 +162,14 @@ type Output<Action> = Eff<Dispatch<Action>, void>
 │   ├── agent/                     # Agent 综合实现目录
 │   │   ├── initial.ts             # initialAgent 函数实现
 │   │   ├── transition.ts          # transitionAgent 函数实现
-│   │   ├── reaction.ts            # createReactionAgent 函数实现
-│   │   ├── create.ts              # createAgent 工厂函数（接受 ReactionFns 参数）
+│   │   ├── reaction.ts            # createReaction 函数实现（将 ReactionFns 组合为 AgentReaction）
+│   │   ├── create.ts              # createAgent 工厂函数（接受 AgentReaction 参数）
+│   │   └── index.ts               # 综合 export
+│   │
+│   ├── reactions/                 # Reaction 工厂函数目录
+│   │   ├── user.ts                # createUserReaction 工厂函数
+│   │   ├── llm.ts                 # createLlmReaction 工厂函数
+│   │   ├── toolkit.ts             # createToolkitReaction 工厂函数（如果支持 tools）
 │   │   └── index.ts               # 综合 export
 │   │
 │   └── index.ts                   # 综合 export
@@ -273,7 +282,10 @@ type Output<Action> = Eff<Dispatch<Action>, void>
 
 ## 使用 Automata
 
-完成建模后，使用 `createAgent` 函数创建 Moore 自动机，需要使用内置的 reaction 工厂函数来创建各个 Actor 的 reaction。
+完成建模后，使用 `createAgent` 函数创建 Moore 自动机。使用方式分为两步：
+
+1. **创建 Reaction**：使用 `createReaction` 和各个 Actor 的 reaction 工厂函数（如 `createUserReaction`、`createLlmReaction`）来创建统一的 `AgentReaction`
+2. **创建 Agent**：将 `AgentReaction` 传给 `createAgent` 来创建 Agent 实例
 
 ```typescript
 import {
@@ -284,7 +296,7 @@ import {
   createToolkitReaction,
 } from '@moora/agent';
 
-// 使用内置的 reaction 工厂函数创建 reaction
+// 第一步：使用内置的 reaction 工厂函数创建各个 Actor 的 reaction
 const reaction = createReaction({
   user: createUserReaction({
     notifyUser: (perspective) => {
@@ -325,7 +337,7 @@ const reaction = createReaction({
   }),
 });
 
-// 创建 Agent 实例
+// 第二步：创建 Agent 实例（传入 AgentReaction）
 const agent = createAgent(reaction);
 ```
 
@@ -372,7 +384,7 @@ import {
   createToolkitReaction,
 } from '@moora/agent';
 
-// 创建 reaction
+// 第一步：创建 reaction（使用 createReaction 组合各个 Actor 的 reaction）
 const reaction = createReaction({
   user: createUserReaction({
     notifyUser: (perspective) => {
@@ -398,7 +410,7 @@ const reaction = createReaction({
   }),
 });
 
-// 创建自动机
+// 第二步：创建自动机（传入 AgentReaction）
 const agent = createAgent(reaction);
 
 // 订阅状态变化（用于日志、调试）
