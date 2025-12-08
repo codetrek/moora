@@ -32,41 +32,41 @@ export {
 } from "./observations";
 
 // ============================================================================
-// States
+// Appearances
 // ============================================================================
-export type { StateOfUser, StateOfLlm } from "./states";
-export { stateOfUserSchema, stateOfLlmSchema } from "./states";
+export type { AppearanceOfUser, AppearanceOfLlm } from "./appearances";
+export { appearanceOfUserSchema, appearanceOfLlmSchema } from "./appearances";
 
 // ============================================================================
-// Contexts
+// Perspectives
 // ============================================================================
-export type { ContextOfUser, ContextOfLlm } from "./contexts";
-export { contextOfUserSchema, contextOfLlmSchema } from "./contexts";
+export type { PerspectiveOfUser, PerspectiveOfLlm } from "./perspectives";
+export { perspectiveOfUserSchema, perspectiveOfLlmSchema } from "./perspectives";
 
 // ============================================================================
-// Inputs
+// Actions
 // ============================================================================
 export type {
   SendUserMessage,
   SendAssiMessage,
-  InputFromUser,
-  InputFromLlm,
-} from "./inputs";
-export { sendUserMessageSchema, sendAssiMessageSchema } from "./inputs";
+  ActionFromUser,
+  ActionFromLlm,
+} from "./actions";
+export { sendUserMessageSchema, sendAssiMessageSchema } from "./actions";
 
 // ============================================================================
 // Helpers
 // ============================================================================
 export type {
-  StateOf,
-  ContextOf,
-  InputFrom,
+  AppearanceOf,
+  PerspectiveOf,
+  ActionFrom,
   InitialFnOf,
   TransitionFnOf,
-  EffectFnOf,
+  ReactionFnOf,
 } from "./helpers";
 
 // ============================================================================
 // Agent
 // ============================================================================
-export type { AgentState, AgentInput, EffectFns } from "./agent";
+export type { Worldscape, Actuation, ReactionFns } from "./agent";

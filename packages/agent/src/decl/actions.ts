@@ -1,17 +1,17 @@
 /**
- * Inputs 类型定义
+ * Actions 类型定义
  *
- * 定义各个 Actor 可以 dispatch 的 Input 类型
+ * 定义各个 Actor 可以 dispatch 的 Action 类型
  */
 
 import { z } from "zod";
 
 // ============================================================================
-// Input Schema 定义
+// Action Schema 定义
 // ============================================================================
 
 /**
- * 发送用户消息 Input Schema
+ * 发送用户消息 Action Schema
  */
 export const sendUserMessageSchema = z.object({
   type: z.literal("send-user-message"),
@@ -23,7 +23,7 @@ export const sendUserMessageSchema = z.object({
 export type SendUserMessage = z.infer<typeof sendUserMessageSchema>;
 
 /**
- * 开始流式生成助手消息 Input Schema
+ * 开始流式生成助手消息 Action Schema
  */
 export const startAssiMessageStreamSchema = z.object({
   type: z.literal("start-assi-message-stream"),
@@ -38,7 +38,7 @@ export const startAssiMessageStreamSchema = z.object({
 export type StartAssiMessageStream = z.infer<typeof startAssiMessageStreamSchema>;
 
 /**
- * 结束流式生成助手消息 Input Schema
+ * 结束流式生成助手消息 Action Schema
  */
 export const endAssiMessageStreamSchema = z.object({
   type: z.literal("end-assi-message-stream"),
@@ -50,7 +50,7 @@ export const endAssiMessageStreamSchema = z.object({
 export type EndAssiMessageStream = z.infer<typeof endAssiMessageStreamSchema>;
 
 /**
- * 请求工具调用 Input Schema
+ * 请求工具调用 Action Schema
  */
 export const requestToolCallSchema = z.object({
   type: z.literal("request-tool-call"),
@@ -67,7 +67,7 @@ export const requestToolCallSchema = z.object({
 export type RequestToolCall = z.infer<typeof requestToolCallSchema>;
 
 /**
- * 接收工具执行结果 Input Schema
+ * 接收工具执行结果 Action Schema
  */
 export const receiveToolResultSchema = z.object({
   type: z.literal("receive-tool-result"),
@@ -79,23 +79,23 @@ export const receiveToolResultSchema = z.object({
 export type ReceiveToolResult = z.infer<typeof receiveToolResultSchema>;
 
 // ============================================================================
-// Actor Input 类型定义
+// Actor Action 类型定义
 // ============================================================================
 
 /**
- * User Actor 可以 dispatch 的 Input
+ * User Actor 可以 dispatch 的 Action
  */
-export type InputFromUser = SendUserMessage;
+export type ActionFromUser = SendUserMessage;
 
 /**
- * Llm Actor 可以 dispatch 的 Input
+ * Llm Actor 可以 dispatch 的 Action
  */
-export type InputFromLlm =
+export type ActionFromLlm =
   | StartAssiMessageStream
   | EndAssiMessageStream
   | RequestToolCall;
 
 /**
- * Toolkit Actor 可以 dispatch 的 Input
+ * Toolkit Actor 可以 dispatch 的 Action
  */
-export type InputFromToolkit = ReceiveToolResult;
+export type ActionFromToolkit = ReceiveToolResult;

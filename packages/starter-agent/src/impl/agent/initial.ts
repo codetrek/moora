@@ -2,7 +2,7 @@
  * Agent 的初始状态实现
  */
 
-import type { AgentState } from "@/decl/agent";
+import type { Worldscape } from "@/decl/agent";
 import { initialUser } from "@/impl/initials/user";
 import { initialLlm } from "@/impl/initials/llm";
 
@@ -11,12 +11,12 @@ import { initialLlm } from "@/impl/initials/llm";
  *
  * @returns Agent 的初始状态
  */
-export function initial(): AgentState {
-  const userState = initialUser();
-  const llmState = initialLlm();
+export function initial(): Worldscape {
+  const userAppearance = initialUser();
+  const llmAppearance = initialLlm();
 
   return {
-    ...userState,
-    ...llmState,
+    ...userAppearance,
+    ...llmAppearance,
   };
 }

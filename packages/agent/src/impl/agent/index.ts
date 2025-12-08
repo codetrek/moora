@@ -1,8 +1,8 @@
-/**
+﻿/**
  * Agent 综合导出
  */
 
 export { initial } from "./initial";
 export { transition } from "./transition";
-export { createEffect } from "./effect";
+export { createReaction } from "./reaction";
 export { createAgent } from "./create";

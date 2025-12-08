@@ -1,27 +1,27 @@
-/**
+﻿/**
  * Toolkit Actor 的 Transition 函数实现
  */
 
-import type { StateOfToolkit } from "@/decl/states";
-import type { InputFromToolkit, ReceiveToolResult } from "@/decl/inputs";
+import type { AppearanceOfToolkit } from "@/decl/appearances";
+import type { ActionFromToolkit, ReceiveToolResult } from "@/decl/actions";
 
 /**
  * Toolkit Actor 的状态转换函数
  *
- * 根据 Input 更新 Toolkit 的状态。
+ * 根据 Action 更新 Toolkit 的状态。
  * 这是一个纯函数，不产生副作用。
  *
- * @param input - Toolkit 的输入
+ * @param action - Toolkit 的输入动作
  * @returns 状态转换函数
  */
 export function transitionToolkit(
-  input: InputFromToolkit
-): (state: StateOfToolkit) => StateOfToolkit {
-  return (state: StateOfToolkit) => {
-    if (input.type === "receive-tool-result") {
-      return transitionToolkitReceiveResult(input)(state);
+  action: ActionFromToolkit
+): (appearance: AppearanceOfToolkit) => AppearanceOfToolkit {
+  return (appearance: AppearanceOfToolkit) => {
+    if (action.type === "receive-tool-result") {
+      return transitionToolkitReceiveResult(action)(appearance);
     }
-    return state;
+    return appearance;
   };
 }
 
@@ -29,17 +29,17 @@ export function transitionToolkit(
  * 处理工具执行结果的转换
  */
 function transitionToolkitReceiveResult(
-  input: ReceiveToolResult
-): (state: StateOfToolkit) => StateOfToolkit {
-  return (state: StateOfToolkit) => {
+  action: ReceiveToolResult
+): (appearance: AppearanceOfToolkit) => AppearanceOfToolkit {
+  return (appearance: AppearanceOfToolkit) => {
     return {
-      ...state,
+      ...appearance,
       toolResults: [
-        ...state.toolResults,
+        ...appearance.toolResults,
         {
-          toolCallId: input.toolCallId,
-          result: input.result,
-          timestamp: input.timestamp,
+          toolCallId: action.toolCallId,
+          result: action.result,
+          timestamp: action.timestamp,
         },
       ],
     };

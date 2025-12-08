@@ -1,38 +1,38 @@
-/**
+﻿/**
  * Llm Actor 的 Transition 函数实现
  */
 
-import type { StateOfLlm } from "@/decl/states";
+import type { AppearanceOfLlm } from "@/decl/appearances";
 import type {
-  InputFromLlm,
+  ActionFromLlm,
   StartAssiMessageStream,
   EndAssiMessageStream,
   RequestToolCall,
-} from "@/decl/inputs";
+} from "@/decl/actions";
 
 /**
  * Llm Actor 的状态转换函数
  *
- * 根据 Input 更新 Llm 的状态。
+ * 根据 Action 更新 Llm 的状态。
  * 这是一个纯函数，不产生副作用。
  *
- * @param input - Llm 的输入
+ * @param action - Llm 的输入动作
  * @returns 状态转换函数
  */
 export function transitionLlm(
-  input: InputFromLlm
-): (state: StateOfLlm) => StateOfLlm {
-  return (state: StateOfLlm) => {
-    if (input.type === "start-assi-message-stream") {
-      return transitionLlmStartStream(input)(state);
+  action: ActionFromLlm
+): (appearance: AppearanceOfLlm) => AppearanceOfLlm {
+  return (appearance: AppearanceOfLlm) => {
+    if (action.type === "start-assi-message-stream") {
+      return transitionLlmStartStream(action)(appearance);
     }
-    if (input.type === "end-assi-message-stream") {
-      return transitionLlmEndStream(input)(state);
+    if (action.type === "end-assi-message-stream") {
+      return transitionLlmEndStream(action)(appearance);
     }
-    if (input.type === "request-tool-call") {
-      return transitionLlmRequestToolCall(input)(state);
+    if (action.type === "request-tool-call") {
+      return transitionLlmRequestToolCall(action)(appearance);
     }
-    return state;
+    return appearance;
   };
 }
 
@@ -42,22 +42,22 @@ export function transitionLlm(
  * 确保 cutOff 只增不减，防止异步 dispatch 导致的时序问题
  */
 function transitionLlmStartStream(
-  input: StartAssiMessageStream
-): (state: StateOfLlm) => StateOfLlm {
-  return (state: StateOfLlm) => {
+  action: StartAssiMessageStream
+): (appearance: AppearanceOfLlm) => AppearanceOfLlm {
+  return (appearance: AppearanceOfLlm) => {
     return {
-      ...state,
+      ...appearance,
       assiMessages: [
-        ...state.assiMessages,
+        ...appearance.assiMessages,
         {
-          id: input.id,
-          timestamp: input.timestamp,
+          id: action.id,
+          timestamp: action.timestamp,
           role: "assistant",
           streaming: true,
         },
       ],
       // 确保 cutOff 只增不减，防止异步 dispatch 导致的时序问题
-      cutOff: Math.max(state.cutOff, input.cutOff),
+      cutOff: Math.max(appearance.cutOff, action.cutOff),
     };
   };
 }
@@ -69,38 +69,38 @@ function transitionLlmStartStream(
  * 显式保留 cutOff，防止异步 dispatch 导致的时序问题导致 cutOff 被回退
  */
 function transitionLlmEndStream(
-  input: EndAssiMessageStream
-): (state: StateOfLlm) => StateOfLlm {
-  return (state: StateOfLlm) => {
+  action: EndAssiMessageStream
+): (appearance: AppearanceOfLlm) => AppearanceOfLlm {
+  return (appearance: AppearanceOfLlm) => {
     // 找到对应的消息并更新
-    const originalMessage = state.assiMessages.find(
-      (msg) => msg.id === input.id
+    const originalMessage = appearance.assiMessages.find(
+      (msg) => msg.id === action.id
     );
 
     if (!originalMessage) {
       // 如果找不到消息，可能是状态不一致，返回原状态
-      return state;
+      return appearance;
     }
 
     // 更新消息，保留原来的 timestamp（start stream 的时间）
-    const updatedMessages = state.assiMessages.map((msg) => {
-      if (msg.id === input.id) {
+    const updatedMessages = appearance.assiMessages.map((msg) => {
+      if (msg.id === action.id) {
         return {
-          id: input.id,
+          id: action.id,
           timestamp: originalMessage.timestamp, // 保留 start stream 的时间戳
           role: "assistant" as const,
           streaming: false as const,
-          content: input.content,
+          content: action.content,
         };
       }
       return msg;
     });
 
     return {
-      ...state,
+      ...appearance,
       assiMessages: updatedMessages,
       // 显式保留 cutOff，防止异步 dispatch 导致的时序问题导致 cutOff 被回退
-      cutOff: state.cutOff,
+      cutOff: appearance.cutOff,
     };
   };
 }
@@ -111,22 +111,22 @@ function transitionLlmEndStream(
  * 同时更新 cutOff，确保只有 tool_calls 时也能正确更新 cutOff
  */
 function transitionLlmRequestToolCall(
-  input: RequestToolCall
-): (state: StateOfLlm) => StateOfLlm {
-  return (state: StateOfLlm) => {
+  action: RequestToolCall
+): (appearance: AppearanceOfLlm) => AppearanceOfLlm {
+  return (appearance: AppearanceOfLlm) => {
     return {
-      ...state,
+      ...appearance,
       toolCallRequests: [
-        ...state.toolCallRequests,
+        ...appearance.toolCallRequests,
         {
-          toolCallId: input.toolCallId,
-          name: input.name,
-          arguments: input.arguments,
-          timestamp: input.timestamp,
+          toolCallId: action.toolCallId,
+          name: action.name,
+          arguments: action.arguments,
+          timestamp: action.timestamp,
         },
       ],
       // 确保 cutOff 只增不减
-      cutOff: Math.max(state.cutOff, input.cutOff),
+      cutOff: Math.max(appearance.cutOff, action.cutOff),
     };
   };
 }

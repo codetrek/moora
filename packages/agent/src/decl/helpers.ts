@@ -1,15 +1,15 @@
-/**
+﻿/**
  * Helper Generic 类型定义
  *
  * 用于类型推导的辅助类型
  */
 
 import type { Actors } from "./actors";
-import type { StateOfUser, StateOfLlm, StateOfToolkit } from "./states";
-import type { ContextOfUser, ContextOfLlm, ContextOfToolkit } from "./contexts";
-import type { InputFromUser, InputFromLlm, InputFromToolkit } from "./inputs";
+import type { AppearanceOfUser, AppearanceOfLlm, AppearanceOfToolkit } from "./appearances";
+import type { PerspectiveOfUser, PerspectiveOfLlm, PerspectiveOfToolkit } from "./perspectives";
+import type { ActionFromUser, ActionFromLlm, ActionFromToolkit } from "./actions";
 import type { USER, LLM, TOOLKIT } from "./actors";
-import type { AgentInput } from "./agent";
+import type { Actuation } from "./agent";
 import type { Dispatch } from "@moora/automata";
 import type { Eff } from "@moora/effects";
 
@@ -18,36 +18,36 @@ import type { Eff } from "@moora/effects";
 // ============================================================================
 
 /**
- * 根据 Actor 类型推导对应的 State
+ * 根据 Actor 类型推导对应的 Appearance
  */
-export type StateOf<Actor extends Actors> = Actor extends typeof USER
-  ? StateOfUser
+export type AppearanceOf<Actor extends Actors> = Actor extends typeof USER
+  ? AppearanceOfUser
   : Actor extends typeof LLM
-  ? StateOfLlm
+  ? AppearanceOfLlm
   : Actor extends typeof TOOLKIT
-  ? StateOfToolkit
+  ? AppearanceOfToolkit
   : never;
 
 /**
- * 根据 Actor 类型推导对应的 Context
+ * 根据 Actor 类型推导对应的 Perspective
  */
-export type ContextOf<Actor extends Actors> = Actor extends typeof USER
-  ? ContextOfUser
+export type PerspectiveOf<Actor extends Actors> = Actor extends typeof USER
+  ? PerspectiveOfUser
   : Actor extends typeof LLM
-  ? ContextOfLlm
+  ? PerspectiveOfLlm
   : Actor extends typeof TOOLKIT
-  ? ContextOfToolkit
+  ? PerspectiveOfToolkit
   : never;
 
 /**
- * 根据 Actor 类型推导对应的 Input
+ * 根据 Actor 类型推导对应的 Action
  */
-export type InputFrom<Actor extends Actors> = Actor extends typeof USER
-  ? InputFromUser
+export type ActionFrom<Actor extends Actors> = Actor extends typeof USER
+  ? ActionFromUser
   : Actor extends typeof LLM
-  ? InputFromLlm
+  ? ActionFromLlm
   : Actor extends typeof TOOLKIT
-  ? InputFromToolkit
+  ? ActionFromToolkit
   : never;
 
 // ============================================================================
@@ -57,28 +57,28 @@ export type InputFrom<Actor extends Actors> = Actor extends typeof USER
 /**
  * Initial 函数类型
  */
-export type InitialFnOf<Actor extends Actors> = () => StateOf<Actor>;
+export type InitialFnOf<Actor extends Actors> = () => AppearanceOf<Actor>;
 
 /**
  * Transition 函数类型
  */
 export type TransitionFnOf<Actor extends Actors> = (
-  input: InputFrom<Actor>
-) => (state: StateOf<Actor>) => StateOf<Actor>;
+  action: ActionFrom<Actor>
+) => (appearance: AppearanceOf<Actor>) => AppearanceOf<Actor>;
 
 /**
- * Effect 函数类型
+ * Reaction 函数类型
  *
- * 根据 Actor 的 Context 决定要触发的副作用。
+ * 根据 Actor 的 Perspective 决定要触发的副作用。
  *
- * 注意：参数应该是 ContextOf<Actor> 而不是 StateOf<Actor>，
- * 因为 Effect 函数需要根据 Actor 的 Context（发出的 Observation）来决定要触发的副作用。
+ * 注意：参数应该是 PerspectiveOf<Actor> 而不是 AppearanceOf<Actor>，
+ * 因为 Reaction 函数需要根据 Actor 的 Perspective（发出的 Observation）来决定要触发的副作用。
  *
- * 返回 Eff<{ context, dispatch }> 而不是柯里化的形式，
- * 这样可以让各个 Actor 的 Effect 可以同时访问 context 和 dispatch，
- * 并且可以方便地在闭包中创建 stateful effect。
+ * 返回 Eff<{ perspective, dispatch }> 而不是柯里化的形式，
+ * 这样可以让各个 Actor 的 Reaction 可以同时访问 perspective 和 dispatch，
+ * 并且可以方便地在闭包中创建 stateful reaction。
  */
-export type EffectFnOf<Actor extends Actors> = Eff<{
-  context: ContextOf<Actor>;
-  dispatch: Dispatch<AgentInput>;
+export type ReactionFnOf<Actor extends Actors> = Eff<{
+  perspective: PerspectiveOf<Actor>;
+  dispatch: Dispatch<Actuation>;
 }>;

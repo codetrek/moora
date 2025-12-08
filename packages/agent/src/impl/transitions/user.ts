@@ -1,27 +1,27 @@
-/**
+﻿/**
  * User Actor 的 Transition 函数实现
  */
 
-import type { StateOfUser } from "@/decl/states";
-import type { InputFromUser, SendUserMessage } from "@/decl/inputs";
+import type { AppearanceOfUser } from "@/decl/appearances";
+import type { ActionFromUser, SendUserMessage } from "@/decl/actions";
 
 /**
  * User Actor 的状态转换函数
  *
- * 根据 Input 更新 User 的状态。
+ * 根据 Action 更新 User 的状态。
  * 这是一个纯函数，不产生副作用。
  *
- * @param input - User 的输入
+ * @param action - User 的输入动作
  * @returns 状态转换函数
  */
 export function transitionUser(
-  input: InputFromUser
-): (state: StateOfUser) => StateOfUser {
-  return (state: StateOfUser) => {
-    if (input.type === "send-user-message") {
-      return transitionUserSendMessage(input)(state);
+  action: ActionFromUser
+): (appearance: AppearanceOfUser) => AppearanceOfUser {
+  return (appearance: AppearanceOfUser) => {
+    if (action.type === "send-user-message") {
+      return transitionUserSendMessage(action)(appearance);
     }
-    return state;
+    return appearance;
   };
 }
 
@@ -29,17 +29,17 @@ export function transitionUser(
  * 处理发送用户消息的转换
  */
 function transitionUserSendMessage(
-  input: SendUserMessage
-): (state: StateOfUser) => StateOfUser {
-  return (state: StateOfUser) => {
+  action: SendUserMessage
+): (appearance: AppearanceOfUser) => AppearanceOfUser {
+  return (appearance: AppearanceOfUser) => {
     return {
-      ...state,
+      ...appearance,
       userMessages: [
-        ...state.userMessages,
+        ...appearance.userMessages,
         {
-          id: input.id,
-          content: input.content,
-          timestamp: input.timestamp,
+          id: action.id,
+          content: action.content,
+          timestamp: action.timestamp,
           role: "user",
         },
       ],

@@ -4,22 +4,22 @@
  * 最小 Agent 实现，基于 Automata 和迭代式建模方法论
  */
 
-import type { AgentState, AgentInput } from "./decl/agent";
+import type { Worldscape, Actuation } from "./decl/agent";
 
 // ============================================================================
 // 导出类型
 // ============================================================================
 export type {
-  AgentState,
-  AgentInput,
-  EffectFns,
+  Worldscape,
+  Actuation,
+  ReactionFns,
   Actors,
-  StateOfUser,
-  StateOfLlm,
-  ContextOfUser,
-  ContextOfLlm,
-  InputFromUser,
-  InputFromLlm,
+  AppearanceOfUser,
+  AppearanceOfLlm,
+  PerspectiveOfUser,
+  PerspectiveOfLlm,
+  ActionFromUser,
+  ActionFromLlm,
   SendUserMessage,
   SendAssiMessage,
   UserMessage,

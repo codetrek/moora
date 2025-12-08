@@ -2,26 +2,26 @@
  * Llm Actor 的 Transition 函数实现
  */
 
-import type { StateOfLlm } from "@/decl/states";
-import type { InputFromLlm, SendAssiMessage } from "@/decl/inputs";
+import type { AppearanceOfLlm } from "@/decl/appearances";
+import type { ActionFromLlm, SendAssiMessage } from "@/decl/actions";
 
 /**
  * Llm Actor 的状态转换函数
  *
- * 根据 Input 更新 Llm 的状态。
+ * 根据 Action 更新 Llm 的状态。
  * 这是一个纯函数，不产生副作用。
  *
- * @param input - Llm 的输入
+ * @param action - Llm 的输入动作
  * @returns 状态转换函数
  */
 export function transitionLlm(
-  input: InputFromLlm
-): (state: StateOfLlm) => StateOfLlm {
-  return (state: StateOfLlm) => {
-    if (input.type === "send-assi-message") {
-      return transitionLlmSendMessage(input)(state);
+  action: ActionFromLlm
+): (appearance: AppearanceOfLlm) => AppearanceOfLlm {
+  return (appearance: AppearanceOfLlm) => {
+    if (action.type === "send-assi-message") {
+      return transitionLlmSendMessage(action)(appearance);
     }
-    return state;
+    return appearance;
   };
 }
 
@@ -29,17 +29,17 @@ export function transitionLlm(
  * 处理发送助手消息的转换
  */
 function transitionLlmSendMessage(
-  input: SendAssiMessage
-): (state: StateOfLlm) => StateOfLlm {
-  return (state: StateOfLlm) => {
+  action: SendAssiMessage
+): (appearance: AppearanceOfLlm) => AppearanceOfLlm {
+  return (appearance: AppearanceOfLlm) => {
     return {
-      ...state,
+      ...appearance,
       assiMessages: [
-        ...state.assiMessages,
+        ...appearance.assiMessages,
         {
-          id: input.id,
-          content: input.content,
-          timestamp: input.timestamp,
+          id: action.id,
+          content: action.content,
+          timestamp: action.timestamp,
           role: "assistant",
         },
       ],

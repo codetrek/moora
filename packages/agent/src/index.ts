@@ -1,28 +1,29 @@
-/**
+﻿/**
  * @moora/agent
  *
  * 完整的 Agent 实现，基于 Automata 和迭代式建模方法论
  */
 
-import type { AgentState, AgentInput } from "./decl/agent";
+import type { Worldscape, Actuation } from "./decl/agent";
 
 // ============================================================================
 // 导出类型
 // ============================================================================
 export type {
-  AgentState,
-  AgentInput,
-  EffectFns,
-  PartialEffectFns,
+  Worldscape,
+  Actuation,
+  ReactionFns,
+  PartialReactionFns,
   Actors,
-  StateOfUser,
-  StateOfLlm,
-  ContextOfUser,
-  ContextOfLlm,
-  ContextOfToolkit,
-  InputFromUser,
-  InputFromLlm,
-  InputFromToolkit,
+  AppearanceOfUser,
+  AppearanceOfLlm,
+  AppearanceOfToolkit,
+  PerspectiveOfUser,
+  PerspectiveOfLlm,
+  PerspectiveOfToolkit,
+  ActionFromUser,
+  ActionFromLlm,
+  ActionFromToolkit,
   SendUserMessage,
   StartAssiMessageStream,
   EndAssiMessageStream,

@@ -1,17 +1,17 @@
 /**
- * Inputs 类型定义
+ * Actions 类型定义
  *
- * 定义各个 Actor 可以 dispatch 的 Input 类型
+ * 定义各个 Actor 可以 dispatch 的 Action 类型
  */
 
 import { z } from "zod";
 
 // ============================================================================
-// Input Schema 定义
+// Action Schema 定义
 // ============================================================================
 
 /**
- * 发送用户消息 Input Schema
+ * 发送用户消息 Action Schema
  */
 export const sendUserMessageSchema = z.object({
   type: z.literal("send-user-message"),
@@ -23,7 +23,7 @@ export const sendUserMessageSchema = z.object({
 export type SendUserMessage = z.infer<typeof sendUserMessageSchema>;
 
 /**
- * 发送助手消息 Input Schema
+ * 发送助手消息 Action Schema
  */
 export const sendAssiMessageSchema = z.object({
   type: z.literal("send-assi-message"),
@@ -35,15 +35,15 @@ export const sendAssiMessageSchema = z.object({
 export type SendAssiMessage = z.infer<typeof sendAssiMessageSchema>;
 
 // ============================================================================
-// Actor Input 类型定义
+// Actor Action 类型定义
 // ============================================================================
 
 /**
- * User Actor 可以 dispatch 的 Input
+ * User Actor 可以 dispatch 的 Action
  */
-export type InputFromUser = SendUserMessage;
+export type ActionFromUser = SendUserMessage;
 
 /**
- * Llm Actor 可以 dispatch 的 Input
+ * Llm Actor 可以 dispatch 的 Action
  */
-export type InputFromLlm = SendAssiMessage;
+export type ActionFromLlm = SendAssiMessage;

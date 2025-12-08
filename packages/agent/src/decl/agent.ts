@@ -1,44 +1,44 @@
-/**
- * Agent 总的 State 和 Input 定义
+﻿/**
+ * Agent 总的 Worldscape 和 Actuation 定义
  */
 
 import type { Dispatch } from "@moora/automata";
 import type { Eff } from "@moora/effects";
-import type { StateOfUser, StateOfLlm, StateOfToolkit } from "./states";
-import type { InputFromUser, InputFromLlm, InputFromToolkit } from "./inputs";
+import type { AppearanceOfUser, AppearanceOfLlm, AppearanceOfToolkit } from "./appearances";
+import type { ActionFromUser, ActionFromLlm, ActionFromToolkit } from "./actions";
 import type { Actors } from "./actors";
-import type { EffectFnOf } from "./helpers";
+import type { ReactionFnOf } from "./helpers";
 
 // ============================================================================
 // Agent 统合类型
 // ============================================================================
 
 /**
- * Agent 的总 State = 各个 Actor State 的并集
+ * Agent 的总 Worldscape = 各个 Actor Appearance 的并集
  */
-export type AgentState = StateOfUser & StateOfLlm & StateOfToolkit;
+export type Worldscape = AppearanceOfUser & AppearanceOfLlm & AppearanceOfToolkit;
 
 /**
- * Agent 的总 Input = 各个 Actor Input 的并集
+ * Agent 的总 Actuation = 各个 Actor Action 的并集
  */
-export type AgentInput = InputFromUser | InputFromLlm | InputFromToolkit;
+export type Actuation = ActionFromUser | ActionFromLlm | ActionFromToolkit;
 
 // ============================================================================
-// EffectFns 类型定义
+// ReactionFns 类型定义
 // ============================================================================
 
 /**
- * 各个 Actor 的 Effect 函数映射类型
+ * 各个 Actor 的 Reaction 函数映射类型
  *
  * 用于 createAgent 函数的参数类型
  */
-export type EffectFns = {
-  [A in Actors]: EffectFnOf<A>;
+export type ReactionFns = {
+  [A in Actors]: ReactionFnOf<A>;
 };
 
 /**
- * 部分 Effect 函数映射类型
+ * 部分 Reaction 函数映射类型
  *
- * 用于 createAgent 函数的参数类型，允许只提供部分 Actor 的 Effect 函数
+ * 用于 createAgent 函数的参数类型，允许只提供部分 Actor 的 Reaction 函数
  */
-export type PartialEffectFns = Partial<EffectFns>;
+export type PartialReactionFns = Partial<ReactionFns>;

@@ -1,11 +1,11 @@
-/**
+﻿/**
  * 类型声明综合导出
  */
 
 // ============================================================================
 // Actors
 // ============================================================================
-export { USER, LLM, type Actors } from "./actors";
+export { USER, LLM, TOOLKIT, type Actors } from "./actors";
 
 // ============================================================================
 // Observations
@@ -24,6 +24,10 @@ export type {
   UserObUser,
   LlmObLlm,
   LlmObUser,
+  LlmObToolkit,
+  ToolkitObLlm,
+  ToolkitObToolkit,
+  UserObToolkit,
 } from "./observations";
 export {
   baseMessageSchema,
@@ -35,22 +39,26 @@ export {
   userObUserSchema,
   llmObLlmSchema,
   llmObUserSchema,
+  llmObToolkitSchema,
+  toolkitObLlmSchema,
+  toolkitObToolkitSchema,
+  userObToolkitSchema,
 } from "./observations";
 
 // ============================================================================
-// States
+// Appearances
 // ============================================================================
-export type { StateOfUser, StateOfLlm } from "./states";
-export { stateOfUserSchema, stateOfLlmSchema } from "./states";
+export type { AppearanceOfUser, AppearanceOfLlm, AppearanceOfToolkit } from "./appearances";
+export { appearanceOfUserSchema, appearanceOfLlmSchema, appearanceOfToolkitSchema } from "./appearances";
 
 // ============================================================================
-// Contexts
+// Perspectives
 // ============================================================================
-export type { ContextOfUser, ContextOfLlm, ContextOfToolkit } from "./contexts";
-export { contextOfUserSchema, contextOfLlmSchema, contextOfToolkitSchema } from "./contexts";
+export type { PerspectiveOfUser, PerspectiveOfLlm, PerspectiveOfToolkit } from "./perspectives";
+export { perspectiveOfUserSchema, perspectiveOfLlmSchema, perspectiveOfToolkitSchema } from "./perspectives";
 
 // ============================================================================
-// Inputs
+// Actions
 // ============================================================================
 export type {
   SendUserMessage,
@@ -58,31 +66,31 @@ export type {
   EndAssiMessageStream,
   RequestToolCall,
   ReceiveToolResult,
-  InputFromUser,
-  InputFromLlm,
-  InputFromToolkit,
-} from "./inputs";
+  ActionFromUser,
+  ActionFromLlm,
+  ActionFromToolkit,
+} from "./actions";
 export {
   sendUserMessageSchema,
   startAssiMessageStreamSchema,
   endAssiMessageStreamSchema,
   requestToolCallSchema,
   receiveToolResultSchema,
-} from "./inputs";
+} from "./actions";
 
 // ============================================================================
 // Helpers
 // ============================================================================
 export type {
-  StateOf,
-  ContextOf,
-  InputFrom,
+  AppearanceOf,
+  PerspectiveOf,
+  ActionFrom,
   InitialFnOf,
   TransitionFnOf,
-  EffectFnOf,
+  ReactionFnOf,
 } from "./helpers";
 
 // ============================================================================
 // Agent
 // ============================================================================
-export type { AgentState, AgentInput, EffectFns, PartialEffectFns } from "./agent";
+export type { Worldscape, Actuation, ReactionFns, PartialReactionFns } from "./agent";

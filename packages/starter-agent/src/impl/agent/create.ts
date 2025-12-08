@@ -4,10 +4,10 @@
 
 import { automata } from "@moora/automata";
 import type { StatefulTransferer, UpdatePack } from "@moora/automata";
-import type { AgentState, AgentInput, EffectFns } from "@/decl/agent";
+import type { Worldscape, Actuation, ReactionFns } from "@/decl/agent";
 import { initial } from "@/impl/agent/initial";
 import { transition } from "@/impl/agent/transition";
-import { createEffect } from "@/impl/agent/effect";
+import { createReaction } from "@/impl/agent/reaction";
 
 // ============================================================================
 // 类型定义
@@ -20,7 +20,7 @@ import { createEffect } from "@/impl/agent/effect";
  * - prev: 前一个状态和触发转换的输入（初始状态时为 null）
  * - state: 当前状态
  */
-export type AgentUpdatePack = UpdatePack<AgentInput, AgentState>;
+export type AgentUpdatePack = UpdatePack<Actuation, Worldscape>;
 
 // ============================================================================
 // 主要函数
@@ -34,9 +34,9 @@ export type AgentUpdatePack = UpdatePack<AgentInput, AgentState>;
  *
  * 这种设计：
  * 1. 副作用在 subscribe 时自动执行，用户 handler 只需处理日志
- * 2. 暴露完整的状态更新信息（prev state, input, current state）
+ * 2. 暴露完整的状态更新信息（prev state, action, current state）
  *
- * @param effectFns - 各个 Actor 的 Effect 函数映射
+ * @param reactionFns - 各个 Actor 的 Reaction 函数映射
  * @returns Agent 自动机实例
  *
  * @example
@@ -44,10 +44,10 @@ export type AgentUpdatePack = UpdatePack<AgentInput, AgentState>;
  * import { createAgent } from '@moora/starter-agent';
  *
  * const agent = createAgent({
- *   user: (context) => {
+ *   user: ({ perspective }) => {
  *     // User Actor 的副作用逻辑，直接执行
  *   },
- *   llm: (context) => {
+ *   llm: ({ perspective }) => {
  *     // Llm Actor 的副作用逻辑
  *   },
  * });
@@ -61,9 +61,9 @@ export type AgentUpdatePack = UpdatePack<AgentInput, AgentState>;
  * ```
  */
 export function createAgent(
-  effectFns: EffectFns
-): StatefulTransferer<AgentInput, AgentUpdatePack, AgentState> {
-  const executeEffect = createEffect(effectFns);
+  reactionFns: ReactionFns
+): StatefulTransferer<Actuation, AgentUpdatePack, Worldscape> {
+  const executeReaction = createReaction(reactionFns);
 
   const machine = automata(
     { initial, transition },
@@ -72,7 +72,7 @@ export function createAgent(
 
   // 内部订阅，自动执行副作用
   machine.subscribe((update) => {
-    executeEffect(update.state)(machine.dispatch);
+    executeReaction(update.state)(machine.dispatch);
   });
 
   return machine;

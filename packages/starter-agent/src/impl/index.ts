@@ -5,7 +5,7 @@
 export {
   initial,
   transition,
-  createEffect,
+  createReaction,
   createAgent,
 } from "./agent";
 export { initialUser } from "./initials/user";
