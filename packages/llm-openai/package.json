@@ -1,6 +1,6 @@
 {
   "name": "@moora/llm-openai",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "OpenAI adapter for Moora CallLlm interface",
   "type": "module",
   "main": "src/index.ts",
@@ -22,7 +22,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@moora/agent": "0.1.1",
+    "@moora/agent": "0.1.2",
     "openai": "^4.77.0"
   },
   "devDependencies": {
