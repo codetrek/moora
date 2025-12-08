@@ -24,7 +24,7 @@
     "url": "https://github.com/shazhou-ww/moora/issues"
   },
   "dependencies": {
-    "@moora/effects": "workspace:*"
+    "@moora/effects": "0.1.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

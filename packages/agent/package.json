@@ -23,7 +23,7 @@
     "url": "https://github.com/shazhou-ww/moora/issues"
   },
   "dependencies": {
-    "@moora/automata": "workspace:*",
+    "@moora/automata": "0.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {

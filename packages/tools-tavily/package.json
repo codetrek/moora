@@ -13,7 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@moora/toolkit": "workspace:*",
+    "@moora/toolkit": "0.1.0",
     "@tavily/core": "^0.5.14"
   },
   "devDependencies": {
