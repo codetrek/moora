@@ -7,3 +7,4 @@
 export { createLlmOutput } from "./output";
 export { streamLlmCall } from "./openai";
 export { mergeMessages } from "./messages";
+export { callOpenAI } from "./call-openai";

@@ -3,19 +3,22 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { createAgent } from "../src/index";
-import type { EffectFns } from "../src/index";
+import { createAgent, createReaction } from "../src/index";
+import type { ReactionFns } from "../src/index";
 
-// 创建一个简单的 mock effectFns
-const mockEffectFns: EffectFns = {
-  user: () => {},
-  llm: () => {},
-  toolkit: () => {},
+// 创建一个简单的 mock reactionFns
+const mockReactionFns: ReactionFns = {
+  user: () => { },
+  llm: () => { },
+  toolkit: () => { },
 };
+
+// 使用 createReaction 创建 AgentReaction
+const mockReaction = createReaction(mockReactionFns);
 
 describe("Agent", () => {
   test("should create agent instance", () => {
-    const agent = createAgent(mockEffectFns);
+    const agent = createAgent(mockReaction);
     expect(agent).toBeDefined();
     expect(agent.dispatch).toBeDefined();
     expect(agent.subscribe).toBeDefined();
@@ -23,7 +26,7 @@ describe("Agent", () => {
   });
 
   test("should have initial state", () => {
-    const agent = createAgent(mockEffectFns);
+    const agent = createAgent(mockReaction);
     const state = agent.current();
 
     expect(state.userMessages).toEqual([]);
@@ -32,7 +35,7 @@ describe("Agent", () => {
   });
 
   test("should dispatch user message and update state", async () => {
-    const agent = createAgent(mockEffectFns);
+    const agent = createAgent(mockReaction);
     const timestamp = Date.now();
 
     agent.dispatch({
@@ -52,7 +55,7 @@ describe("Agent", () => {
   });
 
   test("should dispatch start stream and update state", async () => {
-    const agent = createAgent(mockEffectFns);
+    const agent = createAgent(mockReaction);
     const timestamp = Date.now();
     const cutOff = timestamp - 100;
 
@@ -63,7 +66,7 @@ describe("Agent", () => {
       cutOff,
     });
 
-    // dispatch 是异步的，需要等�?
+    // dispatch 是异步的，需要等待
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 
     const state = agent.current();
@@ -75,7 +78,7 @@ describe("Agent", () => {
   });
 
   test("should dispatch end stream and update state", async () => {
-    const agent = createAgent(mockEffectFns);
+    const agent = createAgent(mockReaction);
     const timestamp = Date.now();
     const messageId = "test-id-3";
     const cutOff = timestamp - 100;
@@ -116,7 +119,7 @@ describe("Agent", () => {
   });
 
   test("should subscribe to state changes", async () => {
-    const agent = createAgent(mockEffectFns);
+    const agent = createAgent(mockReaction);
     let updateReceived = false;
 
     agent.subscribe((update) => {
@@ -124,32 +127,7 @@ describe("Agent", () => {
       // Mock effect
     });
 
-    // subscribe 时同步执行，应该立即收到初始状态输�?
+    // subscribe 时同步执行，应该立即收到初始状态输出
     expect(updateReceived).toBe(true);
-  });
-
-  test("should support partial effectFns with noop for missing actors", async () => {
-    // 只提�?user effect，其他应该自动填充为 noop
-    const partialEffectFns = {
-      user: () => {},
-    };
-
-    const agent = createAgent(partialEffectFns);
-    expect(agent).toBeDefined();
-
-    // 应该能正常工作，即使没有提供 llm �?toolkit
-    const timestamp = Date.now();
-    agent.dispatch({
-      type: "send-user-message",
-      id: "test-id-partial",
-      content: "Test partial",
-      timestamp,
-    });
-
-    await new Promise<void>((resolve) => queueMicrotask(resolve));
-
-    const state = agent.current();
-    expect(state.userMessages).toHaveLength(1);
-    expect(state.userMessages[0]?.content).toBe("Test partial");
   });
 });

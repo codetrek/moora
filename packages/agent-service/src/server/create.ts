@@ -3,23 +3,30 @@
  */
 
 import { Elysia } from "elysia";
-import { createAgent } from "@moora/agent";
-import type { AgentUpdatePack } from "@moora/agent";
+import {
+  createAgent,
+  createReaction,
+  createUserReaction,
+  createLlmReaction,
+  createToolkitReaction,
+} from "@moora/agent";
+import type { AgentUpdatePack, CallLlmContext, CallLlmCallbacks } from "@moora/agent";
 import { createPubSub } from "@moora/automata";
-import { createUserOutput } from "@/outputs/user";
-import { createLlmOutput } from "@/outputs/llm";
-import { createToolkitOutput, createDefaultToolkit } from "@/outputs/toolkit";
+import { createPatch } from "rfc6902";
+import type { PerspectiveOfUser, ToolCallRequest } from "@moora/agent";
+import { createDefaultToolkit } from "@/outputs/toolkit";
 import { createStreamManager } from "@/streams";
+import { callOpenAI } from "@/outputs/llm/call-openai";
 import type { Toolkit } from "@moora/toolkit";
 import { getLogger } from "@/logger";
-import type { CreateServiceOptions } from "@/types";
+import type { CreateServiceOptions, StreamManager } from "@/types";
 import {
   createAgentSSEHandler,
   createPostSendHandler,
   createStreamSSEHandler,
 } from "./handlers";
 
-const logger = getLogger().agent;
+const logger = getLogger();
 
 /**
  * 截断过长的字符串
@@ -58,6 +65,99 @@ function formatInputLog(update: AgentUpdatePack) {
   }
 }
 
+// ============================================================================
+// Reaction 回调工厂函数
+// ============================================================================
+
+/**
+ * 创建 notifyUser 回调
+ */
+function createNotifyUserCallback(publishPatch: (patch: string) => void) {
+  let previousPerspective: PerspectiveOfUser | null = null;
+
+  return (perspective: PerspectiveOfUser) => {
+    if (previousPerspective === null) {
+      logger.server.debug("NotifyUser: First perspective, storing for diff");
+      previousPerspective = perspective;
+      return;
+    }
+
+    const patches = createPatch(previousPerspective, perspective);
+
+    if (patches.length > 0) {
+      logger.server.debug(`NotifyUser: Publishing ${patches.length} patches`);
+      const patchData = JSON.stringify({
+        type: "patch",
+        patches,
+      });
+      publishPatch(patchData);
+      previousPerspective = perspective;
+    }
+  };
+}
+
+/**
+ * 创建 callLlm 回调
+ */
+function createCallLlmCallback(options: {
+  openai: CreateServiceOptions["openai"];
+  prompt: string;
+  toolkit?: Toolkit;
+  streamManager: StreamManager;
+}) {
+  const { openai, prompt, toolkit, streamManager } = options;
+
+  return async (context: CallLlmContext, callbacks: CallLlmCallbacks) => {
+    logger.llm.info("CallLlm: Starting LLM call", {
+      messagesCount: context.messages.length,
+      toolCallsCount: context.toolCalls.length,
+    });
+
+    await callOpenAI({
+      openai,
+      prompt,
+      toolkit,
+      streamManager,
+      context,
+      callbacks,
+    });
+  };
+}
+
+/**
+ * 创建 callTool 回调
+ */
+function createCallToolCallback(toolkit: Toolkit) {
+  return async (request: ToolCallRequest): Promise<string> => {
+    const { toolCallId, name, arguments: args } = request;
+
+    logger.toolkit.info("CallTool: Executing tool", { toolCallId, name });
+
+    try {
+      if (!toolkit.hasTool(name)) {
+        logger.toolkit.warn("CallTool: Tool not found", { toolCallId, name });
+        return JSON.stringify({ error: `Tool not found: ${name}` });
+      }
+
+      const result = await toolkit.invoke(name, args);
+      logger.toolkit.info("CallTool: Tool completed", {
+        toolCallId,
+        name,
+        resultLength: result.length,
+      });
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.toolkit.error("CallTool: Tool failed", { toolCallId, name, error: errorMessage });
+      return JSON.stringify({ error: errorMessage });
+    }
+  };
+}
+
+// ============================================================================
+// 主函数
+// ============================================================================
+
 /**
  * 创建 Agent Service
  *
@@ -94,26 +194,31 @@ export function createService(options: CreateServiceOptions) {
   // 创建 StreamManager 实例
   const streamManager = createStreamManager();
 
-  // 创建 agent 实例
-  const agent = createAgent({
-    user: createUserOutput({
-      publishPatch: patchPubSub.pub,
+  // 使用 @moora/agent 内置的 reaction 工厂函数创建 reaction
+  const reaction = createReaction({
+    user: createUserReaction({
+      notifyUser: createNotifyUserCallback(patchPubSub.pub),
     }),
-    llm: createLlmOutput({
-      openai,
-      prompt,
-      streamManager,
-      toolkit,
+    llm: createLlmReaction({
+      callLlm: createCallLlmCallback({
+        openai,
+        prompt,
+        toolkit,
+        streamManager,
+      }),
     }),
-    toolkit: createToolkitOutput({
-      toolkit,
+    toolkit: createToolkitReaction({
+      callTool: createCallToolCallback(toolkit),
     }),
   });
+
+  // 创建 agent 实例
+  const agent = createAgent(reaction);
 
   // 订阅 agent 状态变化，记录日志
   // 副作用已在 createAgent 内部自动执行，这里只需处理日志
   agent.subscribe((update) => {
-    logger.debug("Agent input", formatInputLog(update));
+    logger.agent.debug("Agent input", formatInputLog(update));
   });
 
   const app = new Elysia()

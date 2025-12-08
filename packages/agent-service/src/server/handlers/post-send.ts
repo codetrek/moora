@@ -6,7 +6,7 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { createAgent } from "@moora/agent";
-import type { InputFromUser } from "@moora/agent";
+import type { ActionFromUser } from "@moora/agent";
 
 /**
  * 创建 POST /send handler
@@ -32,14 +32,14 @@ export function createPostSendHandler(agent: ReturnType<typeof createAgent>) {
     const id = uuidv4();
     const timestamp = Date.now();
 
-    const input: InputFromUser = {
+    const action: ActionFromUser = {
       type: "send-user-message",
       id,
       content,
       timestamp,
     };
 
-    agent.dispatch(input);
+    agent.dispatch(action);
 
     set.headers = {
       "Content-Type": "application/json",

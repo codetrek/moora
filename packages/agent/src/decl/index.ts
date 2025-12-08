@@ -93,4 +93,23 @@ export type {
 // ============================================================================
 // Agent
 // ============================================================================
-export type { Worldscape, Actuation, ReactionFns, PartialReactionFns } from "./agent";
+export type { Worldscape, Actuation, ReactionFns, AgentReaction } from "./agent";
+
+// ============================================================================
+// Reactions
+// ============================================================================
+export type {
+  CallLlmMessage,
+  CallLlmScenario,
+  CallLlmToolDefinition,
+  CallLlmToolCall,
+  CallLlmContext,
+  CallLlmCallbacks,
+  CallLlm,
+  CallTool,
+  NotifyUser,
+  LlmReactionOptions,
+  ToolkitReactionOptions,
+  UserReactionOptions,
+  ReactionOptions,
+} from "./reactions";

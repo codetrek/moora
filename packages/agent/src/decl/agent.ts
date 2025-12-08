@@ -37,6 +37,14 @@ export type ReactionFns = {
 };
 
 /**
+ * Agent 的统一 Reaction 类型
+ *
+ * 接收 Worldscape 状态，返回一个接收 Dispatch 的副作用函数。
+ * 这是 createReaction 的返回类型，也是 createAgent 的参数类型。
+ */
+export type AgentReaction = (worldscape: Worldscape) => Eff<Dispatch<Actuation>>;
+
+/**
  * 部分 Reaction 函数映射类型
  *
  * 用于 createAgent 函数的参数类型，允许只提供部分 Actor 的 Reaction 函数
