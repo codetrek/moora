@@ -7,7 +7,7 @@
 
 import type {
   UserMessage,
-  AssiMessage,
+  AssiMessageCompleted,
   ToolCallRequest,
 } from "./observations";
 import type { PerspectiveOfUser } from "./perspectives";
@@ -19,9 +19,9 @@ import type { PerspectiveOfUser } from "./perspectives";
 /**
  * LLM 调用的消息类型
  *
- * 复用 UserMessage 和 AssiMessage 类型
+ * 只包含 UserMessage 和已完成的 AssiMessage（streaming = false）
  */
-export type CallLlmMessage = UserMessage | AssiMessage;
+export type CallLlmMessage = UserMessage | AssiMessageCompleted;
 
 /**
  * LLM 调用的场景类型
@@ -43,6 +43,7 @@ export type CallLlmToolDefinition = {
  * 已完成的工具调用记录
  */
 export type CallLlmToolCall = {
+  toolCallId: string; // unique identifier for the tool call
   name: string;
   parameter: string; // JSON string of arguments
   result: string; // JSON string of result
@@ -120,6 +121,38 @@ export type NotifyUser = (perspective: PerspectiveOfUser) => void;
  */
 export type LlmReactionOptions = {
   callLlm: CallLlm;
+  /**
+   * 工具定义列表
+   *
+   * 传递给 LLM 的可用工具定义
+   */
+  tools?: CallLlmToolDefinition[];
+  /**
+   * 可选的流式开始回调
+   *
+   * 当 LLM 开始输出时调用，可用于初始化流
+   *
+   * @param messageId - 消息 ID
+   */
+  onStart?: (messageId: string) => void;
+  /**
+   * 可选的流式输出回调
+   *
+   * 当 LLM 输出 chunk 时调用，可用于实时推送到客户端
+   *
+   * @param messageId - 消息 ID
+   * @param chunk - 输出的 chunk 内容
+   */
+  onChunk?: (messageId: string, chunk: string) => void;
+  /**
+   * 可选的流式完成回调
+   *
+   * 当 LLM 输出完成时调用，可用于关闭流
+   *
+   * @param messageId - 消息 ID
+   * @param content - 完整的输出内容
+   */
+  onComplete?: (messageId: string, content: string) => void;
 };
 
 /**

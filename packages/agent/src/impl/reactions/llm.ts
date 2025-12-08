@@ -11,6 +11,7 @@ import type {
   CallLlmCallbacks,
   CallLlmMessage,
   CallLlmToolCall,
+  CallLlmToolDefinition,
 } from "@/decl/reactions";
 import type { PerspectiveOfLlm } from "@/decl/perspectives";
 import type { Actuation } from "@/decl/agent";
@@ -70,9 +71,12 @@ function hasStreamingMessage(assiMessages: Array<{ streaming: boolean }>): boole
 }
 
 /**
- * 从 perspective 构建 CallLlmContext
+ * 从 perspective 和 tools 构建 CallLlmContext
  */
-function buildCallLlmContext(perspective: PerspectiveOfLlm): CallLlmContext {
+function buildCallLlmContext(
+  perspective: PerspectiveOfLlm,
+  tools: CallLlmToolDefinition[]
+): CallLlmContext {
   const { userMessages, assiMessages, toolCallRequests, toolResults } = perspective;
 
   // 转换消息列表
@@ -98,6 +102,7 @@ function buildCallLlmContext(perspective: PerspectiveOfLlm): CallLlmContext {
     const result = resultMap.get(req.toolCallId);
     if (result) {
       toolCalls.push({
+        toolCallId: req.toolCallId,
         name: req.name,
         parameter: req.arguments,
         result: result.result,
@@ -110,7 +115,7 @@ function buildCallLlmContext(perspective: PerspectiveOfLlm): CallLlmContext {
   return {
     messages,
     scenario: "re-act-loop",
-    tools: [], // tools 需要从外部传入，这里暂时为空
+    tools,
     toolCalls,
   };
 }
@@ -157,7 +162,7 @@ function calculateNewCutOff(perspective: PerspectiveOfLlm): number {
  * ```
  */
 export const createLlmReaction = (options: LlmReactionOptions): LlmReactionFn => {
-  const { callLlm } = options;
+  const { callLlm, tools = [], onStart: onStartOption, onChunk: onChunkOption, onComplete: onCompleteOption } = options;
 
   return stateful<{ perspective: PerspectiveOfLlm; dispatch: Dispatch<Actuation> }, LlmReactionInternalState>(
     { llmCalls: [] },
@@ -197,7 +202,7 @@ export const createLlmReaction = (options: LlmReactionOptions): LlmReactionFn =>
       const newCutOff = calculateNewCutOff(perspective);
 
       // 构建 context
-      const context = buildCallLlmContext(perspective);
+      const context = buildCallLlmContext(perspective, tools);
 
       // 用于收集完整内容
       let fullContent = "";
@@ -215,12 +220,19 @@ export const createLlmReaction = (options: LlmReactionOptions): LlmReactionFn =>
               timestamp: Date.now(),
               cutOff: newCutOff,
             });
+            // 如果提供了 onStart 回调，调用它
+            if (onStartOption) {
+              onStartOption(messageId);
+            }
           }
           return messageId;
         },
         onChunk: (chunk: string) => {
           fullContent += chunk;
-          // chunk 不需要 dispatch action，流式内容由外部 callLlm 实现处理
+          // 如果提供了 onChunk 回调，调用它
+          if (onChunkOption) {
+            onChunkOption(messageId, chunk);
+          }
         },
         onComplete: (content: string) => {
           // 只有在 onStart 被调用后才 dispatch end action
@@ -231,6 +243,10 @@ export const createLlmReaction = (options: LlmReactionOptions): LlmReactionFn =>
               content,
               timestamp: Date.now(),
             });
+            // 如果提供了 onComplete 回调，调用它
+            if (onCompleteOption) {
+              onCompleteOption(messageId, content);
+            }
           }
           // 调用完成后，从 llmCalls 中移除 messageId
           setState((prev) => ({
