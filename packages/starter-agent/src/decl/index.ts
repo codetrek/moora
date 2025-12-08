@@ -69,4 +69,20 @@ export type {
 // ============================================================================
 // Agent
 // ============================================================================
-export type { Worldscape, Actuation, ReactionFns } from "./agent";
+export type { Worldscape, Actuation, ReactionFns, AgentReaction } from "./agent";
+
+// ============================================================================
+// Reactions
+// ============================================================================
+export type {
+  CallLlmMessage,
+  CallLlmScenario,
+  CallLlmToolDefinition,
+  CallLlmToolCall,
+  CallLlmContext,
+  CallLlmCallbacks,
+  CallLlm,
+  NotifyUser,
+  LlmReactionOptions,
+  UserReactionOptions,
+} from "./reactions";

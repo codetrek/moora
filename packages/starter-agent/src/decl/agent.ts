@@ -2,6 +2,8 @@
  * Agent 总的 Worldscape 和 Actuation 定义
  */
 
+import type { Dispatch } from "@moora/automata";
+import type { Eff } from "@moora/effects";
 import type { AppearanceOfUser, AppearanceOfLlm } from "./appearances";
 import type { ActionFromUser, ActionFromLlm } from "./actions";
 import type { Actors } from "./actors";
@@ -33,3 +35,11 @@ export type Actuation = ActionFromUser | ActionFromLlm;
 export type ReactionFns = {
   [A in Actors]: ReactionFnOf<A>;
 };
+
+/**
+ * Agent 的统一 Reaction 类型
+ *
+ * 接收 Worldscape 状态，返回一个接收 Dispatch 的副作用函数。
+ * 这是 createReaction 的返回类型，也是 createAgent 的参数类型。
+ */
+export type AgentReaction = (worldscape: Worldscape) => Eff<Dispatch<Actuation>>;

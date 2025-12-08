@@ -4,10 +4,9 @@
 
 import { automata } from "@moora/automata";
 import type { StatefulTransferer, UpdatePack } from "@moora/automata";
-import type { Worldscape, Actuation, ReactionFns } from "@/decl/agent";
+import type { Worldscape, Actuation, AgentReaction } from "@/decl/agent";
 import { initial } from "@/impl/agent/initial";
 import { transition } from "@/impl/agent/transition";
-import { createReaction } from "@/impl/agent/reaction";
 
 // ============================================================================
 // 类型定义
@@ -29,28 +28,26 @@ export type AgentUpdatePack = UpdatePack<Actuation, Worldscape>;
 /**
  * 创建 Agent 实例
  *
- * 使用 automata 实现，副作用在 subscribe 时自动执行，
+ * 使用 automata 实现，副作用在 reaction 函数中直接执行，
  * 输出为 UpdatePack，包含完整的状态更新信息用于日志和调试。
  *
  * 这种设计：
- * 1. 副作用在 subscribe 时自动执行，用户 handler 只需处理日志
+ * 1. 副作用在 automata 内部自动执行，subscribe 只需处理日志
  * 2. 暴露完整的状态更新信息（prev state, action, current state）
  *
- * @param reactionFns - 各个 Actor 的 Reaction 函数映射
+ * @param reaction - Agent 的统一 Reaction 函数（由 createReaction 创建）
  * @returns Agent 自动机实例
  *
  * @example
  * ```typescript
- * import { createAgent } from '@moora/starter-agent';
+ * import { createAgent, createReaction } from '@moora/starter-agent';
  *
- * const agent = createAgent({
- *   user: ({ perspective }) => {
- *     // User Actor 的副作用逻辑，直接执行
- *   },
- *   llm: ({ perspective }) => {
- *     // Llm Actor 的副作用逻辑
- *   },
+ * const reaction = createReaction({
+ *   user: ({ perspective }) => { ... },
+ *   llm: ({ perspective, dispatch }) => { ... },
  * });
+ *
+ * const agent = createAgent(reaction);
  *
  * // subscribe 只需要处理日志，副作用已自动执行
  * agent.subscribe((update) => {
@@ -61,10 +58,8 @@ export type AgentUpdatePack = UpdatePack<Actuation, Worldscape>;
  * ```
  */
 export function createAgent(
-  reactionFns: ReactionFns
+  reaction: AgentReaction
 ): StatefulTransferer<Actuation, AgentUpdatePack, Worldscape> {
-  const executeReaction = createReaction(reactionFns);
-
   const machine = automata(
     { initial, transition },
     (update: AgentUpdatePack) => ({ output: update })
@@ -72,7 +67,7 @@ export function createAgent(
 
   // 内部订阅，自动执行副作用
   machine.subscribe((update) => {
-    executeReaction(update.state)(machine.dispatch);
+    reaction(update.state)(machine.dispatch);
   });
 
   return machine;

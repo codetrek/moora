@@ -13,6 +13,7 @@ export type {
   Worldscape,
   Actuation,
   ReactionFns,
+  AgentReaction,
   Actors,
   AppearanceOfUser,
   AppearanceOfLlm,
@@ -25,6 +26,17 @@ export type {
   UserMessage,
   AssiMessage,
   BaseMessage,
+  // Reaction types
+  CallLlmMessage,
+  CallLlmScenario,
+  CallLlmToolDefinition,
+  CallLlmToolCall,
+  CallLlmContext,
+  CallLlmCallbacks,
+  CallLlm,
+  NotifyUser,
+  LlmReactionOptions,
+  UserReactionOptions,
 } from "./decl";
 
 // 导出 Agent 更新相关类型
@@ -34,3 +46,12 @@ export type { AgentUpdatePack } from "./impl/agent/create";
 // 导出函数
 // ============================================================================
 export { createAgent } from "./impl/agent";
+
+// createReaction - 将 ReactionFns 组合为 AgentReaction
+export { createReaction } from "./impl/agent/reaction";
+
+// Reaction factory functions
+export {
+  createUserReaction,
+  createLlmReaction,
+} from "./impl/reactions";
