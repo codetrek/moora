@@ -273,83 +273,144 @@ type Output<Action> = Eff<Dispatch<Action>, void>
 
 ## 使用 Automata
 
-完成建模后，使用 `createAgent` 函数创建 Moore 自动机，需要注入各个 Actor 的 reaction 函数。
+完成建模后，使用 `createAgent` 函数创建 Moore 自动机，需要使用内置的 reaction 工厂函数来创建各个 Actor 的 reaction。
 
 ```typescript
-import { createAgent } from '@moora/starter-agent';
-import type { ReactionFns } from '@moora/starter-agent';
+import {
+  createAgent,
+  createReaction,
+  createUserReaction,
+  createLlmReaction,
+  createToolkitReaction,
+} from '@moora/agent';
 
-// 定义各个 Actor 的 reaction 函数
-const reactionFns: ReactionFns = {
-  user: ({ perspective, dispatch }) => {
-    // 同步执行，可以立即处理输出
-    console.log('User perspective:', perspective);
-    // 如果需要异步操作，使用 queueMicrotask
-  },
-  llm: ({ perspective, dispatch }) => {
-    // 同步执行
-    console.log('LLM perspective:', perspective);
-    // 如果需要异步操作，使用 queueMicrotask
-    queueMicrotask(async () => {
-      // 例如：调用 LLM API，然后 dispatch 回复消息
-      const response = await callLlmApi(perspective.userMessages);
-      dispatch({
-        type: 'send-assi-message',
-        id: 'msg-001',
-        content: response,
-        timestamp: Date.now(),
+// 使用内置的 reaction 工厂函数创建 reaction
+const reaction = createReaction({
+  user: createUserReaction({
+    notifyUser: (perspective) => {
+      // 将 perspective 变化通知给用户（如发送 SSE、WebSocket）
+      console.log('User perspective updated:', perspective);
+    },
+  }),
+  llm: createLlmReaction({
+    callLlm: async (context, callbacks) => {
+      // 调用 LLM API
+      const stream = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: context.messages.map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+        stream: true,
       });
-    });
-  },
-};
+
+      let fullContent = '';
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content ?? '';
+        if (content) {
+          callbacks.onStart(); // 首次收到内容时调用
+          callbacks.onChunk(content);
+          fullContent += content;
+        }
+      }
+      callbacks.onComplete(fullContent);
+    },
+  }),
+  toolkit: createToolkitReaction({
+    callTool: async (request) => {
+      // 执行工具调用
+      const result = await toolkit.invoke(request.name, request.arguments);
+      return result;
+    },
+  }),
+});
 
 // 创建 Agent 实例
-const agent = createAgent(reactionFns);
+const agent = createAgent(reaction);
 ```
 
-注意：`reaction` 函数返回的是 `Output<Action>` 类型，它是一个同步副作用函数。如果需要异步操作，应该在函数内部自行使用 `queueMicrotask` 来处理。
+注意：reaction 工厂函数接收回调函数（如 `callLlm`、`callTool`、`notifyUser`），这些回调封装了具体的副作用实现，实现了 Agent 核心逻辑与外部依赖的解耦。
+
+### Reaction 回调类型
+
+```typescript
+// LLM 调用回调
+type CallLlm = (
+  context: CallLlmContext,
+  callbacks: CallLlmCallbacks
+) => void | Promise<void>;
+
+type CallLlmContext = {
+  messages: CallLlmMessage[];      // 历史消息
+  scenario: 're-act-loop';         // 场景类型
+  tools: CallLlmToolDefinition[];  // 可用工具
+  toolCalls: CallLlmToolCall[];    // 已完成的工具调用
+};
+
+type CallLlmCallbacks = {
+  onStart: () => string;           // 开始生成，返回 messageId
+  onChunk: (chunk: string) => void;
+  onComplete: (content: string) => void;
+  onToolCall: (request: { name: string; arguments: string }) => void;
+};
+
+// 工具调用回调
+type CallTool = (request: ToolCallRequest) => Promise<string>;
+
+// 用户通知回调
+type NotifyUser = (perspective: PerspectiveOfUser) => void;
+```
 
 ### 实际使用示例
 
 ```typescript
-import { createAgent } from '@moora/starter-agent';
-import type { ReactionFns } from '@moora/starter-agent';
+import {
+  createAgent,
+  createReaction,
+  createUserReaction,
+  createLlmReaction,
+  createToolkitReaction,
+} from '@moora/agent';
 
-// 定义 reaction 函数（实际项目中可能来自不同的模块）
-const reactionFns: ReactionFns = {
-  user: ({ perspective, dispatch }) => {
-    console.log('[User] Messages:', perspective.userMessages);
-    // User actor 的副作用，如果需要异步操作，使用 queueMicrotask
-  },
-  llm: ({ perspective, dispatch }) => {
-    console.log('[LLM] Processing...');
-    // 如果需要异步操作，使用 queueMicrotask
-    queueMicrotask(async () => {
-      // 调用 LLM API 并 dispatch 回复
-      if (perspective.userMessages.length > 0) {
-        const lastMessage = perspective.userMessages[perspective.userMessages.length - 1];
-        // const response = await callLlmApi(lastMessage.content);
-        dispatch({
-          type: 'send-assi-message',
-          id: `assi-${Date.now()}`,
-          content: `Echo: ${lastMessage.content}`,
-          timestamp: Date.now(),
-        });
+// 创建 reaction
+const reaction = createReaction({
+  user: createUserReaction({
+    notifyUser: (perspective) => {
+      console.log('[User] Messages:', perspective.userMessages.length);
+    },
+  }),
+  llm: createLlmReaction({
+    callLlm: async (context, callbacks) => {
+      // 简单的 echo 实现
+      const lastMessage = context.messages[context.messages.length - 1];
+      if (lastMessage?.role === 'user') {
+        callbacks.onStart();
+        const response = `Echo: ${lastMessage.content}`;
+        callbacks.onChunk(response);
+        callbacks.onComplete(response);
       }
-    });
-  },
-};
-
-// 创建自动机
-const agent = createAgent(reactionFns);
-
-// 订阅状态变化
-agent.subscribe((dispatch) => (output) => {
-  // output 是 Eff<Dispatch<Actuation>, void>
-  // 直接执行即可，如果需要异步操作，output 内部会使用 queueMicrotask
-  output(dispatch);
+    },
+  }),
+  toolkit: createToolkitReaction({
+    callTool: async (request) => {
+      return JSON.stringify({ result: 'Tool not implemented' });
+    },
+  }),
 });
 
-// 直接 dispatch Action 来触发状态转换
-agent.dispatch({ type: 'send-user-message', id: 'msg-001', content: 'Hello', timestamp: Date.now() });
+// 创建自动机
+const agent = createAgent(reaction);
+
+// 订阅状态变化（用于日志、调试）
+agent.subscribe((update) => {
+  console.log('State update:', update.state);
+});
+
+// dispatch Action 来触发状态转换
+agent.dispatch({
+  type: 'send-user-message',
+  id: 'msg-001',
+  content: 'Hello',
+  timestamp: Date.now(),
+});
 ```
