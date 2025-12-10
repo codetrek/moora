@@ -32,6 +32,7 @@ export const createReaction =
       }
       const userMessages = worldscape.userMessages ?? [];
       const assiMessages = worldscape.assiMessages ?? [];
+      const cutOff = worldscape.cutOff ?? 0;
       return (dispatch: Dispatch<Actuation>) => {
         const perspectiveUser: PerspectiveOfUser = {
           userMessages,
@@ -40,6 +41,7 @@ export const createReaction =
         const perspectiveLlm: PerspectiveOfLlm = {
           userMessages,
           assiMessages,
+          cutOff,
         };
         reactionFns.user({ perspective: perspectiveUser, dispatch });
         reactionFns.llm({ perspective: perspectiveLlm, dispatch });
