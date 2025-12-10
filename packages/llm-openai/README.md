@@ -1,6 +1,6 @@
 # @moora/llm-openai
 
-OpenAI adapter for the Moora `CallLlm` interface. This package provides a simple way to use OpenAI's Chat Completion API with `@moora/agent`.
+OpenAI adapter for the Moora `CallLlm` interface. This package provides a simple way to use OpenAI's Chat Completion API with `@moora/agent-worker`.
 
 ## Installation
 
@@ -12,7 +12,7 @@ bun add @moora/llm-openai
 
 ```typescript
 import { createCallLlmWithOpenAI } from '@moora/llm-openai';
-import { createAgent, createReaction, createLlmReaction } from '@moora/agent';
+import { createAgent, createReaction, createLlmReaction } from '@moora/agent-worker';
 
 // Create OpenAI-based callLlm function
 const callLlm = createCallLlmWithOpenAI({
@@ -23,7 +23,7 @@ const callLlm = createCallLlmWithOpenAI({
   topP: 0.9,         // optional
 });
 
-// Use with @moora/agent
+// Use with @moora/agent-worker
 const reaction = createReaction({
   llm: createLlmReaction({ callLlm }),
   // ... other reactions

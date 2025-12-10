@@ -8,12 +8,12 @@ A monorepo structure for managing multiple related packages under the `@moora` s
 |---------|-------------|
 | [@moora/effects](./packages/effects) | Lightweight effect system for stateful computations |
 | [@moora/automata](./packages/automata) | State machine library based on Mealy Machine |
-| [@moora/agent](./packages/agent) | Complete agent implementation with reaction factories |
+| [@moora/agent-worker](./packages/agent-worker) | Complete agent implementation with reaction factories |
 | [@moora/toolkit](./packages/toolkit) | Tool management for LLM agents |
 | [@moora/tools-tavily](./packages/tools-tavily) | Tavily web search tool integration |
 | [@moora/agent-service](./packages/agent-service) | ElysiaJS-based agent service with SSE |
 | [@moora/agent-webui](./packages/agent-webui) | React-based agent web UI |
-| [@moora/starter-agent](./packages/starter-agent) | Starter template for building agents |
+| [@moora/agent-starter](./packages/agent-starter) | Starter template for building agents |
 
 ## Quick Start
 
@@ -35,12 +35,12 @@ moora/
 ├── packages/           # All publishable packages
 │   ├── effects/       # @moora/effects - Effect system
 │   ├── automata/      # @moora/automata - State machine
-│   ├── agent/         # @moora/agent - Agent core
+│   ├── agent-worker/  # @moora/agent-worker - Agent core
 │   ├── toolkit/       # @moora/toolkit - Tool management
 │   ├── tools-tavily/  # @moora/tools-tavily - Tavily tools
 │   ├── agent-service/ # @moora/agent-service - Backend service
 │   ├── agent-webui/   # @moora/agent-webui - Frontend UI
-│   └── starter-agent/ # @moora/starter-agent - Template
+│   └── agent-starter/ # @moora/agent-starter - Template
 ├── scripts/           # Management scripts
 │   ├── publish.ts     # Version and publish management
 │   └── utils/         # Utility functions

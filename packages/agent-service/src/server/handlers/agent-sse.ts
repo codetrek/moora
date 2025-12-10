@@ -5,8 +5,8 @@
  */
 
 import { sse } from "elysia";
-import { createAgent } from "@moora/agent";
-import type { PerspectiveOfUser } from "@moora/agent";
+import { createAgent } from "@moora/agent-worker";
+import type { PerspectiveOfUser } from "@moora/agent-worker";
 import type { Subscribe } from "@moora/pub-sub";
 import { getLogger } from "@/logger";
 

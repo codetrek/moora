@@ -9,8 +9,8 @@ import {
   createUserReaction,
   createLlmReaction,
   createToolkitReaction,
-} from "@moora/agent";
-import type { AgentUpdatePack } from "@moora/agent";
+} from "@moora/agent-worker";
+import type { AgentUpdatePack } from "@moora/agent-worker";
 import { createPubSub } from "@moora/pub-sub";
 import type { Toolkit } from "@moora/toolkit";
 import {
@@ -114,7 +114,7 @@ export function createService(options: CreateServiceOptions) {
     parameters: JSON.stringify(t.parameterSchema),
   }));
 
-  // 使用 @moora/agent 内置的 reaction 工厂函数创建 reaction
+  // 使用 @moora/agent-worker 内置的 reaction 工厂函数创建 reaction
   const reaction = createReaction({
     user: createUserReaction({
       notifyUser: createNotifyUserCallback(patchPubSub.pub),

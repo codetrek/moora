@@ -1,5 +1,5 @@
 ﻿/**
- * @moora/agent
+ * @moora/agent-worker
  *
  * 完整的 Agent 实现，基于 Automata 和迭代式建模方法论
  */

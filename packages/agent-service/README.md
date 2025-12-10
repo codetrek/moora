@@ -16,7 +16,7 @@
 - **RFC6902 Patch**：使用 JSON Patch 格式高效传输状态变化
 - **OpenAI 集成**：自动调用 OpenAI API 生成 LLM 回复
 - **ReAct Loop**：支持工具调用的 ReAct 循环
-- **状态管理**：基于 `@moora/agent` 的状态机实现
+- **状态管理**：基于 `@moora/agent-worker` 的状态机实现
 
 ## 使用方法
 
@@ -41,7 +41,7 @@ app.listen(3000);
 
 ## 架构
 
-该服务使用 `@moora/agent` 的内置 reaction 工厂函数：
+该服务使用 `@moora/agent-worker` 的内置 reaction 工厂函数：
 
 ```typescript
 import {
@@ -50,7 +50,7 @@ import {
   createUserReaction,
   createLlmReaction,
   createToolkitReaction,
-} from '@moora/agent';
+} from '@moora/agent-worker';
 
 const reaction = createReaction({
   user: createUserReaction({

@@ -40,7 +40,7 @@ export type AgentUpdatePack = UpdatePack<Actuation, Worldscape>;
  *
  * @example
  * ```typescript
- * import { createAgent, createReaction } from '@moora/agent';
+ * import { createAgent, createReaction } from '@moora/agent-worker';
  *
  * const reaction = createReaction({
  *   user: ({ perspective }) => { ... },

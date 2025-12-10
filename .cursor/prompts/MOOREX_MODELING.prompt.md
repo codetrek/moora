@@ -72,7 +72,7 @@ type AgentReaction = (worldscape: Worldscape) => Eff<Dispatch<Actuation>>
 2. **创建 Agent**：将 `AgentReaction` 传给 `createAgent`
 
 ```typescript
-import { createAgent, createReaction, createUserReaction, createLlmReaction } from '@moora/agent';
+import { createAgent, createReaction, createUserReaction, createLlmReaction } from '@moora/agent-worker';
 
 // 第一步：创建 reaction
 const reaction = createReaction({

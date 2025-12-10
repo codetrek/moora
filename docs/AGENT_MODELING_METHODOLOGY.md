@@ -294,7 +294,7 @@ import {
   createUserReaction,
   createLlmReaction,
   createToolkitReaction,
-} from '@moora/agent';
+} from '@moora/agent-worker';
 
 // 第一步：使用内置的 reaction 工厂函数创建各个 Actor 的 reaction
 const reaction = createReaction({
@@ -382,7 +382,7 @@ import {
   createUserReaction,
   createLlmReaction,
   createToolkitReaction,
-} from '@moora/agent';
+} from '@moora/agent-worker';
 
 // 第一步：创建 reaction（使用 createReaction 组合各个 Actor 的 reaction）
 const reaction = createReaction({

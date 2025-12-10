@@ -4,7 +4,7 @@
 
 ## 架构
 
-Agent Service 使用 `@moora/agent` 的 `automata` 实现。
+Agent Service 使用 `@moora/agent-worker` 的 `automata` 实现。
 
 ### 输出类型
 

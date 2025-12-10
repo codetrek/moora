@@ -1,5 +1,5 @@
 {
-  "name": "@moora/starter-agent",
+  "name": "@moora/agent-starter",
   "version": "0.1.2",
   "description": "A minimal starter agent implementation based on Automata",
   "keywords": [
@@ -16,9 +16,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/shazhou-ww/moora.git",
-    "directory": "packages/starter-agent"
+    "directory": "packages/agent-starter"
   },
-  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/starter-agent#readme",
+  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/agent-starter#readme",
   "bugs": {
     "url": "https://github.com/shazhou-ww/moora/issues"
   },

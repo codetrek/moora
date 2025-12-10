@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { CallLlmContext, CallLlmCallbacks } from "@moora/agent";
+import type { CallLlmContext, CallLlmCallbacks } from "@moora/agent-worker";
 
 // Mock OpenAI client instance
 const mockCreate = vi.fn();

@@ -1,7 +1,7 @@
 /**
  * OpenAI Adapter for CallLlm Interface
  *
- * Converts @moora/agent CallLlm interface to OpenAI Streaming API calls
+ * Converts @moora/agent-worker CallLlm interface to OpenAI Streaming API calls
  */
 
 import OpenAI from "openai";
@@ -16,7 +16,7 @@ import type {
   CallLlmMessage,
   CallLlmToolDefinition,
   CallLlmToolCall,
-} from "@moora/agent";
+} from "@moora/agent-worker";
 import type { OpenAICallLlmOptions } from "./types.js";
 
 // ============================================================================
@@ -200,7 +200,7 @@ async function processStream(
  * Create a CallLlm function that uses OpenAI API
  *
  * @param options - OpenAI adapter configuration
- * @returns A CallLlm function compatible with @moora/agent
+ * @returns A CallLlm function compatible with @moora/agent-worker
  *
  * @example
  * ```typescript
@@ -213,7 +213,7 @@ async function processStream(
  *   temperature: 0.7,
  * });
  *
- * // Use with @moora/agent
+ * // Use with @moora/agent-worker
  * const reaction = createReaction({
  *   llm: createLlmReaction({ callLlm }),
  *   // ...

@@ -2,14 +2,10 @@
  * Reaction Options 类型定义
  *
  * 定义各 Actor 的 reaction 工厂函数的配置参数类型。
- * 这些类型用于创建 reaction 函数，使 @moora/agent 与具体实现解耦。
+ * 这些类型用于创建 reaction 函数，使 @moora/agent-starter 与具体实现解耦。
  */
 
-import type {
-  UserMessage,
-  AssiMessageCompleted,
-  ToolCallRequest,
-} from "./observations";
+import type { UserMessage, AssiMessageCompleted } from "./observations";
 import type { PerspectiveOfUser } from "./perspectives";
 
 // ============================================================================
@@ -86,20 +82,6 @@ export type CallLlm = (
 ) => void | Promise<void>;
 
 // ============================================================================
-// CallTool 相关类型
-// ============================================================================
-
-/**
- * callTool 函数类型
- *
- * 执行工具调用的抽象接口，由外部实现具体的工具执行逻辑。
- *
- * @param request - 工具调用请求
- * @returns Promise<string> - 工具执行结果（JSON string）
- */
-export type CallTool = (request: ToolCallRequest) => Promise<string>;
-
-// ============================================================================
 // NotifyUser 相关类型
 // ============================================================================
 
@@ -121,12 +103,6 @@ export type NotifyUser = (perspective: PerspectiveOfUser) => void;
  */
 export type LlmReactionOptions = {
   callLlm: CallLlm;
-  /**
-   * 工具定义列表
-   *
-   * 传递给 LLM 的可用工具定义
-   */
-  tools?: CallLlmToolDefinition[];
   /**
    * 可选的流式开始回调
    *
@@ -156,28 +132,8 @@ export type LlmReactionOptions = {
 };
 
 /**
- * Toolkit Actor 的 reaction 配置选项
- */
-export type ToolkitReactionOptions = {
-  callTool: CallTool;
-};
-
-/**
  * User Actor 的 reaction 配置选项
  */
 export type UserReactionOptions = {
   notifyUser: NotifyUser;
 };
-
-// ============================================================================
-// 统一 Reaction Options
-// ============================================================================
-
-/**
- * 统一的 Reaction 配置选项
- *
- * 包含所有 Actor 的 reaction 配置，用于 createReactions 工厂函数。
- */
-export type ReactionOptions = LlmReactionOptions &
-  ToolkitReactionOptions &
-  UserReactionOptions;

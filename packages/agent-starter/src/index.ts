@@ -1,5 +1,5 @@
 /**
- * @moora/starter-agent
+ * @moora/agent-starter
  *
  * 最小 Agent 实现，基于 Automata 和迭代式建模方法论
  */
