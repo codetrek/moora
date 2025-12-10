@@ -5,7 +5,7 @@
  * 这些类型用于创建 reaction 函数，使 @moora/starter-agent 与具体实现解耦。
  */
 
-import type { UserMessage, AssiMessage } from "./observations";
+import type { UserMessage, AssiMessageCompleted } from "./observations";
 import type { PerspectiveOfUser } from "./perspectives";
 
 // ============================================================================
@@ -15,9 +15,9 @@ import type { PerspectiveOfUser } from "./perspectives";
 /**
  * LLM 调用的消息类型
  *
- * 只包含 UserMessage 和 AssiMessage
+ * 只包含 UserMessage 和已完成的 AssiMessage（streaming = false）
  */
-export type CallLlmMessage = UserMessage | AssiMessage;
+export type CallLlmMessage = UserMessage | AssiMessageCompleted;
 
 /**
  * LLM 调用的场景类型

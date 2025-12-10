@@ -48,24 +48,45 @@ describe("Starter Agent", () => {
     expect(state.userMessages[0]?.role).toBe("user");
   });
 
-  test("should dispatch assistant message and update state", async () => {
+  test("should dispatch assistant message stream and update state", async () => {
     const agent = createAgent(mockReaction);
     const timestamp = Date.now();
+    const messageId = "test-id-2";
 
+    // Start stream
     agent.dispatch({
-      type: "send-assi-message",
-      id: "test-id-2",
-      content: "Hi there!",
+      type: "start-assi-message-stream",
+      id: messageId,
       timestamp,
+      cutOff: timestamp,
     });
 
     // dispatch ??????????
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 
-    const state = agent.current();
+    let state = agent.current();
     expect(state.assiMessages).toHaveLength(1);
+    expect(state.assiMessages[0]?.id).toBe(messageId);
+    expect(state.assiMessages[0]?.role).toBe("assistant");
+    expect(state.assiMessages[0]?.streaming).toBe(true);
+
+    // End stream
+    agent.dispatch({
+      type: "end-assi-message-stream",
+      id: messageId,
+      content: "Hi there!",
+      timestamp: timestamp + 100,
+    });
+
+    // dispatch ??????????
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+    state = agent.current();
+    expect(state.assiMessages).toHaveLength(1);
+    expect(state.assiMessages[0]?.id).toBe(messageId);
     expect(state.assiMessages[0]?.content).toBe("Hi there!");
     expect(state.assiMessages[0]?.role).toBe("assistant");
+    expect(state.assiMessages[0]?.streaming).toBe(false);
   });
 
   test("should subscribe to output changes", async () => {

@@ -22,9 +22,12 @@ export type {
   ActionFromUser,
   ActionFromLlm,
   SendUserMessage,
-  SendAssiMessage,
+  StartAssiMessageStream,
+  EndAssiMessageStream,
   UserMessage,
   AssiMessage,
+  AssiMessageStreaming,
+  AssiMessageCompleted,
   BaseMessage,
   // Reaction types
   CallLlmMessage,

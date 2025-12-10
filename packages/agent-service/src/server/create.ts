@@ -11,7 +11,7 @@ import {
   createToolkitReaction,
 } from "@moora/agent";
 import type { AgentUpdatePack } from "@moora/agent";
-import { createPubSub } from "@moora/automata";
+import { createPubSub } from "@moora/pub-sub";
 import type { Toolkit } from "@moora/toolkit";
 import {
   createNotifyUserCallback,

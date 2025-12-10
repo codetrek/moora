@@ -12,5 +12,6 @@ import type { AppearanceOfLlm } from "@/decl/appearances";
 export function initialLlm(): AppearanceOfLlm {
   return {
     assiMessages: [],
+    cutOff: 0,
   };
 }

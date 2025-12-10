@@ -7,7 +7,7 @@
 import { sse } from "elysia";
 import { createAgent } from "@moora/agent";
 import type { PerspectiveOfUser } from "@moora/agent";
-import type { Subscribe } from "@moora/automata";
+import type { Subscribe } from "@moora/pub-sub";
 import { getLogger } from "@/logger";
 
 const logger = getLogger();

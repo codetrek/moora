@@ -14,6 +14,8 @@ export type {
   BaseMessage,
   UserMessage,
   AssiMessage,
+  AssiMessageStreaming,
+  AssiMessageCompleted,
   UserMessages,
   AssiMessages,
   UserObLlm,
@@ -25,6 +27,8 @@ export {
   baseMessageSchema,
   userMessageSchema,
   assiMessageSchema,
+  assiMessageStreamingSchema,
+  assiMessageCompletedSchema,
   userObLlmSchema,
   userObUserSchema,
   llmObLlmSchema,
@@ -48,11 +52,16 @@ export { perspectiveOfUserSchema, perspectiveOfLlmSchema } from "./perspectives"
 // ============================================================================
 export type {
   SendUserMessage,
-  SendAssiMessage,
+  StartAssiMessageStream,
+  EndAssiMessageStream,
   ActionFromUser,
   ActionFromLlm,
 } from "./actions";
-export { sendUserMessageSchema, sendAssiMessageSchema } from "./actions";
+export {
+  sendUserMessageSchema,
+  startAssiMessageStreamSchema,
+  endAssiMessageStreamSchema,
+} from "./actions";
 
 // ============================================================================
 // Helpers

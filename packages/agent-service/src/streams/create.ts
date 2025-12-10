@@ -2,8 +2,8 @@
  * 创建 StreamManager 实例
  */
 
-import { createPubSub } from "@moora/automata";
-import type { CancelFn } from "@moora/automata";
+import { createPubSub } from "@moora/pub-sub";
+import type { CancelFn } from "@moora/pub-sub";
 import type { SSEConnection, StreamConnection, StreamManager } from "@/types";
 import { sendToConnection } from "./helpers";
 import { getLogger } from "@/logger";

@@ -2,7 +2,7 @@
  * @moora/agent-service 全局类型定义
  */
 
-import type { PubSub, CancelFn } from "@moora/automata";
+import type { PubSub, CancelFn } from "@moora/pub-sub";
 
 // ============================================================================
 // OpenAI 相关类型

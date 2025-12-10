@@ -1,4 +1,5 @@
 import type { Eff } from '@moora/effects';
+import type { Unsubscribe as PubSubUnsubscribe } from '@moora/pub-sub';
 
 // ============================================================================
 // 基础类型
@@ -12,33 +13,7 @@ export type CancelFn = () => void;
 /**
  * 取消订阅函数，等同于 CancelFn
  */
-export type Unsubscribe = CancelFn;
-
-// ============================================================================
-// PubSub 相关类型
-// ============================================================================
-
-export type Subscribe<T> = (handler: (value: T) => void) => Unsubscribe;
-
-export type Publish<T> = (value: T) => void;
-
-/**
- * 发布订阅组件
- *
- * @template T - 发布的数据类型
- */
-export type PubSub<T> = {
-  /**
-   * 发布数据给所有订阅者
-   */
-  pub: Publish<T>;
-  /**
-   * 订阅数据
-   * @param handler - 处理函数
-   * @returns 取消订阅的函数
-   */
-  sub: Subscribe<T>;
-};
+export type Unsubscribe = PubSubUnsubscribe;
 
 // ============================================================================
 // 自动机相关类型

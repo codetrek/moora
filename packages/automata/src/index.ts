@@ -13,13 +13,9 @@ export type {
   // 基础类型
   CancelFn,
   Unsubscribe,
-  // PubSub 相关
-  PubSub,
   // 自动机相关
   Dispatch,
   OutputHandler,
-  Subscribe,
-  Publish,
   SubscribeOutput,
   Transferer,
   StatefulTransferer,
@@ -35,10 +31,18 @@ export type {
   UpdatePack,
 } from './types';
 
+// 从 @moora/pub-sub 重新导出 PubSub 相关类型
+export type {
+  Subscribe,
+  Publish,
+  PubSub,
+} from '@moora/pub-sub';
+
 // ============================================================================
 // 导出函数
 // ============================================================================
-export { createPubSub } from './pub-sub';
+// 从 @moora/pub-sub 重新导出 createPubSub
+export { createPubSub } from '@moora/pub-sub';
 export {
   automata,
   mealy,
