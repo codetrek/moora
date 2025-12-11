@@ -1,0 +1,53 @@
+{
+  "name": "@moora/workforce",
+  "version": "0.1.2",
+  "description": "Workforce management for agent task scheduling and coordination",
+  "keywords": [
+    "workforce",
+    "agent",
+    "task",
+    "scheduling",
+    "coordination"
+  ],
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shazhou-ww/moora.git",
+    "directory": "packages/workforce"
+  },
+  "homepage": "https://github.com/shazhou-ww/moora/tree/main/packages/workforce#readme",
+  "bugs": {
+    "url": "https://github.com/shazhou-ww/moora/issues"
+  },
+  "dependencies": {
+    "@moora/agent-common": "0.1.2",
+    "@moora/agent-worker": "0.1.2",
+    "@moora/pub-sub": "0.1.2",
+    "@moora/toolkit": "0.1.2",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@vitest/coverage-v8": "^4.0.12",
+    "@vitest/ui": "4.0.12",
+    "typescript": "^5",
+    "vitest": "^4.0.12"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "README.md",
+    "src"
+  ],
+  "scripts": {
+    "test": "vitest --run --no-ui",
+    "test:coverage": "vitest --run --coverage --no-ui",
+    "test:ui": "vitest --ui",
+    "test:ci": "vitest --run --coverage --no-ui"
+  }
+}
