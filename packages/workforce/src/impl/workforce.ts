@@ -2,9 +2,12 @@
  * Workforce 实现
  *
  * 维护 Task tree 和 Agent 池，自动调度 Worker Agent 完成分配的任务
+ * 使用 automata-based 状态机实现
  */
 
 import { v4 as uuidv4 } from "uuid";
+import { automata } from "@moora/automata";
+import { createPubSub } from "@moora/pub-sub";
 import {
   createAgent,
   createReaction,
@@ -13,6 +16,8 @@ import {
   createUserReaction,
 } from "@moora/agent-worker";
 import type { Agent, AgentUpdatePack } from "@moora/agent-worker";
+import type { Dispatch } from "@moora/automata";
+import type { Eff } from "@moora/effects";
 import { createToolkit } from "@moora/toolkit";
 import type { Toolkit, ToolDefinition } from "@moora/toolkit";
 
@@ -25,28 +30,18 @@ import {
   type AppendMessageInput,
   type Task,
   type TaskRuntimeStatus,
+  type TaskEvent,
+  type TaskDetailEvent,
 } from "../types";
-import { createTaskTree } from "./task-tree";
 import {
   parsePseudoToolCall,
   createPseudoToolDefinitions,
 } from "./pseudo-tools";
-
-// ============================================================================
-// 类型定义
-// ============================================================================
-
-/**
- * 工作中的 Agent 实例
- */
-type WorkingAgent = {
-  /** Agent 实例 */
-  agent: Agent;
-  /** 正在处理的 Task ID */
-  taskId: TaskId;
-  /** 取消订阅函数 */
-  unsubscribe: () => void;
-};
+import { initial } from "./initial";
+import { transition } from "./transition";
+import { output } from "./output";
+import { createAgentManager } from "./agent-manager";
+import type { WorkforceState, WorkforceInput, OutputContext } from "./types";
 
 // ============================================================================
 // Workforce 实现
@@ -59,16 +54,33 @@ type WorkingAgent = {
  * @returns Workforce 实例
  */
 export function createWorkforce(config: WorkforceConfig): Workforce {
-  const { maxAgents, toolkit: userToolkit, callLlm } = config;
+  const { toolkit: userToolkit, callLlm } = config;
 
-  // 创建 Task Tree
-  const taskTree = createTaskTree();
+  // 创建事件 PubSub
+  const taskEventPubSub = createPubSub<TaskEvent>();
+  const taskDetailEventPubSub = createPubSub<TaskDetailEvent>();
 
-  // 工作中的 Agent 池
-  const workingAgents = new Map<TaskId, WorkingAgent>();
+  // 创建 Agent 管理器
+  const agentManager = createAgentManager();
 
-  // 是否已销毁
-  let destroyed = false;
+  // 创建输出上下文
+  const outputContext: OutputContext = {
+    taskEventPubSub,
+    taskDetailEventPubSub,
+    agentManager,
+  };
+
+  // 创建状态机
+  const machine = automata<WorkforceInput, Eff<Dispatch<WorkforceInput>>, WorkforceState>(
+    {
+      initial: () => initial(config),
+      transition,
+    },
+    (update) => {
+      const effect = output(outputContext)(update);
+      return effect !== null ? { output: effect } : null;
+    }
+  );
 
   // ============================================================================
   // 内部函数
@@ -96,19 +108,28 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
   /**
    * 为指定 Task 创建 Worker Agent
    */
-  function createWorkerAgent(taskId: TaskId): WorkingAgent | undefined {
-    const task = taskTree.getTask(taskId);
+  function createWorkerAgent(taskId: TaskId): Agent | undefined {
+    const state = machine.current();
+    const task = state.tasks[taskId];
     if (!task) return undefined;
 
     const combinedToolkit = createCombinedToolkit();
 
     // 创建 callTool 函数，拦截伪工具
-    const callTool = async (request: { toolCallId: string; name: string; arguments: string }) => {
+    const callTool = async (request: {
+      toolCallId: string;
+      name: string;
+      arguments: string;
+    }) => {
       const pseudoCall = parsePseudoToolCall(request.name, request.arguments);
 
       if (pseudoCall) {
-        // 伪工具调用，处理 task 状态
-        handlePseudoToolCall(taskId, pseudoCall);
+        // 伪工具调用，dispatch 伪工具调用输入
+        machine.dispatch({
+          type: "pseudo-tool-call",
+          taskId,
+          call: pseudoCall,
+        });
         return JSON.stringify({ status: "acknowledged" });
       }
 
@@ -134,11 +155,11 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
         callLlm,
         tools: toolDefs,
         onStart: (messageId: string) => {
-          taskTree.appendAssistantMessage(taskId, messageId);
+          // Worldscape 更新会通过 Agent 的 subscribe 同步
         },
         onChunk: (messageId: string, chunk: string) => {
           // 发布流式事件
-          taskTree.taskDetailEventPubSub.pub({
+          taskDetailEventPubSub.pub({
             type: "task-detail-stream-chunk",
             taskId,
             messageId,
@@ -147,19 +168,36 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
           });
         },
         onComplete: (messageId: string, content: string) => {
-          taskTree.completeAssistantMessage(taskId, messageId, content);
+          // Worldscape 更新会通过 Agent 的 subscribe 同步
         },
       }),
       toolkit: createToolkitReaction({
-        callTool: async (request: { toolCallId: string; name: string; arguments: string }) => {
-          // 先记录工具调用请求
-          taskTree.appendToolCallRequest(taskId, request.toolCallId, request.name, request.arguments);
+        callTool: async (request: {
+          toolCallId: string;
+          name: string;
+          arguments: string;
+        }) => {
+          // 发布工具调用请求事件
+          taskDetailEventPubSub.pub({
+            type: "task-detail-tool-call-request",
+            taskId,
+            toolCallId: request.toolCallId,
+            name: request.name,
+            arguments: request.arguments,
+            timestamp: Date.now(),
+          });
 
           // 执行工具调用
           const result = await callTool(request);
 
-          // 记录工具调用响应
-          taskTree.appendToolCallResponse(taskId, request.toolCallId, result);
+          // 发布工具调用响应事件
+          taskDetailEventPubSub.pub({
+            type: "task-detail-tool-call-response",
+            taskId,
+            toolCallId: request.toolCallId,
+            result,
+            timestamp: Date.now(),
+          });
 
           return result;
         },
@@ -167,106 +205,71 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
     });
 
     // 创建 Agent
-    const agent = createAgent(reaction);
-
-    // 订阅 Agent 更新
-    const unsubscribe = agent.subscribe((_update: AgentUpdatePack) => {
-      // 可以在这里添加额外的日志或处理
-    });
-
-    return { agent, taskId, unsubscribe };
+    return createAgent(reaction);
   }
 
-  /**
-   * 处理伪工具调用
-   */
-  function handlePseudoToolCall(
-    taskId: TaskId,
-    call: ReturnType<typeof parsePseudoToolCall>
-  ): void {
-    if (!call) return;
+  // ============================================================================
+  // 订阅状态机输出，处理副作用
+  // ============================================================================
 
-    const task = taskTree.getTask(taskId);
-    if (!task) return;
+  machine.subscribe((effect: Eff<Dispatch<WorkforceInput>>) => {
+    // 执行副作用函数，传入 dispatch
+    effect(machine.dispatch);
 
-    switch (call.type) {
-      case "succeed":
-        taskTree.succeedTask(taskId, call.params.conclusion);
-        destroyAgent(taskId);
-        break;
+    const state = machine.current();
 
-      case "fail":
-        taskTree.failTask(taskId, call.params.error);
-        destroyAgent(taskId);
-        break;
+    // 处理 Agent 操作
+    // 1. 检查需要创建的 Agent（schedule-agent 输入后）
+    // 2. 检查需要销毁的 Agent（任务完成或取消后）
 
-      case "breakdown":
-        // 创建子任务
-        for (const subtask of call.params.subtasks) {
-          const subtaskId = uuidv4();
-          taskTree.createTask({
-            id: subtaskId,
-            title: subtask.title,
-            goal: subtask.description,
-            parentId: taskId,
+    // 检查新调度的任务
+    const workingAgentTaskIds = new Set(Object.keys(state.workingAgents));
+    const agentManagerTaskIds = new Set(
+      agentManager.getAll().map((wa) => wa.taskId)
+    );
+
+    // 创建新的 Agent
+    for (const taskId of workingAgentTaskIds) {
+      if (!agentManagerTaskIds.has(taskId)) {
+        const agent = createWorkerAgent(taskId);
+        if (agent) {
+          // 订阅 Agent 更新，同步 Worldscape 到状态
+          const unsubscribe = agent.subscribe((update: AgentUpdatePack) => {
+            // 同步 Worldscape 到状态
+            machine.dispatch({
+              type: "update-worldscape",
+              taskId,
+              worldscape: update.state,
+            });
           });
+
+          agentManager.create(taskId, agent, unsubscribe);
+
+          // 发送初始用户消息（从 Worldscape 获取）
+          const task = state.tasks[taskId];
+          if (task && task.worldscape.userMessages.length > 0) {
+            for (const msg of task.worldscape.userMessages) {
+              agent.dispatch({
+                type: "send-user-message",
+                id: msg.id,
+                content: msg.content,
+                timestamp: msg.timestamp,
+              });
+            }
+          }
         }
-        // 更新父任务状态为 pending
-        taskTree.setPending(taskId);
-        destroyAgent(taskId);
-        break;
-    }
-
-    // 尝试调度下一个任务
-    scheduleNext();
-  }
-
-  /**
-   * 销毁指定 Task 的 Agent
-   */
-  function destroyAgent(taskId: TaskId): void {
-    const workingAgent = workingAgents.get(taskId);
-    if (workingAgent) {
-      workingAgent.unsubscribe();
-      workingAgents.delete(taskId);
-    }
-  }
-
-  /**
-   * 调度下一个任务
-   */
-  function scheduleNext(): void {
-    if (destroyed) return;
-    if (workingAgents.size >= maxAgents) return;
-
-    const nextTaskId = taskTree.getNextReadyTask();
-    if (!nextTaskId) return;
-
-    // 更新任务状态
-    taskTree.startProcessing(nextTaskId);
-
-    // 创建 Agent
-    const workingAgent = createWorkerAgent(nextTaskId);
-    if (!workingAgent) return;
-
-    workingAgents.set(nextTaskId, workingAgent);
-
-    // 发送初始用户消息（从 Worldscape 获取）
-    const task = taskTree.getTask(nextTaskId);
-    if (task && task.worldscape.userMessages.length > 0) {
-      for (const msg of task.worldscape.userMessages) {
-        workingAgent.agent.dispatch({
-          type: "send-user-message",
-          id: msg.id,
-          content: msg.content,
-          timestamp: msg.timestamp,
-        });
       }
     }
 
-    // 继续调度更多任务
-    scheduleNext();
-  }
+    // 销毁已完成的 Agent
+    for (const taskId of agentManagerTaskIds) {
+      if (!workingAgentTaskIds.has(taskId)) {
+        agentManager.destroy(taskId);
+        // dispatch agent-completed 输入
+        machine.dispatch({ type: "agent-completed", taskId });
+      }
+    }
+  });
 
   // ============================================================================
   // Workforce API 实现
@@ -276,30 +279,20 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
    * 创建一组 Task
    */
   function createTasks(tasks: CreateTaskInput[]): void {
-    for (const taskInput of tasks) {
-      taskTree.createTask({
-        id: taskInput.id,
-        title: taskInput.title,
-        goal: taskInput.goal,
-        parentId: taskInput.parentId ?? ROOT_TASK_ID,
-      });
-    }
-
-    // 触发调度
-    scheduleNext();
+    machine.dispatch({ type: "create-tasks", tasks });
   }
 
   /**
    * 向 Task 追加补充信息
    */
   function appendMessage(input: AppendMessageInput): void {
+    machine.dispatch({ type: "append-message", input });
+
+    // 如果 Task 正在被处理，通知 Agent
+    const state = machine.current();
     const { messageId, content, taskIds } = input;
-
     for (const taskId of taskIds) {
-      taskTree.appendUserMessage(taskId, messageId, content);
-
-      // 如果 Task 正在被处理，通知 Agent
-      const workingAgent = workingAgents.get(taskId);
+      const workingAgent = agentManager.get(taskId);
       if (workingAgent) {
         workingAgent.agent.dispatch({
           type: "send-user-message",
@@ -315,55 +308,60 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
    * 取消一组 Task
    */
   function cancelTasks(taskIds: TaskId[]): void {
-    for (const taskId of taskIds) {
-      // 销毁正在运行的 Agent
-      destroyAgent(taskId);
-      // 更新 Task 状态
-      taskTree.cancelTask(taskId);
-    }
+    machine.dispatch({ type: "cancel-tasks", taskIds });
 
-    // 触发调度
-    scheduleNext();
+    // 销毁正在运行的 Agent
+    for (const taskId of taskIds) {
+      agentManager.destroy(taskId);
+    }
   }
 
   /**
    * 获取指定 Task 的完整信息
    */
   function getTask(taskId: TaskId): Task | undefined {
-    return taskTree.getTask(taskId);
+    const state = machine.current();
+    return state.tasks[taskId];
   }
 
   /**
    * 获取指定 Task 的运行时状态
    */
   function getTaskStatus(taskId: TaskId): TaskRuntimeStatus | undefined {
-    return taskTree.getTaskStatus(taskId);
+    const state = machine.current();
+    const task = state.tasks[taskId];
+    if (!task) return undefined;
+    return {
+      id: task.id,
+      status: task.status,
+      result: task.result,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+    };
   }
 
   /**
    * 获取所有 Task 的 ID 列表
    */
   function getAllTaskIds(): TaskId[] {
-    return taskTree.getAllTaskIds();
+    const state = machine.current();
+    return Object.keys(state.tasks);
   }
 
   /**
    * 获取指定 Task 的子任务 ID 列表
    */
   function getChildTaskIds(taskId: TaskId): TaskId[] {
-    return taskTree.getChildTaskIds(taskId);
+    const state = machine.current();
+    return state.children[taskId] || [];
   }
 
   /**
    * 销毁 Workforce
    */
   function destroy(): void {
-    destroyed = true;
-
-    // 销毁所有 Agent
-    for (const [taskId] of workingAgents) {
-      destroyAgent(taskId);
-    }
+    machine.dispatch({ type: "destroy" });
+    agentManager.destroyAll();
   }
 
   return {
@@ -374,8 +372,8 @@ export function createWorkforce(config: WorkforceConfig): Workforce {
     getTaskStatus,
     getAllTaskIds,
     getChildTaskIds,
-    subscribeTaskEvent: taskTree.taskEventPubSub.sub,
-    subscribeTaskDetailEvent: taskTree.taskDetailEventPubSub.sub,
+    subscribeTaskEvent: taskEventPubSub.sub,
+    subscribeTaskDetailEvent: taskDetailEventPubSub.sub,
     destroy,
   };
 }

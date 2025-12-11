@@ -26,8 +26,11 @@
   "dependencies": {
     "@moora/agent-common": "0.1.2",
     "@moora/agent-worker": "0.1.2",
+    "@moora/automata": "0.1.2",
+    "@moora/effects": "0.1.2",
     "@moora/pub-sub": "0.1.2",
     "@moora/toolkit": "0.1.2",
+    "uuid": "^11.0.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
