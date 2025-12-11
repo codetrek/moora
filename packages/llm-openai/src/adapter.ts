@@ -129,7 +129,8 @@ type AccumulatedToolCall = {
  */
 async function processStream(
   stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>,
-  callbacks: CallLlmCallbacks
+  callbacks: CallLlmCallbacks,
+  debug = false
 ): Promise<void> {
   let fullContent = "";
   let isFirstChunk = true;
@@ -144,6 +145,9 @@ async function processStream(
 
     // Accumulate tool_calls
     if (toolCalls && toolCalls.length > 0) {
+      if (debug) {
+        console.log('[llm-openai] Received tool_calls chunk:', JSON.stringify(toolCalls));
+      }
       for (const tc of toolCalls) {
         const existing = toolCallsAccumulator.get(tc.index);
         if (existing) {
@@ -174,15 +178,23 @@ async function processStream(
     }
   }
 
+  if (debug) {
+    console.log('[llm-openai] Full content:', fullContent);
+  }
+
   // Call onComplete if we received any content
   if (!isFirstChunk) {
     callbacks.onComplete(fullContent);
   }
 
-  // Emit tool calls
+  // Emit tool calls from OpenAI format
   const completedToolCalls = Array.from(toolCallsAccumulator.values()).filter(
     (tc) => tc.id && tc.name
   );
+
+  if (debug && completedToolCalls.length > 0) {
+    console.log('[llm-openai] OpenAI format tool calls:', completedToolCalls);
+  }
 
   for (const tc of completedToolCalls) {
     callbacks.onToolCall({
@@ -243,18 +255,31 @@ export function createCallLlmWithOpenAI(options: OpenAICallLlmOptions): CallLlm 
         ? context.tools.map(convertToolDefinition)
         : undefined;
 
+    // Enable debug mode if LOG_LEVEL is debug or trace
+    const debug = process.env.LOG_LEVEL === 'debug' || process.env.LOG_LEVEL === 'trace';
+
+    if (debug) {
+      console.log('[llm-openai] Calling LLM with:', {
+        model,
+        messageCount: messages.length,
+        toolCount: tools?.length ?? 0,
+        toolNames: tools?.map(t => t.function.name),
+      });
+    }
+
     // Call OpenAI Streaming API
     const stream = await openai.chat.completions.create({
       model,
       messages,
       tools,
+      tool_choice: tools && tools.length > 0 ? 'auto' : undefined,
       stream: true,
       temperature,
       top_p: topP,
     });
 
     // Process streaming response
-    await processStream(stream, callbacks);
+    await processStream(stream, callbacks, debug);
   };
 
   return callLlm;
