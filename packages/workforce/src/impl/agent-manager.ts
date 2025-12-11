@@ -5,7 +5,8 @@
  */
 
 import type { Agent } from "@moora/agent-worker";
-import type { TaskId, WorkingAgent } from "./types";
+import type { TaskId } from "../types";
+import type { WorkingAgent } from "./types";
 
 /**
  * Agent 管理器接口

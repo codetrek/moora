@@ -3,7 +3,8 @@
  */
 
 import { ROOT_TASK_ID } from "../types";
-import type { WorkforceState, WorkforceConfig } from "./types";
+import type { WorkforceConfig } from "../types";
+import type { WorkforceState } from "./types";
 
 /**
  * 创建初始 Workforce 状态

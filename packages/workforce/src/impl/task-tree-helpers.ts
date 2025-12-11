@@ -12,9 +12,8 @@ import type {
   TaskResult,
   TaskInput,
   MessageId,
-  UserMessage,
-  AssiMessage,
 } from "../types";
+import type { UserMessage, AssiMessage } from "@moora/agent-common";
 import type { Worldscape } from "@moora/agent-worker";
 import type { WorkforceState } from "./types";
 

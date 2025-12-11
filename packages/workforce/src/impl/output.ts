@@ -12,7 +12,8 @@ import type {
   WorkforceInput,
   OutputContext,
 } from "./types";
-import type { TaskEvent, TaskDetailEvent } from "../types";
+import type { TaskEvent, TaskDetailEvent, TaskInput } from "../types";
+import { ROOT_TASK_ID } from "../types";
 import { getNextReadyTask } from "./task-tree-helpers";
 
 /**
@@ -38,9 +39,16 @@ function computeEvents(
     for (const taskInput of input.tasks) {
       const task = current.tasks[taskInput.id];
       if (task) {
+        // 将 CreateTaskInput 转换为 TaskInput（处理 parentId 的默认值）
+        const taskInputForEvent: TaskInput = {
+          id: taskInput.id,
+          title: taskInput.title,
+          goal: taskInput.goal,
+          parentId: taskInput.parentId ?? ROOT_TASK_ID,
+        };
         taskEvents.push({
           type: "task-created",
-          task: taskInput,
+          task: taskInputForEvent,
           timestamp: task.createdAt,
         });
 
