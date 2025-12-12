@@ -5,7 +5,8 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import { createAgent } from "@moora/agent-worker";
+
+import type { createAgent } from "@moora/agent-worker";
 import type { ActionFromUser } from "@moora/agent-worker";
 
 /**

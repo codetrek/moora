@@ -6,11 +6,11 @@
 
 import { emptyToolkit, mergeToolkits } from "@moora/toolkit";
 import { createTavilyToolkit } from "@moora/tools-tavily";
+import { getLogger } from "@/logger";
 
 import type { ToolCallRequest } from "@moora/agent-worker";
 import type { Toolkit } from "@moora/toolkit";
 
-import { getLogger } from "@/logger";
 
 const logger = getLogger();
 

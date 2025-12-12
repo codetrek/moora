@@ -3,7 +3,7 @@
  */
 
 import { tavily } from "@tavily/core";
-import type { ToolDefinition } from "@moora/toolkit";
+
 import type {
   TavilyConfig,
   TavilySearchParams,
@@ -11,6 +11,7 @@ import type {
   TavilyExtractParams,
   TavilyExtractResult,
 } from "./types.js";
+import type { ToolDefinition } from "@moora/toolkit";
 
 /**
  * 创建 Tavily Search 工具定义

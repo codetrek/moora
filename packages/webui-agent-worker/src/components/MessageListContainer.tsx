@@ -6,13 +6,14 @@
 import { Box } from "@mui/material";
 import { useEffect, useLayoutEffect, useState, useRef, useCallback } from "react";
 
+import { contentBoxStyles } from "@/styles/app";
+
 import { MessageList } from "./MessageList";
 
 import type { ToolCallItem } from "./ToolCallStatus";
 import type { RenderItem } from "@/hooks";
 import type { Message } from "@/types";
 
-import { contentBoxStyles } from "@/styles/app";
 
 type MessageListContainerProps = {
   messages: Message[];

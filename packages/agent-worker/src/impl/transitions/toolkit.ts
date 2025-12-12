@@ -2,8 +2,8 @@
  * Toolkit Actor 的 Transition 函数实现
  */
 
-import type { AppearanceOfToolkit } from "@/decl/appearances";
 import type { ActionFromToolkit, ReceiveToolResult } from "@/decl/actions";
+import type { AppearanceOfToolkit } from "@/decl/appearances";
 
 /**
  * Toolkit Actor 的状态转换函数

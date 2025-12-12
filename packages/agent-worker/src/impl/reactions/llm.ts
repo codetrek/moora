@@ -3,8 +3,13 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
+
 import { stateful } from "@moora/effects";
+
+import type { LLM } from "@/decl/actors";
+import type { Actuation } from "@/decl/agent";
 import type { ReactionFnOf } from "@/decl/helpers";
+import type { PerspectiveOfLlm } from "@/decl/perspectives";
 import type {
   LlmReactionOptions,
   CallLlmContext,
@@ -13,10 +18,7 @@ import type {
   CallLlmToolCall,
   CallLlmToolDefinition,
 } from "@/decl/reactions";
-import type { PerspectiveOfLlm } from "@/decl/perspectives";
-import type { Actuation } from "@/decl/agent";
 import type { Dispatch } from "@moora/automata";
-import { LLM } from "@/decl/actors";
 
 // ============================================================================
 // 类型定义
@@ -204,8 +206,6 @@ export const createLlmReaction = (options: LlmReactionOptions): LlmReactionFn =>
       // 构建 context
       const context = buildCallLlmContext(perspective, tools);
 
-      // 用于收集完整内容
-      let fullContent = "";
       let hasStarted = false;
 
       // 构建 callbacks
@@ -228,7 +228,6 @@ export const createLlmReaction = (options: LlmReactionOptions): LlmReactionFn =>
           return messageId;
         },
         onChunk: (chunk: string) => {
-          fullContent += chunk;
           // 如果提供了 onChunk 回调，调用它
           if (onChunkOption) {
             onChunkOption(messageId, chunk);

@@ -2,9 +2,10 @@
  * Agent 的状态转换函数实现
  */
 
-import type { Worldscape, Actuation } from "@/decl/agent";
-import { transitionUser } from "@/impl/transitions/user";
 import { transitionLlm } from "@/impl/transitions/llm";
+import { transitionUser } from "@/impl/transitions/user";
+
+import type { Worldscape, Actuation } from "@/decl/agent";
 
 /**
  * Agent 的状态转换函数

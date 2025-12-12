@@ -5,10 +5,8 @@
  */
 
 import OpenAI from "openai";
-import type {
-  ChatCompletionMessageParam,
-  ChatCompletionTool,
-} from "openai/resources/chat/completions";
+
+import type { OpenAICallLlmOptions } from "./types.js";
 import type {
   CallLlm,
   CallLlmContext,
@@ -17,7 +15,10 @@ import type {
   CallLlmToolDefinition,
   CallLlmToolCall,
 } from "@moora/agent-common";
-import type { OpenAICallLlmOptions } from "./types.js";
+import type {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources/chat/completions";
 
 // ============================================================================
 // Helper Functions

@@ -2,9 +2,9 @@
  * User Actor Reaction 工厂函数
  */
 
+import type { USER } from "@/decl/actors";
 import type { ReactionFnOf } from "@/decl/helpers";
 import type { UserReactionOptions } from "@/decl/reactions";
-import { USER } from "@/decl/actors";
 
 // ============================================================================
 // 类型定义

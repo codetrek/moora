@@ -3,12 +3,13 @@
  */
 
 import { stateful } from "@moora/effects";
-import type { ReactionFnOf } from "@/decl/helpers";
-import type { ToolkitReactionOptions } from "@/decl/reactions";
-import type { PerspectiveOfToolkit } from "@/decl/perspectives";
+
+import type { TOOLKIT } from "@/decl/actors";
 import type { Actuation } from "@/decl/agent";
+import type { ReactionFnOf } from "@/decl/helpers";
+import type { PerspectiveOfToolkit } from "@/decl/perspectives";
+import type { ToolkitReactionOptions } from "@/decl/reactions";
 import type { Dispatch } from "@moora/automata";
-import { TOOLKIT } from "@/decl/actors";
 
 // ============================================================================
 // 类型定义

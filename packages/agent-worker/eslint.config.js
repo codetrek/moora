@@ -1,9 +1,10 @@
-import { base } from "@moora/eslint-config";
+import { node } from "@moora/eslint-config";
 
 export default [
   {
     files: ["src/**/*.{ts,tsx}"],
-    ...base[0],
+    ...node[0],
+    ...node[1],
     languageOptions: {
       ...base[0].languageOptions,
       parserOptions: {

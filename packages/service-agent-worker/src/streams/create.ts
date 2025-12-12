@@ -3,13 +3,13 @@
  */
 
 import { createPubSub } from "@moora/pub-sub";
+import { getLogger } from "@/logger";
 
 import { sendToConnection } from "./helpers";
 
 import type { SSEConnection, StreamConnection, StreamManager } from "@/types";
 import type { CancelFn } from "@moora/pub-sub";
 
-import { getLogger } from "@/logger";
 
 const logger = getLogger().stream;
 

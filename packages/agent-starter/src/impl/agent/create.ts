@@ -3,10 +3,11 @@
  */
 
 import { automata } from "@moora/automata";
-import type { StatefulTransferer } from "@moora/automata";
-import type { Worldscape, Actuation, AgentReaction, AgentUpdatePack } from "@/decl/agent";
 import { initial } from "@/impl/agent/initial";
 import { transition } from "@/impl/agent/transition";
+
+import type { Worldscape, Actuation, AgentReaction, AgentUpdatePack } from "@/decl/agent";
+import type { StatefulTransferer } from "@moora/automata";
 
 // ============================================================================
 // 主要函数

@@ -2,7 +2,7 @@
  * 主应用组件
  */
 
-import { useEffect, useState, useCallback } from "react";
+import { KeyboardArrowDown } from "@mui/icons-material";
 import {
   Box,
   Typography,
@@ -12,13 +12,11 @@ import {
   Toolbar,
   Chip,
 } from "@mui/material";
-import { KeyboardArrowDown } from "@mui/icons-material";
-import { MessageListContainer } from "@/components/MessageListContainer";
+import { useEffect, useState, useCallback } from "react";
+
 import { MessageInput } from "@/components/MessageInput";
-import { createSSEConnection, applyPatchesToContext } from "@/utils/sse";
+import { MessageListContainer } from "@/components/MessageListContainer";
 import { useStreamingMessages } from "@/hooks";
-import { sendMessage } from "@/utils/api";
-import type { ContextOfUser } from "@/types";
 import {
   rootStyles,
   appBarStyles,
@@ -29,6 +27,10 @@ import {
   loadingBoxStyles,
   messageCountChipStyles,
 } from "@/styles/app";
+import { sendMessage } from "@/utils/api";
+import { createSSEConnection, applyPatchesToContext } from "@/utils/sse";
+
+import type { ContextOfUser } from "@/types";
 
 function App() {
   const [context, setContext] = useState<ContextOfUser | null>(null);

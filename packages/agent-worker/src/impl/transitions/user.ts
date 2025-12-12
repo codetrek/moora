@@ -2,8 +2,8 @@
  * User Actor 的 Transition 函数实现
  */
 
-import type { AppearanceOfUser } from "@/decl/appearances";
 import type { ActionFromUser, SendUserMessage } from "@/decl/actions";
+import type { AppearanceOfUser } from "@/decl/appearances";
 
 /**
  * User Actor 的状态转换函数

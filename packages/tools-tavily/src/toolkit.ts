@@ -5,9 +5,11 @@
  */
 
 import { createToolkit } from "@moora/toolkit";
-import type { Toolkit } from "@moora/toolkit";
+
 import { createTavilyTools } from "./tools.js";
+
 import type { TavilyConfig } from "./types.js";
+import type { Toolkit } from "@moora/toolkit";
 
 /**
  * 创建 Tavily Toolkit

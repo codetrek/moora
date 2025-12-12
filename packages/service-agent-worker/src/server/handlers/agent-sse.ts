@@ -5,10 +5,12 @@
  */
 
 import { sse } from "elysia";
-import { createAgent } from "@moora/agent-worker";
+
+import { getLogger } from "@/logger";
+
+import type { createAgent } from "@moora/agent-worker";
 import type { PerspectiveOfUser } from "@moora/agent-worker";
 import type { Subscribe } from "@moora/pub-sub";
-import { getLogger } from "@/logger";
 
 const logger = getLogger();
 

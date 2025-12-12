@@ -2,13 +2,13 @@
  * Llm Actor 的 Transition 函数实现
  */
 
-import type { AppearanceOfLlm } from "@/decl/appearances";
 import type {
   ActionFromLlm,
   StartAssiMessageStream,
   EndAssiMessageStream,
   RequestToolCall,
 } from "@/decl/actions";
+import type { AppearanceOfLlm } from "@/decl/appearances";
 
 /**
  * Llm Actor 的状态转换函数

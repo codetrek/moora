@@ -4,10 +4,11 @@
  * Agent Service 启动入口
  */
 
-import { config } from "dotenv";
+import { existsSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { existsSync } from "fs";
+
+import { config } from "dotenv";
 
 // 从当前文件位置加载 .env 文件
 // 优先加载 packages/service-agent-worker/.env，如果不存在则加载根目录 .env
@@ -21,8 +22,8 @@ if (existsSync(packageEnvPath)) {
   config({ path: rootEnvPath });
 }
 
-import { createService } from "./server/create";
 import { createLogger, getLogger, setLogger } from "./logger";
+import { createService } from "./server/create";
 
 // 导出 logger 模块
 export { createLogger, getLogger, setLogger };
