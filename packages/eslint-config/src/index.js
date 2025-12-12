@@ -123,6 +123,7 @@ export const node = [
         clearTimeout: "readonly",
         setInterval: "readonly",
         clearInterval: "readonly",
+        queueMicrotask: "readonly",
       },
     },
   },
