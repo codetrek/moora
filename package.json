@@ -19,9 +19,9 @@
     "start:webui": "bun run scripts/start-webui.ts",
     "dev:webui": "bun run scripts/start-webui.ts --watch",
     "lint": "bun run lint:packages",
-    "lint:fix": "bun run lint:packages -- --fix",
-    "lint:check": "bun run lint:packages -- --max-warnings 0",
-    "lint:packages": "for dir in packages/*/; do if [ -f \"$dir/package.json\" ] && [ -d \"$dir/src\" ]; then echo \"Linting $dir\" && (cd \"$dir\" && bunx eslint src/**/*.ts src/**/*.tsx \"$@\" 2>/dev/null || echo \"No ESLint config in $dir\"); fi; done"
+    "lint:fix": "bun run lint:packages --fix",
+    "lint:check": "bun run lint:packages --max-warnings 0",
+    "lint:packages": "bun run scripts/lint-packages.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

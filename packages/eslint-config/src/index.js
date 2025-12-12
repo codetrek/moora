@@ -4,9 +4,8 @@
  * Shared ESLint configuration for Moora monorepo packages
  */
 
+// Common rules shared across configurations
 const commonRules = {
-  // TypeScript 推荐规则
-  ...require("@typescript-eslint/eslint-plugin").configs.recommended.rules,
 
   // Type imports 必须单独分组
   "@typescript-eslint/consistent-type-imports": [
@@ -52,7 +51,7 @@ const commonRules = {
     },
   ],
 
-  // 禁止未使用的导入（但允许导出）
+  // 禁止未使用的导入
   "import/no-unused-modules": "off", // 关闭，因为可能影响开发体验
   "import/no-unresolved": "error",
 
@@ -69,74 +68,72 @@ const commonRules = {
   ],
 };
 
-module.exports = {
-  // 基础配置（用于纯 JavaScript/TypeScript 包）
-  base: {
-    extends: [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:import/recommended",
-      "plugin:import/typescript",
-    ],
-    parser: "@typescript-eslint/parser",
-    plugins: ["@typescript-eslint", "import"],
-    rules: commonRules,
-  },
+// 基础配置（用于纯 JavaScript/TypeScript 包）
+export const base = {
+  extends: [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript",
+  ],
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint", "import"],
+  rules: commonRules,
+};
 
-  // Node.js 配置（用于服务端包）
-  node: {
-    extends: [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:import/recommended",
-      "plugin:import/typescript",
-    ],
-    parser: "@typescript-eslint/parser",
-    plugins: ["@typescript-eslint", "import"],
-    env: {
-      node: true,
-    },
-    globals: {
-      console: "readonly",
-      process: "readonly",
-      setTimeout: "readonly",
-      clearTimeout: "readonly",
-      setInterval: "readonly",
-      clearInterval: "readonly",
-    },
-    rules: commonRules,
+// Node.js 配置（用于服务端包）
+export const node = {
+  extends: [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript",
+  ],
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint", "import"],
+  env: {
+    node: true,
   },
+  globals: {
+    console: "readonly",
+    process: "readonly",
+    setTimeout: "readonly",
+    clearTimeout: "readonly",
+    setInterval: "readonly",
+    clearInterval: "readonly",
+  },
+  rules: commonRules,
+};
 
-  // Browser 配置（用于前端包）
-  browser: {
-    extends: [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/recommended",
-      "plugin:import/recommended",
-      "plugin:import/typescript",
-    ],
-    parser: "@typescript-eslint/parser",
-    plugins: ["@typescript-eslint", "import"],
-    env: {
-      browser: true,
-      es2022: true,
-    },
-    globals: {
-      console: "readonly",
-      fetch: "readonly",
-      setTimeout: "readonly",
-      clearTimeout: "readonly",
-      setInterval: "readonly",
-      clearInterval: "readonly",
-      requestAnimationFrame: "readonly",
-      cancelAnimationFrame: "readonly",
-      HTMLElement: "readonly",
-      HTMLDivElement: "readonly",
-      HTMLTextAreaElement: "readonly",
-      NodeJS: "readonly",
-      React: "readonly",
-      EventSource: "readonly",
-    },
-    rules: commonRules,
+// Browser 配置（用于前端包）
+export const browser = {
+  extends: [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:import/recommended",
+    "plugin:import/typescript",
+  ],
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint", "import"],
+  env: {
+    browser: true,
+    es2022: true,
   },
+  globals: {
+    console: "readonly",
+    fetch: "readonly",
+    setTimeout: "readonly",
+    clearTimeout: "readonly",
+    setInterval: "readonly",
+    clearInterval: "readonly",
+    requestAnimationFrame: "readonly",
+    cancelAnimationFrame: "readonly",
+    HTMLElement: "readonly",
+    HTMLDivElement: "readonly",
+    HTMLTextAreaElement: "readonly",
+    NodeJS: "readonly",
+    React: "readonly",
+    EventSource: "readonly",
+  },
+  rules: commonRules,
 };

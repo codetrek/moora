@@ -26,6 +26,7 @@
         "zod": "^4.0.0",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -45,6 +46,7 @@
         "zod": "^4.0.0",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -64,6 +66,7 @@
         "zod": "^4.0.0",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -82,6 +85,7 @@
         "@moora/pub-sub": "0.1.2",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -95,6 +99,7 @@
       "name": "@moora/effects",
       "version": "0.1.2",
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -102,6 +107,16 @@
       },
       "peerDependencies": {
         "typescript": "^5",
+      },
+    },
+    "packages/eslint-config": {
+      "name": "@moora/eslint-config",
+      "version": "0.1.0",
+      "peerDependencies": {
+        "@typescript-eslint/eslint-plugin": ">=8.0.0",
+        "@typescript-eslint/parser": ">=8.0.0",
+        "eslint": ">=9.0.0",
+        "eslint-plugin-import": ">=2.30.0",
       },
     },
     "packages/llm-openai": {
@@ -112,6 +127,7 @@
         "openai": "^4.77.0",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "typescript": "^5.8.3",
         "vitest": "^3.1.1",
       },
@@ -123,6 +139,7 @@
       "name": "@moora/pub-sub",
       "version": "0.1.2",
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -151,6 +168,7 @@
         "uuid": "^13.0.0",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@types/uuid": "^10.0.0",
         "@vitest/coverage-v8": "^4.0.12",
@@ -166,6 +184,7 @@
       "name": "@moora/toolkit",
       "version": "0.1.2",
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -183,6 +202,7 @@
         "@tavily/core": "^0.5.14",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "typescript": "^5.8.3",
         "vitest": "^3.1.1",
       },
@@ -203,6 +223,7 @@
         "rfc6902": "^5.1.2",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/react": "^18.3.5",
         "@types/react-dom": "^18.3.0",
         "@typescript-eslint/eslint-plugin": "^7.18.0",
@@ -232,6 +253,7 @@
         "zod": "^4.0.0",
       },
       "devDependencies": {
+        "@moora/eslint-config": "0.1.0",
         "@types/bun": "latest",
         "@vitest/coverage-v8": "^4.0.12",
         "@vitest/ui": "4.0.12",
@@ -423,6 +445,8 @@
     "@moora/automata": ["@moora/automata@workspace:packages/automata"],
 
     "@moora/effects": ["@moora/effects@workspace:packages/effects"],
+
+    "@moora/eslint-config": ["@moora/eslint-config@workspace:packages/eslint-config"],
 
     "@moora/llm-openai": ["@moora/llm-openai@workspace:packages/llm-openai"],
 

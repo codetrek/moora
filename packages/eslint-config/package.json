@@ -9,6 +9,7 @@
     "typescript"
   ],
   "main": "src/index.js",
+  "type": "module",
   "private": false,
   "license": "MIT",
   "repository": {

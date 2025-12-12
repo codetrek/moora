@@ -26,6 +26,7 @@
     "openai": "^4.77.0"
   },
   "devDependencies": {
+    "@moora/eslint-config": "0.1.0",
     "typescript": "^5.8.3",
     "vitest": "^3.1.1"
   },

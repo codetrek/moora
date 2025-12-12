@@ -28,6 +28,7 @@
     "@moora/pub-sub": "0.1.2"
   },
   "devDependencies": {
+    "@moora/eslint-config": "0.1.0",
     "@types/bun": "latest",
     "@vitest/coverage-v8": "^4.0.12",
     "@vitest/ui": "4.0.12",
