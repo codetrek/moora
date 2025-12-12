@@ -1,3 +1,5 @@
+import { createPubSub } from '@moora/pub-sub';
+
 import type {
   Dispatch,
   OutputHandler,
@@ -9,8 +11,7 @@ import type {
   MooreMachine,
   UpdatePack,
 } from './types';
-import { createPubSub } from '@moora/pub-sub';
-import type { PubSub } from '@moora/pub-sub';
+// import type { PubSub } from '@moora/pub-sub'; // Currently not used
 
 /**
  * 创建通用自动机
