@@ -2,13 +2,13 @@
  * 创建 StreamManager 实例
  */
 
+import type { CancelFn } from "@moora/pub-sub";
 import { createPubSub } from "@moora/pub-sub";
 import { getLogger } from "@/logger";
+import type { SSEConnection, StreamConnection, StreamManager } from "@/types";
 
 import { sendToConnection } from "./helpers";
 
-import type { SSEConnection, StreamConnection, StreamManager } from "@/types";
-import type { CancelFn } from "@moora/pub-sub";
 
 
 const logger = getLogger().stream;

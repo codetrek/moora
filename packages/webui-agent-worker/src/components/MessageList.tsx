@@ -10,6 +10,9 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import "highlight.js/styles/github-dark.css";
 
+import type { RenderItem } from "@/hooks";
+import type { Message, AssiMessage, UserMessage } from "@/types";
+
 import {
   containerStyles,
   emptyStateStyles,
@@ -26,8 +29,6 @@ import {
 } from "./MessageList.styles";
 import { ToolCallStatus, ToolCallItemView, type ToolCallItem } from "./ToolCallStatus";
 
-import type { RenderItem } from "@/hooks";
-import type { Message, AssiMessage, UserMessage } from "@/types";
 
 type MessageListProps = {
   messages: Message[];

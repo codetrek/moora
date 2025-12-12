@@ -20,6 +20,8 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 
+import type { ToolCallRequest, ToolResult } from "@/types";
+
 import {
   toolCallContainerStyles,
   toolCallItemStyles,
@@ -31,7 +33,6 @@ import {
   toolCallCodeBlockStyles,
 } from "./ToolCallStatus.styles";
 
-import type { ToolCallRequest, ToolResult } from "@/types";
 
 /**
  * 工具调用项，包含请求和可能的结果

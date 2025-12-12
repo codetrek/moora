@@ -4,10 +4,10 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 
-import { createStreamConnection } from "@/utils/stream";
 
 import type { ToolCallItem } from "@/components/ToolCallStatus";
 import type { ContextOfUser, Message, ToolCallRequest, ToolResult } from "@/types";
+import { createStreamConnection } from "@/utils/stream";
 
 
 /**
@@ -93,7 +93,7 @@ export function useStreamingMessages(
     return [...context.userMessages, ...processedAssiMessages].sort(
       (a, b) => a.timestamp - b.timestamp
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [context, streamContentVersion]);
 
   // 管理流式连接：当检测到新的流式消息时，建立连接

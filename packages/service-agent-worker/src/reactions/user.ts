@@ -6,9 +6,9 @@
 
 import { createPatch } from "rfc6902";
 
+import type { PerspectiveOfUser } from "@moora/agent-worker";
 import { getLogger } from "@/logger";
 
-import type { PerspectiveOfUser } from "@moora/agent-worker";
 
 
 const logger = getLogger();

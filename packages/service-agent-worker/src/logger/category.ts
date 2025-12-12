@@ -2,8 +2,9 @@
  * 分类 Logger 创建
  */
 
-import type { CategoryLogger, LogCategory, LogLevel } from "./types";
 import type pino from "pino";
+
+import type { CategoryLogger, LogCategory, LogLevel } from "./types";
 
 /**
  * 创建分类 Logger

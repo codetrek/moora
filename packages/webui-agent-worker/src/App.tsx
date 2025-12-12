@@ -27,10 +27,10 @@ import {
   loadingBoxStyles,
   messageCountChipStyles,
 } from "@/styles/app";
+import type { ContextOfUser } from "@/types";
 import { sendMessage } from "@/utils/api";
 import { createSSEConnection, applyPatchesToContext } from "@/utils/sse";
 
-import type { ContextOfUser } from "@/types";
 
 function App() {
   const [context, setContext] = useState<ContextOfUser | null>(null);

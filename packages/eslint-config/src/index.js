@@ -31,13 +31,13 @@ const commonRules = {
         "internal", // Internal modules (using path mapping like @moora/**)
         ["parent", "sibling"], // Parent and sibling imports
         "index", // Index imports
-        "type", // Type imports
+        // "type", // Type imports
       ],
       "newlines-between": "always",
       alphabetize: {
         order: "asc",
         caseInsensitive: true,
-        orderImportKind: "ignore",
+        orderImportKind: "asc", // Type imports 也按照 groups 排序
       },
       pathGroups: [
         {
