@@ -6,7 +6,7 @@ import importPlugin from "eslint-plugin-import";
 export default [
   js.configs.recommended,
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["packages/*/src/**/*.{ts,tsx}"],
     languageOptions: {
       parser: tsparser,
       parserOptions: {
@@ -56,6 +56,7 @@ export default [
           alphabetize: {
             order: "asc",
             caseInsensitive: true,
+            orderImportKind: "ignore",
           },
           pathGroups: [
             {
@@ -69,16 +70,58 @@ export default [
         },
       ],
 
-      // 禁止未使用的导入
+      // 禁止未使用的导入（但允许导出）
       "import/no-unused-modules": "off", // 关闭，因为可能影响开发体验
       "import/no-unresolved": "error",
 
       // TypeScript 特定规则
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
   {
-    ignores: ["dist", "node_modules", "bun.lock"],
+    files: ["packages/webui-agent-worker/src/**/*.{ts,tsx}"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        fetch: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+        HTMLElement: "readonly",
+        HTMLDivElement: "readonly",
+        HTMLTextAreaElement: "readonly",
+        NodeJS: "readonly",
+        React: "readonly",
+        EventSource: "readonly",
+      },
+    },
+  },
+  {
+    files: ["packages/service-agent-worker/src/**/*.{ts,tsx}"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+      },
+    },
+  },
+  {
+    ignores: ["dist", "node_modules", "bun.lock", "*.config.*", "*.d.ts"],
   },
 ];
