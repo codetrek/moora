@@ -26,7 +26,8 @@ function runLint(packageDir: string, args: string[]) {
   console.log(`Linting ${packageName}...`);
 
   try {
-    const eslintCommand = `bunx eslint src/**/*.ts src/**/*.tsx ${args.join(' ')}`;
+    // Run ESLint with the package's own config
+    const eslintCommand = `bunx eslint src ${args.join(' ')}`;
     execSync(eslintCommand, {
       cwd: packageDir,
       stdio: 'inherit'

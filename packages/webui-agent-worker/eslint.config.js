@@ -1,9 +1,11 @@
-import { browser as config } from "@moora/eslint-config";
+import { browser } from "@moora/eslint-config";
 
 export default [
-  config,
   {
+    files: ["src/**/*.{ts,tsx}"],
+    ...browser[0],
     languageOptions: {
+      ...browser[0].languageOptions,
       parserOptions: {
         project: "./tsconfig.json",
       },

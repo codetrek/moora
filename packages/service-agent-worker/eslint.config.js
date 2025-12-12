@@ -1,9 +1,11 @@
-import { node as config } from "@moora/eslint-config";
+import { node } from "@moora/eslint-config";
 
 export default [
-  config,
   {
+    files: ["src/**/*.{ts,tsx}"],
+    ...node[0],
     languageOptions: {
+      ...node[0].languageOptions,
       parserOptions: {
         project: "./tsconfig.json",
       },

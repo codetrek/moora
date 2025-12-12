@@ -4,9 +4,13 @@
  * Shared ESLint configuration for Moora monorepo packages
  */
 
+import js from "@eslint/js";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
+import importPlugin from "eslint-plugin-import";
+
 // Common rules shared across configurations
 const commonRules = {
-
   // Type imports 必须单独分组
   "@typescript-eslint/consistent-type-imports": [
     "error",
@@ -69,71 +73,99 @@ const commonRules = {
 };
 
 // 基础配置（用于纯 JavaScript/TypeScript 包）
-export const base = {
-  extends: [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:import/recommended",
-    "plugin:import/typescript",
-  ],
-  parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint", "import"],
-  rules: commonRules,
-};
+export const base = [
+  {
+    languageOptions: {
+      parser: tsparser,
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
+      "import": importPlugin,
+    },
+    rules: {
+      // ESLint recommended rules
+      ...js.configs.recommended.rules,
+
+      // TypeScript recommended rules
+      ...tseslint.configs.recommended.rules,
+
+      ...commonRules,
+    },
+  },
+];
 
 // Node.js 配置（用于服务端包）
-export const node = {
-  extends: [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:import/recommended",
-    "plugin:import/typescript",
-  ],
-  parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint", "import"],
-  env: {
-    node: true,
+export const node = [
+  {
+    languageOptions: {
+      parser: tsparser,
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
+      "import": importPlugin,
+    },
+    rules: {
+      // ESLint recommended rules
+      ...js.configs.recommended.rules,
+
+      // TypeScript recommended rules
+      ...tseslint.configs.recommended.rules,
+
+      ...commonRules,
+    },
   },
-  globals: {
-    console: "readonly",
-    process: "readonly",
-    setTimeout: "readonly",
-    clearTimeout: "readonly",
-    setInterval: "readonly",
-    clearInterval: "readonly",
+  {
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+      },
+    },
   },
-  rules: commonRules,
-};
+];
 
 // Browser 配置（用于前端包）
-export const browser = {
-  extends: [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:import/recommended",
-    "plugin:import/typescript",
-  ],
-  parser: "@typescript-eslint/parser",
-  plugins: ["@typescript-eslint", "import"],
-  env: {
-    browser: true,
-    es2022: true,
+export const browser = [
+  {
+    languageOptions: {
+      parser: tsparser,
+    },
+    plugins: {
+      "@typescript-eslint": tseslint,
+      "import": importPlugin,
+    },
+    rules: {
+      // ESLint recommended rules
+      ...js.configs.recommended.rules,
+
+      // TypeScript recommended rules
+      ...tseslint.configs.recommended.rules,
+
+      ...commonRules,
+    },
   },
-  globals: {
-    console: "readonly",
-    fetch: "readonly",
-    setTimeout: "readonly",
-    clearTimeout: "readonly",
-    setInterval: "readonly",
-    clearInterval: "readonly",
-    requestAnimationFrame: "readonly",
-    cancelAnimationFrame: "readonly",
-    HTMLElement: "readonly",
-    HTMLDivElement: "readonly",
-    HTMLTextAreaElement: "readonly",
-    NodeJS: "readonly",
-    React: "readonly",
-    EventSource: "readonly",
+  {
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        fetch: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        requestAnimationFrame: "readonly",
+        cancelAnimationFrame: "readonly",
+        HTMLElement: "readonly",
+        HTMLDivElement: "readonly",
+        HTMLTextAreaElement: "readonly",
+        NodeJS: "readonly",
+        React: "readonly",
+        EventSource: "readonly",
+      },
+    },
   },
-  rules: commonRules,
-};
+];

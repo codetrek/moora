@@ -1,9 +1,11 @@
-import { base as config } from "@moora/eslint-config";
+import { base } from "@moora/eslint-config";
 
 export default [
-  config,
   {
+    files: ["src/**/*.{ts,tsx}"],
+    ...base[0],
     languageOptions: {
+      ...base[0].languageOptions,
       parserOptions: {
         project: "./tsconfig.json",
       },
