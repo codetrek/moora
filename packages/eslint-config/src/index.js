@@ -17,6 +17,7 @@ const commonRules = {
     {
       prefer: "type-imports",
       fixStyle: "separate-type-imports",
+      disallowTypeAnnotations: false, // Allow import() type annotations
     },
   ],
 
@@ -124,6 +125,7 @@ export const node = [
         setInterval: "readonly",
         clearInterval: "readonly",
         queueMicrotask: "readonly",
+        NodeJS: "readonly",
       },
     },
   },
